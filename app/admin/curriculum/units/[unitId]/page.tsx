@@ -66,12 +66,12 @@ export default async function UnitDetailPage({ params }: Props) {
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-3xl">
-            {(unit.subjects as any)?.icon || '📚'}
+            {(unit as any).subjects?.icon || '📚'}
           </div>
           <div>
             <h1 className="text-2xl font-bold">{(unit as any).name_ar}</h1>
             <p className="text-muted-foreground text-sm">
-              {(unit.subjects as any)?.name_ar} • {(unit.grades as any)?.name_ar}
+              {(unit as any).subjects?.name_ar} • {(unit as any).grades?.name_ar}
             </p>
             {(unit as any).description && (
               <p className="text-sm text-muted-foreground mt-1">{(unit as any).description}</p>
