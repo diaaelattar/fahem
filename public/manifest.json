@@ -1,0 +1,40 @@
+{
+  "name": "استباق مصر",
+  "short_name": "استباق",
+  "description": "منصة التدريب والتحديات الذكية للمرحلة الإعدادية",
+  "start_url": "/student/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "dir": "rtl",
+  "lang": "ar-EG",
+  "theme_color": "#1B4F72",
+  "background_color": "#ffffff",
+  "categories": ["education"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "تدريب سريع",
+      "url": "/student/practice",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "تحدي الآن",
+      "url": "/student/challenges",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
