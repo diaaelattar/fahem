@@ -15,7 +15,7 @@ export default async function ExamReportPage({ params }: Props) {
   await requireAdmin()
   const supabase = createClient()
 
-  const [{ data: exam }, { data: attempts }] = await Promise.all([
+  const [{ data: exam }, { data: rawAttempts }] = await Promise.all([
     supabase
       .from('exams')
       .select(`
@@ -37,6 +37,8 @@ export default async function ExamReportPage({ params }: Props) {
       .not('completed_at', 'is', null)
       .order('completed_at', { ascending: false }),
   ])
+
+  const attempts = rawAttempts as any[] | null
 
   if (!exam) notFound()
 
