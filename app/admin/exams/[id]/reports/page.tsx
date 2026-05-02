@@ -38,8 +38,8 @@ export default async function ExamReportPage({ params }: Props) {
       .order('completed_at', { ascending: false }),
   ])
 
-  const attempts = rawAttempts as any[] | null
-  const exam = rawExam as any | null
+  const attempts: any[] = rawAttempts || []
+  const exam: any = rawExam
 
   if (!exam) notFound()
 
