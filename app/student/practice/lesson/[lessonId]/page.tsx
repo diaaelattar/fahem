@@ -28,7 +28,7 @@ export default async function PracticeLessonPage({ params }: Props) {
 
   if (!lesson) notFound()
 
-  const unit = lesson.units as any
+  const unit = (lesson as any).units
 
   // جلب أسئلة الدرس
   const { data: questions } = await supabase
