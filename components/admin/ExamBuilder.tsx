@@ -98,7 +98,7 @@ export function ExamBuilder({ subjects, grades, semesters, examId, initialData }
     if (searchTerm) q = q.ilike('question_text', `%${searchTerm}%`)
 
     const { data } = await q
-    setAllQuestions((data || []) as Question[])
+    setAllQuestions((data || []) as unknown as Question[])
     setLoadingQuestions(false)
   }
 

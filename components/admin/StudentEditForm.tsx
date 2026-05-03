@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Loader2, Save, UserX, UserCheck } from 'lucide-react'
-import { toast } from '@/components/ui/toaster'
 
 export function StudentEditForm({ student, grades }: { student: any; grades: any[] }) {
   const router = useRouter()
@@ -19,7 +18,7 @@ export function StudentEditForm({ student, grades }: { student: any; grades: any
   const [saving, setSaving] = useState(false)
 
   const handleSave = async () => {
-    if (!fullName.trim()) { toast({ title: 'الاسم مطلوب', type: 'error' }); return }
+    if (!fullName.trim()) { alert('الاسم مطلوب'); return }
     setSaving(true)
     try {
       const [profileRes, studentRes] = await Promise.all([
@@ -35,10 +34,10 @@ export function StudentEditForm({ student, grades }: { student: any; grades: any
       if (profileRes.error) throw profileRes.error
       if (studentRes.error) throw studentRes.error
 
-      toast({ title: 'تم تحديث بيانات الطالب ✅', type: 'success' })
+      alert('تم تحديث بيانات الطالب ✅')
       router.refresh()
     } catch (err: any) {
-      toast({ title: 'خطأ في التحديث', description: err.message, type: 'error' })
+      alert('خطأ في التحديث: ' + err.message)
     } finally {
       setSaving(false)
     }

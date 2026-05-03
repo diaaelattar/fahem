@@ -110,7 +110,7 @@ export default async function AchievementsPage() {
   if (attempts?.some((a: any) => a.is_passed) && !earnedCodes.has('first_pass')) toAward.push('first_pass')
   if (attempts && attempts.length >= 5 && !earnedCodes.has('five_exams')) toAward.push('five_exams')
   if (attempts?.some((a: any) => a.percentage >= 100) && !earnedCodes.has('perfect_score')) toAward.push('perfect_score')
-  if (attempts?.filter((a: any) => a.percentage >= 90).length >= 3 && !earnedCodes.has('high_score')) toAward.push('high_score')
+  if ((attempts?.filter((a: any) => a.percentage >= 90) ?? []).length >= 3 && !earnedCodes.has('high_score')) toAward.push('high_score')
   if ((masteredCount || 0) >= 5 && !earnedCodes.has('wrong_review_5')) toAward.push('wrong_review_5')
 
   if (toAward.length > 0) {

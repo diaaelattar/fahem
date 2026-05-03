@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Loader2, Save, User, Building2, Lock } from 'lucide-react'
-import { toast } from '@/components/ui/toaster'
 
 export function SettingsForm({ profile, admin }: { profile: any; admin: any }) {
   const supabase = createClient()
@@ -17,7 +16,7 @@ export function SettingsForm({ profile, admin }: { profile: any; admin: any }) {
   const [savingPassword, setSavingPassword] = useState(false)
 
   const handleSaveProfile = async () => {
-    if (!fullName.trim()) { toast({ title: 'الاسم مطلوب', type: 'error' }); return }
+    if (!fullName.trim()) { alert('الاسم مطلوب'); return }
     setSavingProfile(true)
     try {
       const [pRes, aRes] = await Promise.all([
@@ -25,26 +24,26 @@ export function SettingsForm({ profile, admin }: { profile: any; admin: any }) {
         supabase.from('admins').upsert({ id: profile.id, department: department || null, school_name: schoolName || null }),
       ])
       if (pRes.error) throw pRes.error
-      toast({ title: 'تم حفظ المعلومات الشخصية ✅', type: 'success' })
+      alert('تم حفظ المعلومات الشخصية ✅')
     } catch (err: any) {
-      toast({ title: 'خطأ', description: err.message, type: 'error' })
+      alert('خطأ: ' + err.message)
     } finally {
       setSavingProfile(false)
     }
   }
 
   const handleChangePassword = async () => {
-    if (newPassword.length < 6) { toast({ title: 'كلمة المرور يجب أن تكون 6 أحرف على الأقل', type: 'error' }); return }
-    if (newPassword !== confirmPassword) { toast({ title: 'كلمتا المرور غير متطابقتين', type: 'error' }); return }
+    if (newPassword.length < 6) { alert('كلمة المرور يجب أن تكون 6 أحرف على الأقل'); return }
+    if (newPassword !== confirmPassword) { alert('كلمتا المرور غير متطابقتين'); return }
     setSavingPassword(true)
     try {
       const { error } = await supabase.auth.updateUser({ password: newPassword })
       if (error) throw error
-      toast({ title: 'تم تغيير كلمة المرور بنجاح ✅', type: 'success' })
+      alert('تم تغيير كلمة المرور بنجاح ✅')
       setNewPassword('')
       setConfirmPassword('')
     } catch (err: any) {
-      toast({ title: 'خطأ', description: err.message, type: 'error' })
+      alert('خطأ: ' + err.message)
     } finally {
       setSavingPassword(false)
     }
