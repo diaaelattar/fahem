@@ -11,7 +11,8 @@ export async function POST(request: NextRequest) {
     if (!user) return NextResponse.json({ error: 'غير مسجل الدخول' }, { status: 401 })
 
     // Enforce RBAC: only admins can delete exams
-    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+    const { data: profileRaw } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+    const profile = profileRaw as any
     if (profile?.role !== 'admin') {
       return NextResponse.json({ error: 'صلاحيات غير كافية' }, { status: 403 })
     }
