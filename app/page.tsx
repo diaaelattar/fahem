@@ -11,7 +11,8 @@ export default async function HomePage() {
   const { data: { user } } = await supabase.auth.getUser()
 
   if (user) {
-    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+    const { data: profileRaw } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+    const profile = profileRaw as any
     if (profile?.role === 'admin') redirect('/admin/dashboard')
     if (profile?.role === 'student') redirect('/student/dashboard')
   }

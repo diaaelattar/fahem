@@ -26,7 +26,8 @@ export default function AdminLoginPage() {
         return
       }
       const { data: { user } } = await supabase.auth.getUser()
-      const { data: profile } = await supabase.from('profiles').select('role').eq('id', user!.id).single()
+      const { data: profileRaw } = await supabase.from('profiles').select('role').eq('id', user!.id).single()
+      const profile = profileRaw as any
       if (profile?.role !== 'admin') {
         await supabase.auth.signOut()
         setError('هذه الصفحة مخصصة لمسؤولي النظام فقط')

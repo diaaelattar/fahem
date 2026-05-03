@@ -16,11 +16,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'غير مسجل الدخول' }, { status: 401 })
     }
 
-    const { data: profile } = await supabase
+    const { data: profileRaw } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', user.id)
       .single()
+    const profile = profileRaw as any
 
     if (profile?.role !== 'admin') {
       return NextResponse.json({ error: 'صلاحيات غير كافية — فقط المديرون يمكنهم إضافة طلاب' }, { status: 403 })
@@ -102,11 +103,12 @@ export async function PUT(req: NextRequest) {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    const { data: profile } = await supabase
+    const { data: profileRaw } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', user?.id)
       .single()
+    const profile = profileRaw as any
 
     if (profile?.role !== 'admin') {
       return NextResponse.json({ error: 'غير مصرح' }, { status: 403 })
