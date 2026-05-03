@@ -25,7 +25,7 @@ export default function NewExamPage() {
   })
 
   useEffect(() => {
-    async function fetchData() {
+    const fetchData = async () => {
       const [{ data: s }, { data: g }] = await Promise.all([
         supabase.from('subjects').select('*').order('name_ar'),
         supabase.from('grades').select('*').order('grade_number')
@@ -34,22 +34,23 @@ export default function NewExamPage() {
       setGrades(g || [])
     }
     fetchData()
-  }, [])
+  }, [supabase])
 
   useEffect(() => {
+    const fetchQuestions = async () => {
+      const { data } = await supabase
+        .from('questions')
+        .select('*')
+        .eq('subject_id', formData.subject_id)
+        .eq('grade_id', formData.grade_id)
+        .eq('is_approved', true)
+      setQuestions(data || [])
+    }
+
     if (formData.subject_id && formData.grade_id) {
-      async function fetchQuestions() {
-        const { data } = await supabase
-          .from('questions')
-          .select('*')
-          .eq('subject_id', formData.subject_id)
-          .eq('grade_id', formData.grade_id)
-          .eq('is_approved', true)
-        setQuestions(data || [])
-      }
       fetchQuestions()
     }
-  }, [formData.subject_id, formData.grade_id])
+  }, [formData.subject_id, formData.grade_id, supabase])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
