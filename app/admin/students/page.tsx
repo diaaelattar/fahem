@@ -39,7 +39,7 @@ export default async function AdminStudentsPage() {
         </div>
         <select className="bg-white border border-border rounded-xl px-3 py-2 text-sm focus:outline-none">
           <option value="">كل الصفوف</option>
-          {grades?.map(g => <option key={g.id} value={g.id}>{g.name_ar}</option>)}
+          {(grades as any[])?.map(g => <option key={g.id} value={g.id}>{g.name_ar}</option>)}
         </select>
       </div>
 

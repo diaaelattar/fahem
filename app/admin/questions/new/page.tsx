@@ -51,9 +51,9 @@ export default function NewQuestionPage() {
       const { error } = await supabase
         .from('questions')
         .insert({
-          admin_id: admin.id,
-          subject_id: formData.subject_id,
-          grade_id: formData.grade_id,
+          admin_id: (admin as any).id,
+          subject_id: parseInt(formData.subject_id),
+          grade_id: parseInt(formData.grade_id),
           question_type: formData.question_type,
           question_text: formData.question_text,
           correct_answer: formData.correct_answer,
@@ -62,7 +62,7 @@ export default function NewQuestionPage() {
           points: formData.points,
           options: formData.question_type === 'mcq' ? formData.options : null,
           is_approved: true
-        })
+        } as any)
 
       if (error) throw error
 

@@ -10,13 +10,13 @@ export async function POST(request: NextRequest) {
     const { subjectId } = await request.json()
 
     // Get student info
-    const { data: student } = await supabase
+    const { data: studentRaw } = await supabase
       .from('students').select('id, grade_id').eq('id', user.id).single()
-    if (!student) return NextResponse.json({ error: 'Student not found' }, { status: 404 })
+    if (!studentRaw) return NextResponse.json({ error: 'Student not found' }, { status: 404 })
+    const student = studentRaw as any
 
     // Look for an open challenge waiting for an opponent (not self, same grade/subject)
-    const { data: existing } = await supabase
-      .from('challenges')
+    const { data: existing } = await (supabase.from('challenges') as any)
       .select('id')
       .eq('status', 'searching')
       .eq('subject_id', subjectId)
@@ -39,8 +39,7 @@ export async function POST(request: NextRequest) {
 
       const shuffled = (qs || []).sort(() => Math.random() - 0.5).slice(0, 10)
 
-      const { data: updated } = await supabase
-        .from('challenges')
+      const { data: updated } = await (supabase.from('challenges') as any)
         .update({
           opponent_id: user.id,
           status: 'active',
@@ -55,8 +54,7 @@ export async function POST(request: NextRequest) {
     }
 
     // No open challenge — create one and wait
-    const { data: newChallenge } = await supabase
-      .from('challenges')
+    const { data: newChallenge } = await (supabase.from('challenges') as any)
       .insert({
         challenger_id: user.id,
         subject_id: subjectId,

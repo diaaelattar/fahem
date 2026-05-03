@@ -13,9 +13,11 @@ export async function POST(
     const { answers, score } = await request.json()
     const challengeId = params.id
 
-    const { data: challenge } = await supabase
+    const { data: challengeData } = await supabase
       .from('challenges').select('*').eq('id', challengeId).single()
-    if (!challenge) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    if (!challengeData) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+    const challenge = challengeData as any;
 
     const isChallenger = challenge.challenger_id === user.id
     const updateData: any = {}
@@ -45,21 +47,21 @@ export async function POST(
 
       // Award XP
       if (winnerId) {
-        await supabase.rpc('award_xp', {
+        await (supabase.rpc as any)('award_xp', {
           p_student_id: winnerId,
           p_amount: 30,
           p_reason: 'فوز في تحدي مباشر ⚔️',
           p_reference: challengeId,
         })
         // Update battles won
-        await supabase.from('students')
-          .update({ total_battles_won: supabase.rpc('total_battles_won') })
+        await (supabase.from('students') as any)
+          .update({ total_battles_won: (supabase.rpc as any)('total_battles_won') })
           .eq('id', winnerId)
       }
       // Participation XP for both
       const loserId = winnerId === challenge.challenger_id ? challenge.opponent_id : challenge.challenger_id
       if (loserId) {
-        await supabase.rpc('award_xp', {
+        await (supabase.rpc as any)('award_xp', {
           p_student_id: loserId,
           p_amount: 5,
           p_reason: 'مشاركة في تحدي',
@@ -68,7 +70,7 @@ export async function POST(
       }
     }
 
-    await supabase.from('challenges').update(updateData).eq('id', challengeId)
+    await (supabase.from('challenges') as any).update(updateData).eq('id', challengeId)
 
     return NextResponse.json({ success: true, completed: challengerDone && opponentDone })
   } catch (err: any) {

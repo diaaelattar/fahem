@@ -78,21 +78,21 @@ export default function NewExamPage() {
           passing_score: formData.passing_score,
           is_published: formData.is_published,
           questions_count: selectedQuestions.length
-        })
+        } as any)
         .select()
         .single()
 
       if (examError) throw examError
 
       const examQuestions = selectedQuestions.map((qId, index) => ({
-        exam_id: exam.id,
+        exam_id: (exam as any).id,
         question_id: qId,
         question_order: index
       }))
 
       const { error: batchError } = await supabase
         .from('exam_questions')
-        .insert(examQuestions)
+        .insert(examQuestions as any)
 
       if (batchError) throw batchError
 
