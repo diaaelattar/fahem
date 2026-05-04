@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { Cairo, Tajawal } from 'next/font/google'
 import './globals.css'
 import 'katex/dist/katex.min.css'
-import { ToastProvider } from '@/components/ui/Toaster'
+import { Toaster } from 'sonner'
 
 const cairo = Cairo({
   subsets: ['arabic', 'latin'],
@@ -45,9 +45,17 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
       <body className="font-sans antialiased bg-background text-foreground min-h-screen">
-        <ToastProvider>
-          {children}
-        </ToastProvider>
+        {children}
+        <Toaster
+          position="top-center"
+          dir="rtl"
+          richColors
+          closeButton
+          duration={3500}
+          toastOptions={{
+            style: { fontFamily: 'Cairo, sans-serif', fontSize: '14px' },
+          }}
+        />
       </body>
     </html>
   )

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Loader2, CheckCircle, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
 
 export function QuestionEditForm({ question, subjects, grades }: {
   question: any
@@ -28,8 +29,8 @@ export function QuestionEditForm({ question, subjects, grades }: {
   const [deleting, setDeleting] = useState(false)
 
   const handleSave = async () => {
-    if (!questionText.trim()) { alert('نص السؤال مطلوب'); return }
-    if (!correctAnswer.trim()) { alert('الإجابة الصحيحة مطلوبة'); return }
+    if (!questionText.trim()) { toast.error('نص السؤال مطلوب'); return }
+    if (!correctAnswer.trim()) { toast.error('الإجابة الصحيحة مطلوبة'); return }
 
     setSaving(true)
     try {
@@ -46,10 +47,10 @@ export function QuestionEditForm({ question, subjects, grades }: {
       }).eq('id', question.id)
 
       if (error) throw error
-      alert('تم تحديث السؤال بنجاح ✅')
+      toast.success('تم تحديث السؤال بنجاح!')
       setTimeout(() => router.push('/admin/questions'), 800)
     } catch (err: any) {
-      alert('خطأ في التحديث: ' + err.message)
+      toast.error('خطأ في التحديث: ' + err.message)
     } finally {
       setSaving(false)
     }
@@ -61,10 +62,10 @@ export function QuestionEditForm({ question, subjects, grades }: {
     try {
       const { error } = await supabase.from('questions').delete().eq('id', question.id)
       if (error) throw error
-      alert('تم حذف السؤال')
+      toast.success('تم حذف السؤال بنجاح')
       router.push('/admin/questions')
     } catch (err: any) {
-      alert('خطأ في الحذف: ' + err.message)
+      toast.error('خطأ في الحذف: ' + err.message)
       setDeleting(false)
     }
   }
