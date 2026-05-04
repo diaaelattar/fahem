@@ -27,8 +27,8 @@ export default function OnboardingPage() {
       // Fetch preparatory grades only
       const { data } = await supabase
         .from('grades')
-        .select('id, name_ar, educational_stages!inner(name_en)')
-        .eq('educational_stages.name_en', 'preparatory')
+        .select('id, name_ar, educational_stages!inner(name_ar)')
+        .eq('educational_stages.name_ar', 'المرحلة الإعدادية')
         .order('grade_number')
       setGrades(data || [])
       setFetching(false)
