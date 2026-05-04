@@ -1,5 +1,6 @@
 'use client'
 
+import { saveStudentGradeAction } from './actions'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -38,25 +39,16 @@ export default function OnboardingPage() {
   const handleSave = async () => {
     if (!selectedGrade) return
     setLoading(true)
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-
-    await supabase.from('students').upsert({
-      id: user.id,
-      grade_id: selectedGrade,
-      xp_points: 0,
-      level: 1,
-      streak_days: 0,
-    })
-
-    // Award first-login XP
-    await fetch('/api/xp/award', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ amount: 10, reason: 'أول تسجيل دخول 🎉' })
-    }).catch(() => {})
-
-    router.push('/student/dashboard')
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      
+      await saveStudentGradeAction(user.id, selectedGrade)
+      router.push('/student/dashboard')
+    } catch (err: any) {
+      alert('حدث خطأ أثناء حفظ الصف: ' + err.message)
+      setLoading(false)
+    }
   }
 
   return (

@@ -50,6 +50,28 @@ export async function middleware(request: NextRequest) {
     if (profile.role === 'student' && pathname.startsWith('/admin')) {
       return NextResponse.redirect(new URL('/student/dashboard', request.url))
     }
+
+    // Smart Barrier: فحص اختيار الصف للطالب
+    if (profile.role === 'student' && pathname.startsWith('/student')) {
+      const { data: student } = await supabase
+        .from('students')
+        .select('grade_id')
+        .eq('id', user.id)
+        .single()
+      
+      const hasGrade = !!student?.grade_id
+      const isOnboardingPage = pathname === '/student/onboarding'
+
+      if (!hasGrade && !isOnboardingPage) {
+        // طالب لم يختر صفه ويحاول الدخول لأي صفحة أخرى → أعده للتسجيل
+        return NextResponse.redirect(new URL('/student/onboarding', request.url))
+      }
+      
+      if (hasGrade && isOnboardingPage) {
+        // طالب اختار صفه بالفعل ويحاول الدخول لصفحة التسجيل → أعده للرئيسية
+        return NextResponse.redirect(new URL('/student/dashboard', request.url))
+      }
+    }
   }
 
   // إعادة توجيه المستخدم المسجل من الصفحة الرئيسية
