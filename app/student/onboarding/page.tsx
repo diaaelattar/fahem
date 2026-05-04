@@ -24,11 +24,10 @@ export default function OnboardingPage() {
       if (!user) { router.push('/auth/login'); return }
       setUserName(user.user_metadata?.full_name?.split(' ')[0] || 'يا صديقي')
 
-      // Fetch preparatory grades only
+      // Fetch all grades sorted by stage then grade number
       const { data } = await supabase
         .from('grades')
-        .select('id, name_ar, educational_stages!inner(name_ar)')
-        .eq('educational_stages.name_ar', 'المرحلة الإعدادية')
+        .select('id, name_ar, educational_stages(name_ar, sort_order)')
         .order('grade_number')
       setGrades(data || [])
       setFetching(false)
