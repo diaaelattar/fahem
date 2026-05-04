@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Swords, Loader2, Trophy, Clock, CheckCircle, XCircle, Zap, Shield } from 'lucide-react'
 import { MathRenderer } from '@/components/ui/MathRenderer'
+import { toast } from 'sonner'
 
 type Phase = 'select' | 'searching' | 'playing' | 'result'
 
@@ -111,7 +112,7 @@ export default function ChallengesPage() {
         // Cancel challenge and go to solo practice
         await supabase.from('challenges').update({ status: 'cancelled' }).eq('id', data.challenge.id)
         setPhase('select')
-        alert('لم يُوجد خصم الآن. حاول مجدداً لاحقاً!')
+        toast.info('لم يُوجد خصم الآن. حاول مجدداً لاحقاً!')
       }
     }, 3000)
   }
