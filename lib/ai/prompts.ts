@@ -75,6 +75,7 @@ ${SHARED_QUALITY_CRITERIA}
   {
     "type": "mcq | true_false | fill_blank | essay | correction",
     "difficulty": "easy | medium | hard",
+    "bloom_level": "remember | understand | apply | analyze | evaluate | create",
     "context_passage": "نص الفقرة التمهيدية أو القطعة المشتركة (إن وجدت، وإلا اجعلها null)",
     "question_text": "نص السؤال المباشر بحدوده الدقيقة فقط",
     "options": ["خيار 1", "خيار 2", "خيار 3", "خيار 4"] (اجعلها null لأسئلة المقالي والتصويب),

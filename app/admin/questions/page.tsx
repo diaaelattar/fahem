@@ -14,7 +14,7 @@ export default async function QuestionsPage({
   let query = supabase
     .from('questions')
     .select(`
-      id, question_type, question_text, difficulty_level, points, is_approved, usage_count, created_at,
+      id, question_type, question_text, difficulty_level, bloom_level, points, status, is_approved, usage_count, created_at,
       subjects(name_ar, icon),
       grades(name_ar)
     `)
@@ -25,7 +25,7 @@ export default async function QuestionsPage({
   if (searchParams.difficulty) query = query.eq('difficulty_level', searchParams.difficulty)
   if (searchParams.grade) query = query.eq('grade_id', searchParams.grade)
   if (searchParams.subject) query = query.eq('subject_id', searchParams.subject)
-  if (searchParams.approved !== undefined) query = query.eq('is_approved', searchParams.approved === 'true')
+  if (searchParams.status) query = query.eq('status', searchParams.status)
 
   const [{ data: questions }, { data: grades }, { data: subjects }] = await Promise.all([
     query,
@@ -35,6 +35,7 @@ export default async function QuestionsPage({
 
   const TYPE_LABELS: Record<string, string> = { mcq: 'اختيار من متعدد', true_false: 'صح/خطأ', fill_blank: 'ملء فراغ' }
   const DIFF_LABELS: Record<string, string> = { easy: 'سهل', medium: 'متوسط', hard: 'صعب' }
+  const STATUS_LABELS: Record<string, string> = { draft: 'مسودة', review: 'للمراجعة', approved: 'معتمد', rejected: 'مرفوض' }
 
   return (
     <div className="space-y-6">
@@ -69,7 +70,16 @@ export default async function QuestionsPage({
           </a>
         ))}
 
-        {(searchParams.type || searchParams.difficulty || searchParams.grade || searchParams.subject) && (
+        <span className="w-px h-4 bg-border" />
+
+        {(['draft', 'review', 'approved'] as const).map(st => (
+          <a key={st} href={`?status=${st}`}
+            className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-colors ${searchParams.status === st ? 'bg-primary text-white border-primary' : 'border-border hover:border-primary/40'}`}>
+            {STATUS_LABELS[st]}
+          </a>
+        ))}
+
+        {(searchParams.type || searchParams.difficulty || searchParams.grade || searchParams.subject || searchParams.status) && (
           <a href="/admin/questions" className="text-xs text-red-500 hover:underline mr-auto">مسح الفلاتر</a>
         )}
       </div>
@@ -102,10 +112,11 @@ export default async function QuestionsPage({
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  {q.is_approved
-                    ? <span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full"><CheckCircle className="w-3 h-3" /> معتمد</span>
-                    : <span className="flex items-center gap-1 text-xs text-yellow-600 bg-yellow-50 px-2 py-1 rounded-full"><Clock className="w-3 h-3" /> قيد المراجعة</span>
-                  }
+                  {q.status === 'approved' && <span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full"><CheckCircle className="w-3 h-3" /> {STATUS_LABELS[q.status]}</span>}
+                  {q.status === 'draft' && <span className="flex items-center gap-1 text-xs text-gray-600 bg-gray-50 px-2 py-1 rounded-full"><Clock className="w-3 h-3" /> {STATUS_LABELS[q.status]}</span>}
+                  {q.status === 'review' && <span className="flex items-center gap-1 text-xs text-yellow-600 bg-yellow-50 px-2 py-1 rounded-full"><HelpCircle className="w-3 h-3" /> {STATUS_LABELS[q.status]}</span>}
+                  {q.status === 'rejected' && <span className="flex items-center gap-1 text-xs text-red-600 bg-red-50 px-2 py-1 rounded-full"><CheckCircle className="w-3 h-3" /> {STATUS_LABELS[q.status]}</span>}
+                  
                   <a href={`/admin/questions/${q.id}`}
                     className="text-xs text-primary opacity-0 group-hover:opacity-100 transition-opacity hover:underline">
                     تعديل

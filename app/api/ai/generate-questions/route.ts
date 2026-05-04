@@ -75,7 +75,7 @@ async function generateQuestionsDirectly(
       console.log(`Trying model: ${modelName}`)
       const model = getGenAI().getGenerativeModel({
         model: modelName,
-        generationConfig: { responseMimeType: 'application/json' },
+        generationConfig: { responseMimeType: 'application/json', temperature: 0.2 },
       })
 
       const result = await model.generateContent([
@@ -141,7 +141,7 @@ async function generateTextQuestionsWithFallback(prompt: string) {
       console.log(`Trying text model: ${modelName}`)
       const model = getGenAI().getGenerativeModel({
         model: modelName,
-        generationConfig: { responseMimeType: 'application/json' },
+        generationConfig: { responseMimeType: 'application/json', temperature: 0.2 },
       })
 
       const aiResult = await model.generateContent(prompt)

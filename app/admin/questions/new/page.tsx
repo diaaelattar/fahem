@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { Save, Plus, Trash2, HelpCircle } from 'lucide-react'
+import { RichTextEditor } from '@/components/ui/RichTextEditor'
 
 export default function NewQuestionPage() {
   const router = useRouter()
@@ -21,6 +22,7 @@ export default function NewQuestionPage() {
     correct_answer: '',
     explanation: '',
     difficulty_level: 'medium',
+    bloom_level: 'understand',
     points: 1,
     options: ['', '', '', '']
   })
@@ -59,9 +61,11 @@ export default function NewQuestionPage() {
           correct_answer: formData.correct_answer,
           explanation: formData.explanation,
           difficulty_level: formData.difficulty_level,
+          bloom_level: formData.bloom_level,
           points: formData.points,
           options: formData.question_type === 'mcq' ? formData.options : null,
-          is_approved: true
+          status: 'approved',
+          is_approved: true // For backward compatibility if needed
         } as any)
 
       if (error) throw error
@@ -153,15 +157,30 @@ export default function NewQuestionPage() {
           </div>
         </div>
 
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">مستوى بلوم المعرفي (Bloom's Taxonomy)</label>
+            <select 
+              value={formData.bloom_level}
+              onChange={e => setFormData({...formData, bloom_level: e.target.value})}
+              className="w-full px-4 py-2 rounded-xl border border-border outline-none focus:ring-2 focus:ring-primary/20"
+            >
+              <option value="remember">تذكر (Remember)</option>
+              <option value="understand">فهم (Understand)</option>
+              <option value="apply">تطبيق (Apply)</option>
+              <option value="analyze">تحليل (Analyze)</option>
+              <option value="evaluate">تقييم (Evaluate)</option>
+              <option value="create">إبداع (Create)</option>
+            </select>
+          </div>
+        </div>
+
         <div className="space-y-2">
           <label className="text-sm font-medium">نص السؤال</label>
-          <textarea 
-            required
-            rows={3}
+          <RichTextEditor 
             value={formData.question_text}
-            onChange={e => setFormData({...formData, question_text: e.target.value})}
+            onChange={val => setFormData({...formData, question_text: val})}
             placeholder="اكتب نص السؤال هنا..."
-            className="w-full px-4 py-2 rounded-xl border border-border outline-none focus:ring-2 focus:ring-primary/20"
           />
         </div>
 
@@ -212,12 +231,10 @@ export default function NewQuestionPage() {
 
         <div className="space-y-2">
           <label className="text-sm font-medium">شرح الإجابة (اختياري)</label>
-          <textarea 
-            rows={2}
+          <RichTextEditor 
             value={formData.explanation}
-            onChange={e => setFormData({...formData, explanation: e.target.value})}
+            onChange={val => setFormData({...formData, explanation: val})}
             placeholder="لماذا هذه هي الإجابة الصحيحة؟"
-            className="w-full px-4 py-2 rounded-xl border border-border outline-none focus:ring-2 focus:ring-primary/20"
           />
         </div>
 
