@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { CheckCircle, X, Edit2, Save, Trash2, Loader2, Check, Filter } from 'lucide-react'
 import { MathRenderer } from '@/components/ui/MathRenderer'
@@ -15,7 +15,9 @@ interface GeneratedQuestion {
   difficulty: 'easy' | 'medium' | 'hard'
   points: number
   context_passage?: string | null
+  context_passage?: string | null
   learning_outcome?: string | null
+  learning_outcome_id?: number | null
 }
 
 const TYPE_LABELS = { mcq: 'اختيار من متعدد', true_false: 'صح / خطأ', fill_blank: 'ملء فراغ', essay: 'مقالي', correction: 'تصويب خطأ' }
@@ -37,6 +39,47 @@ export function QuestionPreviewGrid({
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [filter, setFilter] = useState<'all' | 'mcq' | 'true_false' | 'fill_blank' | 'essay' | 'correction'>('all')
+
+  const [docMeta, setDocMeta] = useState<any>(null)
+  const [outcomes, setOutcomes] = useState<any[]>([])
+  const [newOutcomeText, setNewOutcomeText] = useState('')
+
+  useEffect(() => {
+    async function loadMeta() {
+      const { data: doc } = await supabase.from('documents').select('subject_id, grade_id, unit_id, lesson_id').eq('id', documentId).single()
+      if (doc) {
+        setDocMeta(doc)
+        let query = supabase.from('learning_outcomes').select('*').eq('subject_id', doc.subject_id).eq('grade_id', doc.grade_id)
+        if (doc.unit_id) query = query.eq('unit_id', doc.unit_id)
+        if (doc.lesson_id) query = query.eq('lesson_id', doc.lesson_id)
+        const { data } = await query
+        setOutcomes(data || [])
+      }
+    }
+    loadMeta()
+  }, [documentId, supabase])
+
+  const handleCreateOutcome = async (questionId: string) => {
+    if (!newOutcomeText.trim() || !docMeta) return;
+    try {
+      const { data, error } = await supabase.from('learning_outcomes').insert({
+        description: newOutcomeText.trim(),
+        subject_id: docMeta.subject_id,
+        grade_id: docMeta.grade_id,
+        unit_id: docMeta.unit_id,
+        lesson_id: docMeta.lesson_id
+      }).select().single()
+      
+      if (error) throw error;
+      if (data) {
+        setOutcomes(prev => [...prev, data])
+        updateQuestion(questionId, 'learning_outcome_id', data.id)
+        setNewOutcomeText('')
+      }
+    } catch (err: any) {
+      alert('خطأ في إضافة ناتج التعلم: ' + err.message)
+    }
+  }
 
   const selectedCount = questions.filter(q => q.selected).length
   const filtered = filter === 'all' ? questions : questions.filter(q => q.type === filter)
@@ -79,6 +122,7 @@ export function QuestionPreviewGrid({
         points: q.points,
         context_passage: q.context_passage || null,
         learning_outcome: q.learning_outcome || null,
+        learning_outcome_id: q.learning_outcome_id || null,
         subject_id: doc?.subject_id,
         grade_id: doc?.grade_id,
         unit_id: doc?.unit_id,
@@ -231,21 +275,39 @@ export function QuestionPreviewGrid({
                   )}
 
                   {/* Learning Outcome */}
-                  {q.learning_outcome && (
-                    <div className="text-xs mb-3 flex items-center gap-2">
-                      <span className="text-indigo-600 font-bold bg-indigo-50 px-2 py-1 rounded border border-indigo-100">🎯 ناتج التعلم:</span>
-                      {q.editing ? (
-                        <input
-                          type="text"
-                          value={q.learning_outcome}
-                          onChange={e => updateQuestion(q.id, 'learning_outcome', e.target.value)}
-                          className="flex-1 border border-border rounded p-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary/30"
-                        />
-                      ) : (
-                        <span className="text-muted-foreground">{q.learning_outcome}</span>
-                      )}
-                    </div>
-                  )}
+                  <div className="text-xs mb-3 flex items-center gap-2">
+                    <span className="text-indigo-600 font-bold bg-indigo-50 px-2 py-1 rounded border border-indigo-100">🎯 ناتج التعلم:</span>
+                    {q.editing ? (
+                      <div className="flex-1 flex gap-2 items-center">
+                        <select 
+                          value={q.learning_outcome_id || ''} 
+                          onChange={e => updateQuestion(q.id, 'learning_outcome_id', e.target.value)}
+                          className="flex-1 border border-border rounded p-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary/30 bg-white"
+                        >
+                          <option value="">{q.learning_outcome ? `(AI: ${q.learning_outcome})` : 'اختر ناتج تعلم'}</option>
+                          {outcomes.map(o => (
+                            <option key={o.id} value={o.id}>{o.description}</option>
+                          ))}
+                        </select>
+                        <div className="flex gap-1 shrink-0">
+                          <input 
+                            type="text" 
+                            placeholder="إضافة جديد..." 
+                            value={newOutcomeText}
+                            onChange={e => setNewOutcomeText(e.target.value)}
+                            className="w-32 border border-border rounded p-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary/30"
+                          />
+                          <button onClick={() => handleCreateOutcome(q.id)} type="button" className="bg-indigo-100 text-indigo-700 px-2 rounded hover:bg-indigo-200 font-bold">+</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">
+                        {q.learning_outcome_id 
+                          ? outcomes.find(o => o.id === q.learning_outcome_id)?.description 
+                          : q.learning_outcome || 'غير محدد'}
+                      </span>
+                    )}
+                  </div>
 
                   {/* Explanation & Source */}
                   {(q.explanation || q.source_paragraph) && (

@@ -43,6 +43,9 @@ export function ContentUploader({ subjects, grades }: Props) {
   const [generatedQuestions, setGeneratedQuestions] = useState<any[]>([])
   const [documentId, setDocumentId] = useState('')
   const [generationMode, setGenerationMode] = useState<'SMART_GEN' | 'EXACT_EXTRACT'>('SMART_GEN')
+  const [questionCount, setQuestionCount] = useState(12)
+  const [requestedTypes, setRequestedTypes] = useState<string[]>(['mcq', 'true_false', 'fill_blank'])
+  const [targetCognitiveLevel, setTargetCognitiveLevel] = useState('متنوع')
   
   const [units, setUnits] = useState<any[]>([])
   const [lessons, setLessons] = useState<any[]>([])
@@ -275,6 +278,9 @@ export function ContentUploader({ subjects, grades }: Props) {
                   chunkIndex: i,
                   totalChunks: chunks.length,
                   fileData: chunkBase64, 
+                  questionCount,
+                  requestedTypes,
+                  targetCognitiveLevel,
                 }),
               })
 
@@ -332,6 +338,9 @@ export function ContentUploader({ subjects, grades }: Props) {
             subjectId,
             gradeId,
             generationMode,
+            questionCount,
+            requestedTypes,
+            targetCognitiveLevel,
           }),
         })
 
@@ -518,8 +527,67 @@ export function ContentUploader({ subjects, grades }: Props) {
 
           {showAdvanced && (
             <div className="space-y-4 pt-2 border-t border-border animate-in fade-in slide-in-from-top-1">
+              {/* خيارات توليد الأسئلة */}
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4">
+                <h4 className="text-sm font-bold text-slate-800">تخصيص محتوى الأسئلة (SMART_GEN)</h4>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-semibold block mb-1">عدد الأسئلة المطلوب</label>
+                    <input 
+                      type="number" min="1" max="50"
+                      value={questionCount} 
+                      onChange={e => setQuestionCount(Number(e.target.value))}
+                      className="w-full px-3 py-2 border border-border rounded-lg text-sm outline-none focus:ring-1 focus:ring-primary/30"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold block mb-1">المستوى المعرفي (بلوم)</label>
+                    <select 
+                      value={targetCognitiveLevel}
+                      onChange={e => setTargetCognitiveLevel(e.target.value)}
+                      className="w-full px-3 py-2 border border-border rounded-lg text-sm outline-none focus:ring-1 focus:ring-primary/30"
+                    >
+                      <option value="متنوع">متنوع (Default)</option>
+                      <option value="تذكر">تذكر (سهل)</option>
+                      <option value="فهم">فهم (متوسط)</option>
+                      <option value="تطبيق">تطبيق (متوسط)</option>
+                      <option value="تحليل">تحليل (صعب)</option>
+                      <option value="تقييم">تقييم (مستويات عليا)</option>
+                      <option value="إبداع">إبداع (مستويات عليا)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold block mb-2">الأنواع المطلوبة</label>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries({
+                      mcq: 'اختيار من متعدد',
+                      true_false: 'صح/خطأ',
+                      fill_blank: 'ملء فراغ',
+                      essay: 'مقالي',
+                      correction: 'تصويب'
+                    }).map(([key, label]) => (
+                      <label key={key} className="flex items-center gap-1.5 text-xs bg-white border border-slate-200 px-2 py-1.5 rounded-lg cursor-pointer hover:bg-slate-50">
+                        <input 
+                          type="checkbox" 
+                          checked={requestedTypes.includes(key)}
+                          onChange={(e) => {
+                            if (e.target.checked) setRequestedTypes([...requestedTypes, key])
+                            else setRequestedTypes(requestedTypes.filter(t => t !== key))
+                          }}
+                          className="accent-primary"
+                        />
+                        {label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
               <div>
-                <label className="text-xs font-semibold block mb-1">نطاق الصفحات (اختياري)</label>
+                <label className="text-xs font-semibold block mb-1">نطاق الصفحات للـ PDF (اختياري)</label>
                 <input 
                   type="text" 
                   value={pageRange} 

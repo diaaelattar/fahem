@@ -55,16 +55,22 @@ async function generateQuestionsDirectly(
   mimeType: string,
   subject: string,
   grade: string,
-  questionCount = 12,
-  mode: GenerationMode = 'SMART_GEN'
+  options: {
+    questionCount?: number
+    requestedTypes?: string[]
+    targetCognitiveLevel?: string
+    mode?: GenerationMode
+  } = {}
 ): Promise<{ result: any, modelUsed: string }> {
   const promptParams = {
     subject,
     grade,
     extractedText: 'الملف مرفق كصورة/مستند',
-    questionCount
+    questionCount: options.questionCount || 12,
+    requestedTypes: options.requestedTypes,
+    targetCognitiveLevel: options.targetCognitiveLevel
   }
-  const prompt = mode === 'EXACT_EXTRACT' 
+  const prompt = options.mode === 'EXACT_EXTRACT' 
     ? EXACT_EXTRACT_PROMPT(promptParams) 
     : QUESTION_GENERATION_PROMPT(promptParams)
 
@@ -184,7 +190,7 @@ export async function POST(request: NextRequest) {
 
     // ── 2. استلام البيانات ────────────────────────────────────────────────
     const body = await request.json()
-    const { documentId, fileType, pastedText, youtubeUrl, subjectId, gradeId, fileData, chunkIndex, totalChunks, generationMode = 'SMART_GEN' } = body
+    const { documentId, fileType, pastedText, youtubeUrl, subjectId, gradeId, fileData, chunkIndex, totalChunks, generationMode = 'SMART_GEN', questionCount = 12, requestedTypes, targetCognitiveLevel } = body
 
     // ── 3. جلب المستند وبيانات المنهج ────────────────────────────────────
     const { data: doc } = (await supabase.from('documents').select('*').eq('id', documentId).single()) as { data: any }
@@ -209,7 +215,9 @@ export async function POST(request: NextRequest) {
         subject: subjectName,
         grade: gradeName,
         extractedText: pastedText,
-        questionCount: 12,
+        questionCount,
+        requestedTypes,
+        targetCognitiveLevel
       }
       const prompt = generationMode === 'EXACT_EXTRACT' 
         ? EXACT_EXTRACT_PROMPT(promptParams) 
@@ -246,7 +254,12 @@ export async function POST(request: NextRequest) {
       }
 
       // توليد مباشر من الملف — الأفضل للـ PDFs التي تحتوي على معادلات
-      const directGen = await generateQuestionsDirectly(fileBuffer, mimeType, subjectName, gradeName, 12, generationMode)
+      const directGen = await generateQuestionsDirectly(fileBuffer, mimeType, subjectName, gradeName, {
+        questionCount,
+        requestedTypes,
+        targetCognitiveLevel,
+        mode: generationMode
+      })
       finalResult = directGen.result
       const actualModel = directGen.modelUsed
 
@@ -297,7 +310,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'تعذّر قراءة محتوى ملف Word. جرّب تحويله لـ PDF أو الصق النص مباشرة.' }, { status: 400 })
       }
 
-      const prompt = QUESTION_GENERATION_PROMPT({ subject: subjectName, grade: gradeName, extractedText, questionCount: 12 })
+      const prompt = QUESTION_GENERATION_PROMPT({ subject: subjectName, grade: gradeName, extractedText, questionCount, requestedTypes, targetCognitiveLevel })
       const genResult = await generateTextQuestionsWithFallback(prompt)
       finalResult = genResult.result
 
