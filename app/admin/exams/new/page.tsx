@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { ClipboardList, Clock, CheckCircle, Save, Plus, Search } from 'lucide-react'
+import { ClipboardList, CheckCircle, Save, Search, Layers } from 'lucide-react'
+import { DraggableQuestionList } from '@/components/admin/DraggableQuestionList'
 
 export default function NewExamPage() {
   const router = useRouter()
@@ -12,8 +13,9 @@ export default function NewExamPage() {
   const [loading, setLoading] = useState(false)
   const [subjects, setSubjects] = useState<any[]>([])
   const [grades, setGrades] = useState<any[]>([])
-  const [questions, setQuestions] = useState<any[]>([])
-  const [selectedQuestions, setSelectedQuestions] = useState<string[]>([])
+  const [questionsBank, setQuestionsBank] = useState<any[]>([])
+  const [selectedQuestions, setSelectedQuestions] = useState<any[]>([])
+  const [searchQuery, setSearchQuery] = useState('')
   
   const [formData, setFormData] = useState({
     title: '',
@@ -43,8 +45,8 @@ export default function NewExamPage() {
         .select('*')
         .eq('subject_id', formData.subject_id)
         .eq('grade_id', formData.grade_id)
-        .eq('is_approved', true)
-      setQuestions(data || [])
+        .eq('status', 'approved')
+      setQuestionsBank(data || [])
     }
 
     if (formData.subject_id && formData.grade_id) {
@@ -84,9 +86,9 @@ export default function NewExamPage() {
 
       if (examError) throw examError
 
-      const examQuestions = selectedQuestions.map((qId, index) => ({
+      const examQuestions = selectedQuestions.map((q, index) => ({
         exam_id: (exam as any).id,
-        question_id: qId,
+        question_id: q.id,
         question_order: index
       }))
 
@@ -106,21 +108,40 @@ export default function NewExamPage() {
     }
   }
 
-  const toggleQuestion = (id: string) => {
-    setSelectedQuestions(prev => 
-      prev.includes(id) ? prev.filter(q => q !== id) : [...prev, id]
-    )
+  const toggleQuestion = (question: any) => {
+    if (selectedQuestions.find(q => q.id === question.id)) {
+      setSelectedQuestions(selectedQuestions.filter(q => q.id !== question.id))
+    } else {
+      setSelectedQuestions([...selectedQuestions, question])
+    }
   }
 
+  const removeQuestion = (id: string) => {
+    setSelectedQuestions(selectedQuestions.filter(q => q.id !== id))
+  }
+
+  const filteredQuestions = questionsBank.filter((q: any) => 
+    q.question_text?.includes(searchQuery) || q.question_type?.includes(searchQuery)
+  )
+
+  const totalPoints = selectedQuestions.reduce((sum, q) => sum + (q.points || 1), 0)
+
   return (
-    <div className="max-w-5xl mx-auto space-y-8 pb-20">
+    <div className="max-w-7xl mx-auto space-y-8 pb-20">
       <div>
         <h1 className="text-3xl font-display font-bold">إنشاء اختبار جديد</h1>
-        <p className="text-muted-foreground mt-1">قم بتحديد المعايير واختيار الأسئلة من البنك</p>
+        <div className="flex gap-6 mt-4">
+          <div>
+            <div className="text-2xl font-display font-bold text-primary">{totalPoints}</div>
+            <div className="text-xs text-muted-foreground">إجمالي الدرجات</div>
+          </div>
+        </div>
+        <p className="text-muted-foreground mt-1">قم بتحديد المعايير واختيار الأسئلة من البنك مع إمكانية ترتيبها بالسحب والإفلات</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div className="md:col-span-1 space-y-6">
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        {/* Left Sidebar: Exam Details */}
+        <div className="lg:col-span-1 space-y-6">
           <div className="bg-white p-6 rounded-2xl border border-border shadow-sm space-y-4">
             <h2 className="font-bold flex items-center gap-2"><ClipboardList className="w-5 h-5 text-primary" /> تفاصيل الاختبار</h2>
             
@@ -136,52 +157,50 @@ export default function NewExamPage() {
               />
             </div>
 
-            <div className="grid grid-cols-1 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">المادة</label>
-                <select 
-                  required
-                  value={formData.subject_id}
-                  onChange={e => setFormData({...formData, subject_id: e.target.value})}
-                  className="w-full px-4 py-2 rounded-xl border border-border outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                >
-                  <option value="">اختر المادة</option>
-                  {subjects.map(s => <option key={s.id} value={s.id}>{s.name_ar}</option>)}
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">الصف الدراسي</label>
-                <select 
-                  required
-                  value={formData.grade_id}
-                  onChange={e => setFormData({...formData, grade_id: e.target.value})}
-                  className="w-full px-4 py-2 rounded-xl border border-border outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                >
-                  <option value="">اختر الصف</option>
-                  {grades.map(g => <option key={g.id} value={g.id}>{g.name_ar}</option>)}
-                </select>
-              </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">المادة</label>
+              <select 
+                required
+                value={formData.subject_id}
+                onChange={e => setFormData({...formData, subject_id: e.target.value})}
+                className="w-full px-4 py-2 rounded-xl border border-border outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+              >
+                <option value="">اختر المادة</option>
+                {subjects.map(s => <option key={s.id} value={s.id}>{s.name_ar}</option>)}
+              </select>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">المدة (دقيقة)</label>
-                <input 
-                  type="number" 
-                  value={formData.duration_minutes}
-                  onChange={e => setFormData({...formData, duration_minutes: parseInt(e.target.value)})}
-                  className="w-full px-4 py-2 rounded-xl border border-border"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">درجة النجاح %</label>
-                <input 
-                  type="number" 
-                  value={formData.passing_score}
-                  onChange={e => setFormData({...formData, passing_score: parseInt(e.target.value)})}
-                  className="w-full px-4 py-2 rounded-xl border border-border"
-                />
-              </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">الصف الدراسي</label>
+              <select 
+                required
+                value={formData.grade_id}
+                onChange={e => setFormData({...formData, grade_id: e.target.value})}
+                className="w-full px-4 py-2 rounded-xl border border-border outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+              >
+                <option value="">اختر الصف</option>
+                {grades.map(g => <option key={g.id} value={g.id}>{g.name_ar}</option>)}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">المدة (دقيقة)</label>
+              <input 
+                type="number" 
+                value={formData.duration_minutes}
+                onChange={e => setFormData({...formData, duration_minutes: parseInt(e.target.value)})}
+                className="w-full px-4 py-2 rounded-xl border border-border"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">درجة النجاح %</label>
+              <input 
+                type="number" 
+                value={formData.passing_score}
+                onChange={e => setFormData({...formData, passing_score: parseInt(e.target.value)})}
+                className="w-full px-4 py-2 rounded-xl border border-border"
+              />
             </div>
 
             <div className="flex items-center gap-2 pt-2">
@@ -205,59 +224,93 @@ export default function NewExamPage() {
           </div>
         </div>
 
-        <div className="md:col-span-2 space-y-6">
-          <div className="bg-white p-6 rounded-2xl border border-border shadow-sm flex-1 min-h-[500px]">
-             <div className="flex items-center justify-between mb-6">
-                <h2 className="font-bold flex items-center gap-2 text-lg"><Plus className="w-5 h-5 text-primary" /> اختيار الأسئلة ({selectedQuestions.length})</h2>
-                <div className="relative">
-                  <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                  <input type="text" placeholder="بحث في الأسئلة..." className="pr-10 pl-4 py-1.5 rounded-lg border border-border text-sm outline-none" />
-                </div>
-             </div>
+        {/* Center: Selected Questions (Drag and Drop) */}
+        <div className="lg:col-span-2 space-y-4">
+          <div className="bg-white p-6 rounded-2xl border border-border shadow-sm h-[800px] flex flex-col">
+            <div className="flex items-center justify-between mb-4 pb-4 border-b border-border">
+              <div>
+                <h3 className="font-bold text-lg flex items-center gap-2"><Layers className="w-5 h-5 text-primary" /> بناء الاختبار</h3>
+                <p className="text-sm text-muted-foreground mt-1">اسحب الأسئلة لترتيبها</p>
+              </div>
+              <div className="text-left">
+                <div className="text-2xl font-bold text-primary">{selectedQuestions.length}</div>
+                <div className="text-xs text-muted-foreground">سؤال</div>
+              </div>
+            </div>
 
-             {!formData.subject_id || !formData.grade_id ? (
-               <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
-                  <ClipboardList className="w-12 h-12 mb-4 opacity-20" />
-                  <p>الرجاء اختيار المادة والصف لعرض الأسئلة المتاحة</p>
-               </div>
-             ) : questions.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
-                  <CheckCircle className="w-12 h-12 mb-4 opacity-20" />
-                  <p>لا توجد أسئلة معتمدة لهذه المادة في البنك حالياً</p>
-                </div>
-             ) : (
-                <div className="space-y-4">
-                  {questions.map(q => (
-                    <div 
-                      key={q.id}
-                      onClick={() => toggleQuestion(q.id)}
-                      className={`p-4 rounded-xl border-2 transition-all cursor-pointer ${
-                        selectedQuestions.includes(q.id) 
-                          ? 'border-primary bg-primary/5' 
-                          : 'border-border hover:border-primary/50'
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className={`mt-1 w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                          selectedQuestions.includes(q.id) ? 'bg-primary border-primary' : 'border-border'
-                        }`}>
-                          {selectedQuestions.includes(q.id) && <CheckCircle className="w-3.5 h-3.5 text-white" />}
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm leading-relaxed">{q.question_text}</p>
-                          <div className="flex gap-3 mt-2 text-xs text-muted-foreground">
-                            <span className="bg-muted px-2 py-0.5 rounded uppercase">{q.question_type}</span>
-                            <span>{q.difficulty}</span>
-                            <span>{q.points} نقطة</span>
+            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+              <DraggableQuestionList 
+                questions={selectedQuestions} 
+                setQuestions={setSelectedQuestions} 
+                onRemove={removeQuestion} 
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Question Bank */}
+        <div className="lg:col-span-1 space-y-4">
+          <div className="bg-slate-50 p-6 rounded-2xl border border-border h-[800px] flex flex-col">
+            <div className="mb-4 pb-4 border-b border-border">
+              <h3 className="font-bold text-lg mb-4">بنك الأسئلة المعتمدة</h3>
+              <div className="relative">
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input 
+                  type="text" 
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  placeholder="ابحث في الأسئلة..."
+                  className="w-full pl-4 pr-10 py-2.5 rounded-xl border border-border outline-none focus:ring-2 focus:ring-primary/20 text-sm bg-white"
+                />
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-3">
+              {formData.subject_id && formData.grade_id ? (
+                filteredQuestions.length > 0 ? (
+                  filteredQuestions.map(q => {
+                    const isSelected = selectedQuestions.some(sq => sq.id === q.id)
+                    return (
+                      <div 
+                        key={q.id}
+                        onClick={() => toggleQuestion(q)}
+                        className={`p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                          isSelected 
+                            ? 'border-primary bg-blue-50/50' 
+                            : 'border-border hover:border-primary/40 bg-white'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex gap-2 mb-2">
+                              <span className="text-[10px] font-bold text-muted-foreground bg-slate-100 px-2 py-0.5 rounded-md">{q.question_type}</span>
+                            </div>
+                            <p className="text-xs font-medium line-clamp-2 leading-relaxed" dangerouslySetInnerHTML={{ __html: q.question_text }}></p>
+                          </div>
+                          <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 border-2 transition-colors ${
+                            isSelected ? 'bg-primary border-primary text-white' : 'border-slate-300'
+                          }`}>
+                            {isSelected && <CheckCircle className="w-3 h-3" />}
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })
+                ) : (
+                  <div className="text-center py-12 text-muted-foreground text-sm">
+                    لا توجد أسئلة معتمدة مطابقة لبحثك في هذا المنهج.
+                  </div>
+                )
+              ) : (
+                <div className="text-center py-12 text-muted-foreground flex flex-col items-center text-sm">
+                  <ClipboardList className="w-8 h-8 mb-3 text-slate-300" />
+                  <p>الرجاء اختيار المادة والصف<br/>لعرض البنك</p>
                 </div>
-             )}
+              )}
+            </div>
           </div>
         </div>
+
       </form>
     </div>
   )

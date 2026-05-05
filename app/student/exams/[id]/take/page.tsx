@@ -69,7 +69,7 @@ export default async function TakeExamPage({ params, searchParams }: Props) {
     .from('exam_questions')
     .select(`
       question_order,
-      questions(id, question_type, question_text, options, points, question_image_url)
+      questions(id, question_type, question_text, options, points, question_image_url, correct_answer, explanation)
     `)
     .eq('exam_id', params.id)
     .order('question_order')
@@ -98,7 +98,11 @@ export default async function TakeExamPage({ params, searchParams }: Props) {
       options: eq.questions.options,
       points: eq.questions.points,
       question_image_url: eq.questions.question_image_url,
-      // ⚠️ لا نُرسل correct_answer للطالب أثناء الاختبار
+      // Send correct_answer and explanation ONLY if show_results_immediately is true
+      ...(exam.show_results_immediately ? {
+        correct_answer: eq.questions.correct_answer,
+        explanation: eq.questions.explanation,
+      } : {})
     }))
 
   return (

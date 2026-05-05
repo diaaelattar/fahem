@@ -121,6 +121,25 @@ export default async function ResultDetailPage({ params }: Props) {
   const skippedCount = questionsWithAnswers.filter(q => !q.isAnswered).length
   const wrongQuestionIds = questionsWithAnswers.filter(q => !q.isCorrect).map(q => q.id)
 
+  // Bloom's Taxonomy Analysis based on questions in this exam
+  const bloomLabels: Record<string, string> = {
+    remember: 'تذكر',
+    understand: 'فهم',
+    apply: 'تطبيق',
+    analyze: 'تحليل',
+    evaluate: 'تقييم',
+    create: 'إبداع'
+  }
+  const bloomOrder = ['remember', 'understand', 'apply', 'analyze', 'evaluate', 'create']
+  const bloomStats: Record<string, { total: number; correct: number }> = {}
+  questionsWithAnswers.forEach(q => {
+    const level = q.bloom_level || 'understand'
+    if (!bloomStats[level]) bloomStats[level] = { total: 0, correct: 0 }
+    bloomStats[level].total += 1
+    if (q.isCorrect) bloomStats[level].correct += 1
+  })
+  const hasBloomData = Object.keys(bloomStats).length > 0
+
   const TYPE_LABELS: Record<string, string> = { mcq: 'اختيار من متعدد', true_false: 'صح / خطأ', fill_blank: 'ملء فراغ' }
   const DIFF_LABELS: Record<string, string> = { easy: 'سهل', medium: 'متوسط', hard: 'صعب' }
 
@@ -222,6 +241,39 @@ export default async function ResultDetailPage({ params }: Props) {
           </div>
         ))}
       </div>
+
+      {/* Bloom's Taxonomy Analysis */}
+      {hasBloomData && (
+        <div className="bg-white rounded-2xl border border-border p-6 shadow-sm">
+          <h2 className="text-xl font-bold mb-1">تحليل أدائك حسب مستويات بلوم 🧠</h2>
+          <p className="text-sm text-muted-foreground mb-5">رسم بياني لنقاط قوتك وضعفك في المستويات المعرفية المختلفة</p>
+          <div className="space-y-3">
+            {bloomOrder.filter(l => bloomStats[l]).map(level => {
+              const { total, correct } = bloomStats[level]
+              const pct = total > 0 ? Math.round((correct / total) * 100) : 0
+              return (
+                <div key={level} className="flex items-center gap-4">
+                  <div className="w-16 text-sm font-bold text-right shrink-0">{bloomLabels[level]}</div>
+                  <div className="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-700 ${
+                        pct >= 70 ? 'bg-green-500' : pct >= 50 ? 'bg-yellow-400' : 'bg-red-400'
+                      }`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                  <div className="w-16 text-left shrink-0">
+                    <span className={`text-sm font-bold ${
+                      pct >= 70 ? 'text-green-600' : pct >= 50 ? 'text-yellow-600' : 'text-red-500'
+                    }`}>{pct}٪</span>
+                    <span className="text-xs text-muted-foreground"> ({correct}/{total})</span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Question Review Section */}
       <div className="space-y-6">

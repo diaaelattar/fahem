@@ -25,6 +25,41 @@ export default async function AdminReportsPage() {
     .order('percentage', { ascending: false })
     .limit(10)
 
+  // Fetch Bloom's Taxonomy Analytics
+  // For each question in student_answers, calculate the success rate based on bloom_level
+  const { data: bloomStatsRaw } = await supabase
+    .from('student_answers')
+    .select('is_correct, questions(bloom_level)')
+    .not('is_correct', 'is', null)
+  
+  const bloomMap: Record<string, { total: number, correct: number }> = {
+    remember: { total: 0, correct: 0 },
+    understand: { total: 0, correct: 0 },
+    apply: { total: 0, correct: 0 },
+    analyze: { total: 0, correct: 0 },
+    evaluate: { total: 0, correct: 0 },
+    create: { total: 0, correct: 0 },
+  }
+
+  if (bloomStatsRaw) {
+    bloomStatsRaw.forEach((ans: any) => {
+      const level = ans.questions?.bloom_level
+      if (level && bloomMap[level]) {
+        bloomMap[level].total += 1
+        if (ans.is_correct) bloomMap[level].correct += 1
+      }
+    })
+  }
+
+  const bloomLabels: Record<string, string> = {
+    remember: 'تذكر',
+    understand: 'فهم',
+    apply: 'تطبيق',
+    analyze: 'تحليل',
+    evaluate: 'تقييم',
+    create: 'إبداع'
+  }
+
   const s = stats as any
 
   return (
@@ -118,6 +153,32 @@ export default async function AdminReportsPage() {
             )) : (
               <div className="p-8 text-center text-muted-foreground text-sm">لا توجد بيانات بعد</div>
             )}
+          </div>
+        </div>
+      </div>
+
+      {/* Bloom's Taxonomy Analytics */}
+      <div className="bg-white rounded-2xl border border-border overflow-hidden">
+        <div className="p-5 border-b border-border">
+          <h2 className="font-bold text-lg">تحليل الأداء حسب مستويات بلوم</h2>
+          <p className="text-sm text-muted-foreground">يوضح نقاط قوة وضعف الطلاب في المستويات المعرفية المختلفة</p>
+        </div>
+        <div className="p-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {Object.entries(bloomMap).map(([level, data]) => {
+              const percentage = data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0
+              return (
+                <div key={level} className="bg-slate-50 p-4 rounded-xl border border-border text-center">
+                  <div className="text-sm font-bold mb-2">{bloomLabels[level]}</div>
+                  <div className={`text-2xl font-display font-bold ${percentage >= 70 ? 'text-green-600' : percentage >= 50 ? 'text-yellow-600' : 'text-red-500'}`}>
+                    {percentage}٪
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {data.correct} من {data.total} صحيح
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
       </div>

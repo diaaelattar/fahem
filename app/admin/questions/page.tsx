@@ -1,12 +1,13 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/auth/permissions'
-import { HelpCircle, CheckCircle, Clock, Filter } from 'lucide-react'
+import { HelpCircle, Filter } from 'lucide-react'
 import { MathRenderer } from '@/components/ui/MathRenderer'
+import { QuestionApprovalButtons } from '@/components/admin/QuestionApprovalButtons'
 
 export default async function QuestionsPage({
   searchParams,
 }: {
-  searchParams: { type?: string; difficulty?: string; grade?: string; subject?: string; approved?: string }
+  searchParams: { type?: string; difficulty?: string; grade?: string; subject?: string; approved?: string; status?: string }
 }) {
   await requireAdmin()
   const supabase = createClient()
@@ -111,12 +112,8 @@ export default async function QuestionsPage({
                     <span className="text-xs text-muted-foreground">استُخدم {q.usage_count} مرة</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  {q.status === 'approved' && <span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full"><CheckCircle className="w-3 h-3" /> {STATUS_LABELS[q.status]}</span>}
-                  {q.status === 'draft' && <span className="flex items-center gap-1 text-xs text-gray-600 bg-gray-50 px-2 py-1 rounded-full"><Clock className="w-3 h-3" /> {STATUS_LABELS[q.status]}</span>}
-                  {q.status === 'review' && <span className="flex items-center gap-1 text-xs text-yellow-600 bg-yellow-50 px-2 py-1 rounded-full"><HelpCircle className="w-3 h-3" /> {STATUS_LABELS[q.status]}</span>}
-                  {q.status === 'rejected' && <span className="flex items-center gap-1 text-xs text-red-600 bg-red-50 px-2 py-1 rounded-full"><CheckCircle className="w-3 h-3" /> {STATUS_LABELS[q.status]}</span>}
-                  
+                <div className="flex items-center gap-2 shrink-0 flex-col items-end">
+                  <QuestionApprovalButtons questionId={q.id} currentStatus={q.status || 'draft'} />
                   <a href={`/admin/questions/${q.id}`}
                     className="text-xs text-primary opacity-0 group-hover:opacity-100 transition-opacity hover:underline">
                     تعديل
