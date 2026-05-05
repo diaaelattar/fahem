@@ -38,7 +38,12 @@ export async function middleware(request: NextRequest) {
       .single()
 
     if (!profile) {
-      return NextResponse.redirect(new URL('/auth/login', request.url))
+      // إذا كان المستخدم مسجلاً ولكن لا يوجد بروفايل، نتركه يمر لصفحة الـ onboarding 
+      // أو نقوم بإنشاء بروفايل افتراضي له في الخطوات التالية.
+      if (pathname === '/student/onboarding') {
+        return supabaseResponse
+      }
+      return NextResponse.redirect(new URL('/student/onboarding', request.url))
     }
 
     // المدير يحاول الوصول لمسار الطالب

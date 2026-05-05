@@ -9,23 +9,31 @@ export async function saveStudentGradeAction(userId: string, gradeId: number) {
     process.env.SUPABASE_SERVICE_ROLE_KEY! // MUST have this in .env.local
   )
 
-  // Ensure student row exists and update grade
-  const { error } = await supabaseAdmin.from('students').upsert({
+  // 1. Get user email to ensure profile is complete
+  const { data: { user } } = await supabaseAdmin.auth.admin.getUserById(userId)
+  
+  // 2. Ensure profile exists
+  const { error: profileError } = await supabaseAdmin.from('profiles').upsert({
+    id: userId,
+    email: user?.email || '',
+    full_name: user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'طالب جديد',
+    role: 'student',
+  }, { onConflict: 'id' })
+
+  if (profileError) throw new Error(profileError.message)
+
+  // 3. Ensure student row exists and update grade
+  const { error: studentError } = await supabaseAdmin.from('students').upsert({
     id: userId,
     grade_id: gradeId,
-    xp_points: 0,
-    level: 1,
-    streak_days: 0,
-  }, { onConflict: 'id' }) // Only update grade_id if row exists, else insert
+  }, { onConflict: 'id' }) 
 
-  if (error) {
-    throw new Error(error.message)
-  }
+  if (studentError) throw new Error(studentError.message)
 
-  // Award first-login XP
+  // 4. Award first-login XP
   await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/xp/award`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ amount: 10, reason: 'أول تسجيل دخول 🎉' })
-  }).catch(() => {}) // Fire and forget
+    body: JSON.stringify({ userId, amount: 10, reason: 'أول تسجيل دخول 🎉' })
+  }).catch(() => {}) 
 }

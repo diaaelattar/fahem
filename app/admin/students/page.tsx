@@ -9,11 +9,11 @@ export default async function AdminStudentsPage() {
   const { data: students } = await supabase
     .from('students')
     .select(`
-      id, class_section, student_code, enrollment_date,
-      profiles(full_name, email, is_active, created_at),
+      id, class_section, student_code, enrollment_date, xp_points, level,
+      profiles(full_name, email, is_active, created_at, avatar_url),
       grades(name_ar)
     `)
-    .order('enrollment_date', { ascending: false })
+    .order('xp_points', { ascending: false })
 
   const { data: grades } = await supabase.from('grades').select('id, name_ar').order('grade_number')
 
@@ -50,8 +50,8 @@ export default async function AdminStudentsPage() {
               <tr>
                 <th className="text-right text-xs font-semibold text-muted-foreground px-5 py-3">الطالب</th>
                 <th className="text-right text-xs font-semibold text-muted-foreground px-5 py-3">الصف</th>
-                <th className="text-right text-xs font-semibold text-muted-foreground px-5 py-3">الفصل</th>
-                <th className="text-right text-xs font-semibold text-muted-foreground px-5 py-3">الكود</th>
+                <th className="text-right text-xs font-semibold text-muted-foreground px-5 py-3">المستوى</th>
+                <th className="text-right text-xs font-semibold text-muted-foreground px-5 py-3">XP</th>
                 <th className="text-right text-xs font-semibold text-muted-foreground px-5 py-3">الحالة</th>
                 <th className="text-right text-xs font-semibold text-muted-foreground px-5 py-3">إجراءات</th>
               </tr>
@@ -71,10 +71,10 @@ export default async function AdminStudentsPage() {
                     </div>
                   </td>
                   <td className="px-5 py-4 text-sm text-muted-foreground">{student.grades?.name_ar || '—'}</td>
-                  <td className="px-5 py-4 text-sm text-muted-foreground">{student.class_section || '—'}</td>
                   <td className="px-5 py-4">
-                    <code className="text-xs bg-muted px-2 py-1 rounded font-mono">{student.student_code || '—'}</code>
+                    <span className="bg-amber-100 text-amber-700 text-[10px] font-black px-2 py-0.5 rounded-md">LVL {student.level || 1}</span>
                   </td>
+                  <td className="px-5 py-4 text-sm font-bold text-slate-700">{student.xp_points || 0}</td>
                   <td className="px-5 py-4">
                     {student.profiles?.is_active
                       ? <span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full w-fit"><UserCheck className="w-3 h-3" /> نشط</span>
@@ -82,7 +82,10 @@ export default async function AdminStudentsPage() {
                     }
                   </td>
                   <td className="px-5 py-4">
-                    <a href={`/admin/students/${student.id}`} className="text-xs text-primary hover:underline">تعديل</a>
+                    <div className="flex items-center gap-3">
+                      <a href={`/admin/students/${student.id}`} className="text-xs text-primary hover:underline font-bold">تعديل</a>
+                      <a href={`/admin/reports?student=${student.id}`} className="text-xs text-muted-foreground hover:text-primary transition-colors underline decoration-dotted">النتائج</a>
+                    </div>
                   </td>
                 </tr>
               ))}

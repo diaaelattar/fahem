@@ -3,7 +3,7 @@ import { requireStudent } from '@/lib/auth/permissions'
 import {
   ClipboardList, TrendingUp, Clock, Award, ArrowLeft,
   Zap, Sparkles, Dumbbell, AlertCircle, Swords, Trophy,
-  Flame, Star, Target
+  Flame, Star, Target, Layers, Lightbulb, PenTool, Search, Gauge, BrainCircuit
 } from 'lucide-react'
 import PerformanceChart from '@/components/student/PerformanceChart'
 import Link from 'next/link'
@@ -59,6 +59,18 @@ export default async function StudentDashboardPage() {
     .eq('status', 'completed')
     .order('completed_at', { ascending: false })
     .limit(3)
+
+  // Fetch Bloom's Taxonomy Stats
+  const { data: bloomStats } = await (supabase.rpc as any)('get_student_bloom_stats', { p_student_id: profile.id })
+
+  const bloomLabels: Record<string, { label: string; icon: any; color: string }> = {
+    remember: { label: 'تذكر', icon: Lightbulb, color: 'bg-blue-500' },
+    understand: { label: 'فهم', icon: BrainCircuit, color: 'bg-emerald-500' },
+    apply: { label: 'تطبيق', icon: PenTool, color: 'bg-amber-500' },
+    analyze: { label: 'تحليل', icon: Search, color: 'bg-purple-500' },
+    evaluate: { label: 'تقييم', icon: Gauge, color: 'bg-rose-500' },
+    create: { label: 'إبداع', icon: Sparkles, color: 'bg-indigo-500' }
+  }
 
   const totalAttempts = attempts?.length || 0
   const avgScore = attempts && attempts.length > 0
@@ -189,6 +201,56 @@ export default async function StudentDashboardPage() {
 
         {/* Left: Charts + Exams */}
         <div className="lg:col-span-2 space-y-6">
+
+          {/* Bloom's Taxonomy Progress */}
+          {bloomStats && bloomStats.length > 0 && (
+            <div className="bg-white rounded-3xl border border-border p-6 shadow-sm overflow-hidden relative">
+               <div className="absolute top-0 right-0 p-4 opacity-5">
+                  <Layers className="w-24 h-24" />
+               </div>
+               <div className="relative">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h2 className="text-lg font-bold flex items-center gap-2">
+                        <Target className="w-5 h-5 text-primary" />
+                        رادار المهارات المعرفية
+                      </h2>
+                      <p className="text-xs text-muted-foreground mt-0.5">تحليل مستوى ذكائك الدراسي بناءً على تصنيف بلوم</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    {bloomStats.map((stat: any) => {
+                      const config = bloomLabels[stat.bloom_level] || { label: stat.bloom_level, icon: Target, color: 'bg-slate-500' }
+                      const Icon = config.icon
+                      return (
+                        <div key={stat.bloom_level} className="bg-slate-50 rounded-2xl p-4 border border-border/50 relative group hover:border-primary/30 transition-colors">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className={`w-8 h-8 rounded-lg ${config.color} flex items-center justify-center shadow-sm`}>
+                              <Icon className="w-4 h-4 text-white" />
+                            </div>
+                            <span className="text-xs font-bold text-slate-700">{config.label}</span>
+                          </div>
+                          
+                          <div className="space-y-1.5">
+                            <div className="flex justify-between items-end">
+                              <span className="text-xl font-black text-slate-900">{Math.round(stat.success_rate)}%</span>
+                              <span className="text-[10px] text-muted-foreground font-bold">{stat.correct_answers}/{stat.total_answers}</span>
+                            </div>
+                            <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                              <div 
+                                className={`h-full ${config.color} rounded-full transition-all duration-1000`} 
+                                style={{ width: `${stat.success_rate}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+               </div>
+            </div>
+          )}
 
           {/* Performance Chart */}
           {performanceData.length > 0 && (
