@@ -11,9 +11,9 @@ function getGenAI() {
 
 // نماذج متسقة مع الـ File API - مرتبة حسب الأولوية وتوافر الكوتا
 const FALLBACK_MODELS = [
-  'gemini-2.0-flash-lite',
-  'gemini-flash-latest', 
   'gemini-2.0-flash',
+  'gemini-1.5-flash',
+  'gemini-1.5-pro',
   'gemini-pro-latest'
 ]
 const DEFAULT_MODEL = FALLBACK_MODELS[0]
@@ -348,7 +348,14 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     console.error('خطأ في توليد الأسئلة:', error)
-    const msg = error.message || 'خطأ داخلي في الخادم'
+    let msg = error.message || 'خطأ داخلي في الخادم'
+    
+    if (msg.includes('503') || msg.includes('Service Unavailable') || msg.includes('overloaded')) {
+      msg = 'خوادم الذكاء الاصطناعي مشغولة حالياً (خطأ 503). يرجى المحاولة بعد قليل أو تقسيم الملف لأجزاء أصغر.'
+    } else if (msg.includes('429') || msg.includes('Quota')) {
+      msg = 'تم استنفاد الحد المسموح به من الطلبات. يرجى الانتظار بضع دقائق قبل المحاولة مجدداً.'
+    }
+    
     return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
