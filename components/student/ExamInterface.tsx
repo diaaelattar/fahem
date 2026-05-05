@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Clock, ChevronRight, ChevronLeft, CheckCircle, XCircle, Send, AlertTriangle } from 'lucide-react'
 import { MathRenderer } from '@/components/ui/MathRenderer'
 import { useExamStore } from '@/lib/store/exam-store'
+import { AIExplainButton } from '@/components/student/AIExplainButton'
 
 interface Question {
   id: string
@@ -393,6 +394,16 @@ export function ExamInterface({
               <div className="mt-3 pt-3 border-t border-current/10 text-sm">
                 <strong>التفسير:</strong> <div dangerouslySetInnerHTML={{ __html: currentQ.explanation }} />
               </div>
+            )}
+
+            {/* AI Explain Button - only for wrong answers */}
+            {answers[currentQ.id] !== currentQ.correct_answer && (
+              <AIExplainButton
+                questionId={currentQ.id}
+                questionText={currentQ.question_text}
+                correctAnswer={currentQ.correct_answer}
+                studentAnswer={answers[currentQ.id] as string}
+              />
             )}
             
             {currentIdx < questions.length - 1 && (

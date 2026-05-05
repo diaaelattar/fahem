@@ -12,6 +12,7 @@ import {
 import Link from 'next/link'
 import { MathRenderer } from '@/components/ui/MathRenderer'
 import { AddToPracticeButton } from '@/components/student/AddToPracticeButton'
+import { AIExplainButton } from '@/components/student/AIExplainButton'
 
 interface Props {
   params: { id: string }
@@ -426,6 +427,18 @@ export default async function ResultDetailPage({ params }: Props) {
                       <MathRenderer text={q.explanation} className="text-sm font-medium leading-relaxed italic" />
                     </div>
                   </div>
+                )}
+
+                {/* AI Explain Button — only for wrong/skipped answers */}
+                {!q.isCorrect && exam?.show_results_immediately && (
+                  <AIExplainButton
+                    questionId={q.id}
+                    questionText={q.question_text}
+                    correctAnswer={q.correct_answer}
+                    studentAnswer={q.studentAnswer}
+                    subject={(exam as any)?.subjects?.name_ar}
+                    grade={(exam as any)?.grades?.name_ar}
+                  />
                 )}
               </div>
             </div>

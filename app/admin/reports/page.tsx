@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/auth/permissions'
-import { BarChart3, Users, TrendingUp, CheckCircle, Clock, Download } from 'lucide-react'
+import { BarChart3, Users, TrendingUp, CheckCircle, Clock, Download, AlertTriangle, Target } from 'lucide-react'
 
 export default async function AdminReportsPage() {
   await requireAdmin()
@@ -60,6 +60,9 @@ export default async function AdminReportsPage() {
     create: 'إبداع'
   }
 
+  // Fetch hardest questions (by error rate) - requires get_hardest_questions function
+  const { data: hardestQuestions } = await (supabase.rpc as any)('get_hardest_questions', { p_limit: 8 })
+  
   const s = stats as any
 
   return (
@@ -182,6 +185,55 @@ export default async function AdminReportsPage() {
           </div>
         </div>
       </div>
+
+      {/* Hardest Questions — Content Factory Insight */}
+      {hardestQuestions && hardestQuestions.length > 0 && (
+        <div className="bg-white rounded-2xl border border-border overflow-hidden">
+          <div className="p-5 border-b border-border flex items-center justify-between">
+            <div>
+              <h2 className="font-bold text-lg flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-orange-500" />
+                الأسئلة الأصعب — رؤى لمصنع المحتوى
+              </h2>
+              <p className="text-sm text-muted-foreground mt-1">الأسئلة التي يخطئ فيها الطلاب بشكل متكرر — تحتاج لمراجعة أو شرح إضافي</p>
+            </div>
+            <span className="text-xs bg-orange-100 text-orange-700 px-3 py-1.5 rounded-full font-medium">
+              أعلى {hardestQuestions.length} سؤالاً
+            </span>
+          </div>
+          <div className="divide-y divide-border">
+            {hardestQuestions.map((q: any, i: number) => (
+              <div key={q.question_id} className="px-5 py-4 flex items-center gap-4">
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg shrink-0 ${
+                  q.error_rate >= 70 ? 'bg-red-100 text-red-700' :
+                  q.error_rate >= 50 ? 'bg-orange-100 text-orange-700' :
+                  'bg-yellow-100 text-yellow-700'
+                }`}>
+                  {Math.round(q.error_rate)}٪
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium leading-snug line-clamp-2">{q.question_text}</p>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    <span className="text-xs text-muted-foreground">{q.subject_name} • {q.grade_name}</span>
+                    {q.bloom_level && (
+                      <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">
+                        بلوم: {q.bloom_level}
+                      </span>
+                    )}
+                    <span className="text-xs text-muted-foreground">{q.total_attempts} محاولة</span>
+                  </div>
+                </div>
+                <a
+                  href={`/admin/questions/${q.question_id}`}
+                  className="shrink-0 text-xs text-primary border border-primary/30 px-3 py-1.5 rounded-lg hover:bg-primary/5 transition-colors"
+                >
+                  تعديل
+                </a>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Recent Activity */}
       {s?.recent_activity && s.recent_activity.length > 0 && (
