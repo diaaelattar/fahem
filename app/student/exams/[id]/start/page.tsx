@@ -30,6 +30,15 @@ export default async function StartExamPage({ params }: Props) {
       ? 'عفواً، لا يمكن إعادة المحاولة لأنك قمت بالاطلاع على الإجابات النموذجية لمراجعتها.'
       : (canAttempt?.reason || 'الاختبار غير متاح')
 
+    // فحص هل يمكن التدريب على الاختبار (practice exam)
+    const { data: practiceExam } = await supabase
+      .from('exams')
+      .select('id, title, show_results_immediately')
+      .eq('id', params.id)
+      .eq('show_results_immediately', true)
+      .single()
+    const canPractice = !practiceExam // إذا لم يكن practice mode
+
     return (
       <div className="max-w-lg mx-auto text-center py-16">
         <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
@@ -39,8 +48,8 @@ export default async function StartExamPage({ params }: Props) {
           <a href="/student/exams" className="bg-muted text-muted-foreground px-6 py-2.5 rounded-xl font-medium text-sm hover:bg-muted/80">
             العودة للاختبارات
           </a>
-          {(hasViewedAnswers || previousAttempts?.length) ? (
-            <a href={`/student/results/${params.id}`} className="bg-primary text-white px-6 py-2.5 rounded-xl font-medium text-sm hover:bg-primary/90">
+          {previousAttempts?.length ? (
+            <a href={`/student/results/${previousAttempts[0]?.id || params.id}`} className="bg-primary text-white px-6 py-2.5 rounded-xl font-medium text-sm hover:bg-primary/90">
               عرض النتيجة السابقة
             </a>
           ) : null}
@@ -74,8 +83,21 @@ function ExamStartScreen({ exam }: { exam: any }) {
     <div className="max-w-2xl mx-auto">
       <div className="bg-white rounded-3xl border border-border overflow-hidden shadow-sm">
         {/* Header */}
-        <div className="bg-primary p-8 text-white">
-          <div className="text-4xl mb-3">{exam.subjects?.icon || '📚'}</div>
+        <div className={`p-8 text-white ${
+          exam.show_results_immediately
+            ? 'bg-gradient-to-br from-indigo-600 to-violet-700'
+            : 'bg-primary'
+        }`}>
+          <div className="flex items-start justify-between mb-3">
+            <div className="text-4xl">{exam.subjects?.icon || '📚'}</div>
+            <span className={`text-[11px] font-black px-3 py-1.5 rounded-full ${
+              exam.show_results_immediately
+                ? 'bg-white/20 text-white border border-white/30'
+                : 'bg-red-500 text-white'
+            }`}>
+              {exam.show_results_immediately ? '💪 وضع تدريب' : '🔴 اختبار حقيقي'}
+            </span>
+          </div>
           <h1 className="text-2xl font-display font-bold mb-1">{exam.title}</h1>
           <p className="text-blue-100">{exam.subjects?.name_ar} • {exam.grades?.name_ar}</p>
         </div>
@@ -119,8 +141,12 @@ function ExamStartScreen({ exam }: { exam: any }) {
           <form action={startExamAction}>
             <input type="hidden" name="examId" value={exam.id} />
             <button type="submit"
-              className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-2xl text-lg transition-all hover:scale-[1.01]">
-              🚀 ابدأ الاختبار الآن
+              className={`w-full font-bold py-4 rounded-2xl text-lg transition-all hover:scale-[1.01] ${
+                exam.show_results_immediately
+                  ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                  : 'bg-primary hover:bg-primary/90 text-white'
+              }`}>
+              {exam.show_results_immediately ? '💪 ابدأ جلسة التدريب' : '🚀 ابدأ الاختبار الآن'}
             </button>
           </form>
         </div>

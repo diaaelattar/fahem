@@ -64,13 +64,18 @@ export default async function TakeExamPage({ params, searchParams }: Props) {
 
   if (!exam) notFound()
 
-  // جلب أسئلة الاختبار — بدون correct_answer (أمان)
+  const isPracticeMode = exam.show_results_immediately === true
+
+  // جلب أسئلة الاختبار
+  // في وضع الاختبار الحقيقي: لا نجلب correct_answer و explanation أبداً من قاعدة البيانات
+  // في وضع التدريب فقط: نجلب الإجابات لعرض التغذية الراجعة الفورية
+  const questionsSelect = isPracticeMode
+    ? 'question_order, questions(id, question_type, question_text, options, points, question_image_url, correct_answer, explanation)'
+    : 'question_order, questions(id, question_type, question_text, options, points, question_image_url)'
+
   const { data: examQuestions } = await supabase
     .from('exam_questions')
-    .select(`
-      question_order,
-      questions(id, question_type, question_text, options, points, question_image_url, correct_answer, explanation)
-    `)
+    .select(questionsSelect)
     .eq('exam_id', params.id)
     .order('question_order')
 
@@ -87,9 +92,9 @@ export default async function TakeExamPage({ params, searchParams }: Props) {
     )
   }
 
-  // ترتيب الأسئلة وإزالة correct_answer
+  // بناء قائمة الأسئلة — الإجابات موجودة فقط في وضع التدريب
   const questions = examQuestions
-    .filter((eq: any) => eq.questions !== null) // تصفية أي أسئلة مفقودة لتجنب الانهيار
+    .filter((eq: any) => eq.questions !== null)
     .sort((a: any, b: any) => a.question_order - b.question_order)
     .map((eq: any) => ({
       id: eq.questions.id,
@@ -98,8 +103,8 @@ export default async function TakeExamPage({ params, searchParams }: Props) {
       options: eq.questions.options,
       points: eq.questions.points,
       question_image_url: eq.questions.question_image_url,
-      // Send correct_answer and explanation ONLY if show_results_immediately is true
-      ...(exam.show_results_immediately ? {
+      // الإجابات الصحيحة فقط في وضع التدريب
+      ...(isPracticeMode ? {
         correct_answer: eq.questions.correct_answer,
         explanation: eq.questions.explanation,
       } : {})
