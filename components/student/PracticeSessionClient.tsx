@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import {
   CheckCircle, XCircle, ChevronLeft, Trophy, RotateCcw,
-  BookOpen, Zap, Target
+  BookOpen, Zap, Target, Mic, Square, Loader2
 } from 'lucide-react'
 import { MathRenderer } from '@/components/ui/MathRenderer'
 
@@ -39,6 +39,53 @@ export function PracticeSessionClient({ questions, subject, studentId }: Props) 
   const [finished, setFinished] = useState(false)
   const [streak, setStreak] = useState(0)
   const [maxStreak, setMaxStreak] = useState(0)
+
+  // ─── Audio Recording ───
+  const [isRecording, setIsRecording] = useState(false)
+  const [isTranscribing, setIsTranscribing] = useState(false)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const recorder = new MediaRecorder(stream)
+      
+      recorder.ondataavailable = async (e) => {
+        if (e.data.size > 0) {
+          setIsTranscribing(true)
+          const formData = new FormData()
+          formData.append('audio', e.data)
+          try {
+            const res = await fetch('/api/ai/transcribe', { method: 'POST', body: formData })
+            const data = await res.json()
+            if (data.text) {
+              setFillInput(prev => prev ? prev + ' ' + data.text : data.text)
+            } else if (data.error) {
+              alert(data.error)
+            }
+          } catch (err) {
+            alert('حدث خطأ أثناء تفريغ الصوت')
+          } finally {
+            setIsTranscribing(false)
+          }
+        }
+      }
+      
+      recorder.start()
+      setIsRecording(true)
+      mediaRecorderRef.current = recorder
+    } catch (err) {
+      alert('الرجاء السماح بصلاحية الميكروفون')
+    }
+  }
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop()
+      setIsRecording(false)
+      mediaRecorderRef.current.stream.getTracks().forEach(t => t.stop())
+    }
+  }
 
   const current = questions[currentIdx]
   const progress = ((currentIdx + 1) / questions.length) * 100
@@ -341,14 +388,44 @@ export function PracticeSessionClient({ questions, subject, studentId }: Props) 
                 disabled={isGrading}
               />
             ) : (
-              <textarea
-                value={fillInput}
-                onChange={e => setFillInput(e.target.value)}
-                placeholder="اكتب إجابتك هنا بوضوح..."
-                className="w-full px-4 py-3 border-2 border-border rounded-xl text-base focus:outline-none focus:border-primary transition-colors resize-none h-32"
-                autoFocus
-                disabled={isGrading}
-              />
+              <div className="relative">
+                <textarea
+                  value={fillInput}
+                  onChange={e => setFillInput(e.target.value)}
+                  placeholder="اكتب إجابتك هنا بوضوح..."
+                  className="w-full px-4 py-3 border-2 border-border rounded-xl text-base focus:outline-none focus:border-primary transition-colors resize-none h-32"
+                  autoFocus
+                  disabled={isGrading || isTranscribing}
+                />
+                
+                {/* Audio Recording Button */}
+                <div className="absolute bottom-4 left-4 flex gap-2">
+                  {isTranscribing ? (
+                    <div className="flex items-center gap-2 bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-full text-xs font-bold animate-pulse">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      جاري الاستماع وتحويل الصوت لنص...
+                    </div>
+                  ) : isRecording ? (
+                    <button 
+                      onClick={stopRecording}
+                      className="flex items-center gap-2 bg-rose-100 text-rose-700 hover:bg-rose-200 px-3 py-1.5 rounded-full text-xs font-bold transition-colors animate-pulse"
+                    >
+                      <Square className="w-3.5 h-3.5 fill-rose-700" />
+                      إيقاف التسجيل
+                    </button>
+                  ) : (
+                    <button 
+                      onClick={startRecording}
+                      disabled={isGrading}
+                      className="flex items-center gap-2 bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:opacity-50 px-3 py-1.5 rounded-full text-xs font-bold transition-colors"
+                      title="إجابة صوتية (يتم تحويلها لنص تلقائياً)"
+                    >
+                      <Mic className="w-3.5 h-3.5" />
+                      إجابة صوتية
+                    </button>
+                  )}
+                </div>
+              </div>
             )}
             <button onClick={handleFillSubmit} disabled={isGrading}
               className="bg-primary text-white px-6 py-3 rounded-xl font-bold hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2">
