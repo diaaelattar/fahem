@@ -314,7 +314,9 @@ export function ContentUploader({ subjects, grades }: Props) {
               retryCount++
               if (retryCount < maxRetries) {
                 const delay = retryCount * 8000 // زيادة وقت الانتظار (8ث، 16ث، 24ث)
-                addLog(`النموذج مشغول (خطأ 503). إعادة محاولة المرحلة ${i + 1} خلال ${delay/1000} ثانية... (محاولة ${retryCount}/${maxRetries})`, 'error')
+                const isRateLimit = chunkErr.message.includes('503') || chunkErr.message.includes('429') || chunkErr.message.includes('Quota')
+                const errorLogPrefix = isRateLimit ? 'النموذج مشغول أو تم تجاوز الكوتا' : chunkErr.message
+                addLog(`${errorLogPrefix}. إعادة محاولة المرحلة ${i + 1} خلال ${delay/1000} ثانية... (محاولة ${retryCount}/${maxRetries})`, 'error')
                 await new Promise(r => setTimeout(r, delay))
               } else {
                 addLog(`تعذر إكمال المرحلة ${i + 1} بعد ${maxRetries} محاولات: ${chunkErr.message}`, 'error')

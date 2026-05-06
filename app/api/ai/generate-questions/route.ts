@@ -328,24 +328,36 @@ export async function POST(request: NextRequest) {
     }
 
     // ── 9. التحقق من النتيجة والحفظ ──────────────────────────────────
-    if (!finalResult?.questions || finalResult.questions.length === 0) {
+    let questionsArray: any[] = []
+    let aiMetadata: any = null
+
+    if (Array.isArray(finalResult)) {
+      questionsArray = finalResult
+    } else if (finalResult && finalResult.questions && Array.isArray(finalResult.questions)) {
+      questionsArray = finalResult.questions
+      aiMetadata = finalResult.metadata || finalResult.ai_metadata || null
+    } else if (finalResult && finalResult.result && Array.isArray(finalResult.result)) {
+      questionsArray = finalResult.result
+    }
+
+    if (questionsArray.length === 0) {
       await (supabase.from('documents') as any).update({ processing_status: 'failed' }).eq('id', documentId)
       return NextResponse.json({ error: 'لم ينتج عن التحليل أي أسئلة. تأكد من أن الملف يحتوي على محتوى تعليمي كافٍ.' }, { status: 400 })
     }
 
     await (supabase.from('documents') as any).update({
       processing_status: 'completed',
-      questions_count: finalResult.questions.length,
+      questions_count: questionsArray.length,
       metadata: {
-        ai_metadata: finalResult.metadata,
+        ai_metadata: aiMetadata,
         models_tried: FALLBACK_MODELS,
       },
     }).eq('id', documentId)
 
     return NextResponse.json({
       success: true,
-      questions: finalResult.questions,
-      metadata: finalResult.metadata,
+      questions: questionsArray,
+      metadata: aiMetadata,
       document_id: documentId,
     })
 
