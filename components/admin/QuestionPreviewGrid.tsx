@@ -13,8 +13,9 @@ interface GeneratedQuestion {
   explanation: string
   source_paragraph?: string
   difficulty: 'easy' | 'medium' | 'hard'
+  bloom_level?: 'remember' | 'understand' | 'apply' | 'analyze' | 'evaluate' | 'create'
+  status?: 'draft' | 'review' | 'approved' | 'rejected'
   points: number
-  context_passage?: string | null
   context_passage?: string | null
   learning_outcome?: string | null
   learning_outcome_id?: number | null
@@ -104,9 +105,12 @@ export function QuestionPreviewGrid({
 
       const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
 
-      // جلب grade_id و subject_id من المستند
+      // جلب بيانات المستند والوحدة (للحصول على التيرم)
       const { data: doc } = await supabase.from('documents')
-        .select('subject_id, grade_id, unit_id, lesson_id')
+        .select(`
+          subject_id, grade_id, unit_id, lesson_id,
+          units(semester_id)
+        `)
         .eq('id', documentId)
         .single()
 
@@ -119,6 +123,8 @@ export function QuestionPreviewGrid({
         correct_answer: q.correct_answer,
         explanation: q.source_paragraph ? `${q.explanation}\n\n**المرجع:** ${q.source_paragraph}` : q.explanation,
         difficulty_level: q.difficulty,
+        bloom_level: q.bloom_level || 'remember',
+        status: q.status || 'draft',
         points: q.points,
         context_passage: q.context_passage || null,
         learning_outcome: q.learning_outcome || null,
@@ -127,7 +133,8 @@ export function QuestionPreviewGrid({
         grade_id: doc?.grade_id,
         unit_id: doc?.unit_id,
         lesson_id: doc?.lesson_id,
-        is_approved: false,
+        semester_id: (doc?.units as any)?.semester_id || null,
+        is_approved: q.status === 'approved',
       }))
 
       const { error } = await supabase.from('questions').insert(inserts)

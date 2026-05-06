@@ -17,6 +17,9 @@ interface SearchParams {
   bloom?: string
 }
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export default async function QuestionsPage({ searchParams }: { searchParams: SearchParams }) {
   await requireAdmin()
   const supabase = createClient()
@@ -49,9 +52,9 @@ export default async function QuestionsPage({ searchParams }: { searchParams: Se
   const { data: lessons } = searchParams.unit
     ? await supabase
         .from('lessons')
-        .select('id, title')
+        .select('id, name_ar')
         .eq('unit_id', searchParams.unit)
-        .order('lesson_number')
+        .order('sort_order')
     : { data: null }
 
   // ─── بناء استعلام الأسئلة ───
@@ -63,7 +66,7 @@ export default async function QuestionsPage({ searchParams }: { searchParams: Se
       subjects(name_ar, icon),
       grades(name_ar),
       units(name_ar),
-      lessons(title)
+      lessons(name_ar)
     `)
     .order('created_at', { ascending: false })
     .limit(60)
@@ -283,7 +286,7 @@ export default async function QuestionsPage({ searchParams }: { searchParams: Se
                       : 'border-border hover:border-rose-300 hover:bg-rose-50'
                   }`}
                 >
-                  {l.title}
+                  {l.name_ar}
                 </a>
               ))}
             </div>
@@ -415,8 +418,8 @@ export default async function QuestionsPage({ searchParams }: { searchParams: Se
                       {q.units?.name_ar && (
                         <span className="bg-slate-100 px-2 py-0.5 rounded-full">📦 {q.units.name_ar}</span>
                       )}
-                      {q.lessons?.title && (
-                        <span className="bg-slate-100 px-2 py-0.5 rounded-full">📄 {q.lessons.title}</span>
+                      {q.lessons?.name_ar && (
+                        <span className="bg-slate-100 px-2 py-0.5 rounded-full">📄 {q.lessons.name_ar}</span>
                       )}
                       <span className="mr-auto">{q.points} {q.points === 1 ? 'درجة' : 'درجات'} • استُخدم {q.usage_count} مرة</span>
                     </div>
