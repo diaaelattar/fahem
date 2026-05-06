@@ -89,6 +89,7 @@ export function ContentUploader({ subjects, grades }: Props) {
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [pageRange, setPageRange] = useState('') // مثال: 1-5, 8, 10-12
   const [isChunked, setIsChunked] = useState(true)
+  const [chunkSize, setChunkSize] = useState(3)
   const [processingLogs, setProcessingLogs] = useState<{ id: string, msg: string, status: 'info' | 'success' | 'error' | 'loading' }[]>([])
 
   const addLog = (msg: string, status: 'info' | 'success' | 'error' | 'loading' = 'info') => {
@@ -236,11 +237,11 @@ export function ContentUploader({ subjects, grades }: Props) {
 
         if (targetPages.length === 0) throw new Error('تحديد نطاق الصفحات غير صحيح أو خارج نطاق الملف')
 
-        // تقسيم الصفحات إلى مجموعات (Chunks) - 5 صفحات لكل مجموعة
-        const chunkSize = isChunked ? 5 : targetPages.length
+        // تقسيم الصفحات إلى مجموعات (Chunks)
+        const currentChunkSize = isChunked ? chunkSize : targetPages.length
         const chunks: number[][] = []
-        for (let i = 0; i < targetPages.length; i += chunkSize) {
-          chunks.push(targetPages.slice(i, i + chunkSize))
+        for (let i = 0; i < targetPages.length; i += currentChunkSize) {
+          chunks.push(targetPages.slice(i, i + currentChunkSize))
         }
 
         addLog(`سيتم معالجة الملف على ${chunks.length} مرحلة.`, 'info')
@@ -603,12 +604,26 @@ export function ContentUploader({ subjects, grades }: Props) {
                   <label className="text-xs font-semibold block">التجزئة التلقائية (Chunks)</label>
                   <p className="text-[10px] text-muted-foreground">تقسيم الملف لتفادي أعطال AI</p>
                 </div>
-                <input 
-                  type="checkbox"
-                  checked={isChunked}
-                  onChange={e => setIsChunked(e.target.checked)}
-                  className="w-4 h-4 accent-primary"
-                />
+                <div className="flex items-center gap-3">
+                  {isChunked && (
+                    <select 
+                      value={chunkSize} 
+                      onChange={e => setChunkSize(Number(e.target.value))}
+                      className="px-2 py-1 border border-border rounded text-xs bg-white focus:outline-none focus:ring-1 focus:ring-primary/30"
+                    >
+                      <option value={1}>1 صفحة</option>
+                      <option value={2}>2 صفحة</option>
+                      <option value={3}>3 صفحات</option>
+                      <option value={5}>5 صفحات</option>
+                    </select>
+                  )}
+                  <input 
+                    type="checkbox"
+                    checked={isChunked}
+                    onChange={e => setIsChunked(e.target.checked)}
+                    className="w-4 h-4 accent-primary"
+                  />
+                </div>
               </div>
             </div>
           )}
