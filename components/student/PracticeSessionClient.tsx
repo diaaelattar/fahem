@@ -40,40 +40,73 @@ export function PracticeSessionClient({ questions, subject, studentId }: Props) 
   const [streak, setStreak] = useState(0)
   const [maxStreak, setMaxStreak] = useState(0)
 
+  // ─── Arabic Normalization ───
+  const normalizeArabic = (text: string) => {
+    if (!text) return ''
+    return text.trim().toLowerCase()
+      .replace(/[أإآ]/g, 'ا')
+      .replace(/ة/g, 'ه')
+      .replace(/ى/g, 'ي')
+      .replace(/[\u064B-\u065F]/g, '') // Remove diacritics
+  }
+
   // ─── Audio Recording ───
   const [isRecording, setIsRecording] = useState(false)
   const [isTranscribing, setIsTranscribing] = useState(false)
+  const [recordingSeconds, setRecordingSeconds] = useState(0)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const timerRef = useRef<NodeJS.Timeout | null>(null)
+  const MAX_RECORDING_SECONDS = 120
 
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       const recorder = new MediaRecorder(stream)
-      
-      recorder.ondataavailable = async (e) => {
-        if (e.data.size > 0) {
-          setIsTranscribing(true)
-          const formData = new FormData()
-          formData.append('audio', e.data)
-          try {
-            const res = await fetch('/api/ai/transcribe', { method: 'POST', body: formData })
-            const data = await res.json()
-            if (data.text) {
-              setFillInput(prev => prev ? prev + ' ' + data.text : data.text)
-            } else if (data.error) {
-              alert(data.error)
-            }
-          } catch (err) {
-            alert('حدث خطأ أثناء تفريغ الصوت')
-          } finally {
-            setIsTranscribing(false)
+      const chunks: BlobPart[] = []
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunks.push(e.data)
+      }
+
+      recorder.onstop = async () => {
+        if (timerRef.current) clearInterval(timerRef.current)
+        setRecordingSeconds(0)
+        if (chunks.length === 0) return
+        const blob = new Blob(chunks, { type: 'audio/webm' })
+        setIsTranscribing(true)
+        const formData = new FormData()
+        formData.append('audio', blob)
+        try {
+          const res = await fetch('/api/ai/transcribe', { method: 'POST', body: formData })
+          const data = await res.json()
+          if (data.text) {
+            setFillInput(prev => prev ? prev + ' ' + data.text : data.text)
+          } else if (data.error) {
+            alert('خطأ في تحويل الصوت: ' + data.error)
           }
+        } catch (err) {
+          alert('حدث خطأ أثناء تفريغ الصوت')
+        } finally {
+          setIsTranscribing(false)
         }
       }
-      
+
       recorder.start()
       setIsRecording(true)
+      setRecordingSeconds(0)
       mediaRecorderRef.current = recorder
+
+      // مؤقت لعد الثواني
+      timerRef.current = setInterval(() => {
+        setRecordingSeconds(s => {
+          if (s + 1 >= MAX_RECORDING_SECONDS) {
+            stopRecording()
+            return 0
+          }
+          return s + 1
+        })
+      }, 1000)
+
     } catch (err) {
       alert('الرجاء السماح بصلاحية الميكروفون')
     }
@@ -84,6 +117,7 @@ export function PracticeSessionClient({ questions, subject, studentId }: Props) 
       mediaRecorderRef.current.stop()
       setIsRecording(false)
       mediaRecorderRef.current.stream.getTracks().forEach(t => t.stop())
+      if (timerRef.current) clearInterval(timerRef.current)
     }
   }
 
@@ -133,7 +167,7 @@ export function PracticeSessionClient({ questions, subject, studentId }: Props) 
 
     // ─── التصحيح العادي ───
     setShowAnswer(true)
-    const isCorrect = answer.trim().toLowerCase() === current.correct_answer?.trim().toLowerCase()
+    const isCorrect = normalizeArabic(answer) === normalizeArabic(current.correct_answer)
 
     if (isCorrect) {
       const newStreak = streak + 1
@@ -265,7 +299,7 @@ export function PracticeSessionClient({ questions, subject, studentId }: Props) 
   // Question Card
   // ────────────────────────────────────────
   const isCorrectAnswer = (opt: string) =>
-    opt.trim().toLowerCase() === current.correct_answer?.trim().toLowerCase()
+    normalizeArabic(opt) === normalizeArabic(current.correct_answer)
 
   return (
     <div className="space-y-6">
@@ -399,20 +433,26 @@ export function PracticeSessionClient({ questions, subject, studentId }: Props) 
                 />
                 
                 {/* Audio Recording Button */}
-                <div className="absolute bottom-4 left-4 flex gap-2">
+                <div className="absolute bottom-4 left-4 flex items-center gap-2">
                   {isTranscribing ? (
                     <div className="flex items-center gap-2 bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-full text-xs font-bold animate-pulse">
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      جاري الاستماع وتحويل الصوت لنص...
+                      جاري تحويل الصوت لنص...
                     </div>
                   ) : isRecording ? (
-                    <button 
-                      onClick={stopRecording}
-                      className="flex items-center gap-2 bg-rose-100 text-rose-700 hover:bg-rose-200 px-3 py-1.5 rounded-full text-xs font-bold transition-colors animate-pulse"
-                    >
-                      <Square className="w-3.5 h-3.5 fill-rose-700" />
-                      إيقاف التسجيل
-                    </button>
+                    <>
+                      <button 
+                        onClick={stopRecording}
+                        className="flex items-center gap-2 bg-rose-500 text-white hover:bg-rose-600 px-3 py-1.5 rounded-full text-xs font-bold transition-colors"
+                      >
+                        <Square className="w-3 h-3 fill-white" />
+                        إيقاف و تحويل
+                      </button>
+                      <span className="flex items-center gap-1.5 text-xs text-rose-600 font-bold">
+                        <span className="w-2 h-2 bg-rose-500 rounded-full animate-ping inline-block" />
+                        {Math.floor(recordingSeconds / 60).toString().padStart(2,'0')}:{(recordingSeconds % 60).toString().padStart(2,'0')}
+                      </span>
+                    </>
                   ) : (
                     <button 
                       onClick={startRecording}
@@ -436,12 +476,14 @@ export function PracticeSessionClient({ questions, subject, studentId }: Props) 
 
         {current.question_type === 'fill_blank' && showAnswer && (
           <div className="space-y-3">
-            <div className={`px-4 py-3 rounded-xl border-2 font-bold ${isCorrectAnswer(selected || '') ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-rose-400 bg-rose-50 text-rose-700'}`}>
-              إجابتك: {selected}
+            <div className={`px-4 py-3 rounded-xl border-2 font-bold flex items-center gap-2 ${isCorrectAnswer(selected || '') ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-rose-400 bg-rose-50 text-rose-700'}`}>
+              <span className="shrink-0">إجابتك:</span> 
+              <MathRenderer text={selected || ''} />
             </div>
             {!isCorrectAnswer(selected || '') && (
-              <div className="px-4 py-3 rounded-xl border-2 border-emerald-500 bg-emerald-50 text-emerald-700 font-bold">
-                الإجابة الصحيحة: {current.correct_answer}
+              <div className="px-4 py-3 rounded-xl border-2 border-emerald-500 bg-emerald-50 text-emerald-700 font-bold flex items-center gap-2">
+                <span className="shrink-0">الإجابة الصحيحة:</span> 
+                <MathRenderer text={current.correct_answer} />
               </div>
             )}
           </div>

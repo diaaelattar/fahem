@@ -11,9 +11,9 @@ function getGenAI() {
 
 // نماذج متسقة مع الـ File API - مرتبة حسب الأولوية وتوافر الكوتا
 const FALLBACK_MODELS = [
-  'gemini-2.0-flash',
-  'gemini-1.5-flash',
-  'gemini-1.5-pro'
+  'gemini-2.5-flash',
+  'gemini-flash-latest',
+  'gemini-2.0-flash'
 ]
 const DEFAULT_MODEL = FALLBACK_MODELS[0]
 const GEMINI_MODEL = DEFAULT_MODEL // للـ backward compatibility
@@ -38,7 +38,7 @@ async function extractTextViaGemini(
       },
     },
     {
-      text: `استخرج كامل النص العربي والعلمي الموجود في هذا المستند التعليمي (مادة ${subject} - ${grade}) بالكامل وبدقة تامة. احتفظ بالمعادلات والأرقام والتعريفات والمصطلحات العلمية. لا تضف تعليقاً، فقط النص المستخرج من الملف.`,
+      text: `استخرج كامل النص العربي والعلمي الموجود في هذا المستند التعليمي (مادة ${subject} - ${grade}) بالكامل وبدقة تامة. من الضروري جداً تحويل أي معادلات رياضية، أسس، أرقام، أو كسور إلى صيغة LaTeX الرياضية الصحيحة. لا تستخدم أرقاماً عادية للتعبير عن الأسس (مثل a 4) بل استخدم a^{4}. لا تضف تعليقاً، فقط النص المستخرج من الملف.`,
     },
   ])
 
@@ -275,7 +275,7 @@ export async function POST(request: NextRequest) {
             },
           },
           {
-            text: `استخرج كامل النص العربي الموجود في هذا المستند بدقة.`,
+            text: `استخرج كامل النص العربي الموجود في هذا المستند بدقة. من الضروري تحويل أي معادلات أو أسس أو كسور رياضية إلى صيغة LaTeX الصحيحة.`,
           },
         ])
         const extractedText = extractRes.response.text()

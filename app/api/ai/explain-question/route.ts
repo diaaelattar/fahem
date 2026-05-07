@@ -4,7 +4,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 
 export const runtime = 'edge'
 
-const MODELS = ['gemini-2.0-flash-lite', 'gemini-2.0-flash', 'gemini-pro-latest']
+const MODELS = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.0-flash']
 
 function getModel(name: string) {
   return new GoogleGenerativeAI(
@@ -45,7 +45,8 @@ ${studentAnswer ? `**إجابة الطالب:** ${studentAnswer}` : ''}
 ${studentAnswer && studentAnswer !== correctAnswer ? '3. **لماذا الإجابة الخاطئة خاطئة؟** اشرح بأسلوب مشجع' : ''}
 4. **قاعدة لتذكرها:** اكتب جملة قصيرة تساعد الطالب على تذكر هذه المعلومة
 
-أسلوبك: مشجع، واضح، مع أمثلة من الحياة اليومية المصرية إن أمكن. لا تستخدم مصطلحات معقدة.`
+أسلوبك: مشجع، واضح، مع أمثلة من الحياة اليومية المصرية إن أمكن. لا تستخدم مصطلحات معقدة.
+**هام جداً:** استخدم وسوم KaTeX للمعادلات الرياضية والأرقام: $...$ للأسطر المدمجة و $$...$$ للكبيرة. لا تستخدم علامات النجمة ** للمعادلات.`
 
     let explanation = ''
     let lastError: Error | null = null

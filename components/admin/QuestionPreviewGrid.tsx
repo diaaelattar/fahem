@@ -39,6 +39,7 @@ export function QuestionPreviewGrid({
   )
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [saveError, setSaveError] = useState('')
   const [filter, setFilter] = useState<'all' | 'mcq' | 'true_false' | 'fill_blank' | 'essay' | 'correction'>('all')
 
   const [docMeta, setDocMeta] = useState<any>(null)
@@ -99,6 +100,7 @@ export function QuestionPreviewGrid({
     if (toSave.length === 0) return
 
     setSaving(true)
+    setSaveError('')
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('غير مسجل الدخول')
@@ -133,7 +135,6 @@ export function QuestionPreviewGrid({
         grade_id: doc?.grade_id,
         unit_id: doc?.unit_id,
         lesson_id: doc?.lesson_id,
-        semester_id: (doc?.units as any)?.semester_id || null,
         is_approved: q.status === 'approved',
       }))
 
@@ -144,8 +145,11 @@ export function QuestionPreviewGrid({
       await supabase.from('documents').update({ questions_count: toSave.length }).eq('id', documentId)
 
       setSaved(true)
+      // scroll to top
+      window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (err: any) {
-      alert('خطأ في الحفظ: ' + err.message)
+      console.error('Save error:', err)
+      setSaveError(err.message || 'حدث خطأ غير متوقع أثناء الحفظ')
     } finally {
       setSaving(false)
     }
@@ -175,6 +179,41 @@ export function QuestionPreviewGrid({
 
   return (
     <div className="space-y-5">
+      {/* Success Banner */}
+      {saved && (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 bg-green-50 border border-green-300 rounded-2xl animate-in fade-in">
+          <div className="flex items-center gap-3">
+            <CheckCircle className="w-6 h-6 text-green-600 shrink-0" />
+            <div>
+              <p className="font-bold text-green-800">تم الحفظ بنجاح! 🎉</p>
+              <p className="text-sm text-green-700">تم إضافة {selectedCount} سؤالاً إلى بنك الأسئلة.</p>
+            </div>
+          </div>
+          <div className="flex gap-2 shrink-0">
+            <a href="/admin/questions" className="bg-green-600 text-white px-4 py-2 rounded-xl font-medium text-sm hover:bg-green-700 transition-colors">
+              عرض بنك الأسئلة
+            </a>
+            <a href="/admin/exams/new" className="border border-green-400 text-green-800 px-4 py-2 rounded-xl font-medium text-sm hover:bg-green-100 transition-colors">
+              إنشاء اختبار
+            </a>
+          </div>
+        </div>
+      )}
+
+      {/* Error Banner */}
+      {saveError && (
+        <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-300 rounded-2xl animate-in fade-in">
+          <X className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="font-bold text-red-800">فشل الحفظ</p>
+            <p className="text-sm text-red-700 mt-0.5">{saveError}</p>
+          </div>
+          <button onClick={() => setSaveError('')} className="text-red-400 hover:text-red-600">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4 bg-white rounded-2xl border border-border p-5">
         <div>

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Sparkles, Loader2, ChevronDown, ChevronUp } from 'lucide-react'
+import { MathRenderer } from '@/components/ui/MathRenderer'
 
 interface AIExplainButtonProps {
   questionId: string
@@ -57,14 +58,8 @@ export function AIExplainButton({
     }
   }
 
-  // Convert Gemini markdown to readable format
-  const formatExplanation = (text: string) => {
-    return text
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      .replace(/\n\n/g, '</p><p>')
-      .replace(/\n/g, '<br/>')
-  }
+  // Remove formatExplanation since MathRenderer handles it better
+  // Just strip bold asterisks from math expressions safely or rely on Gemini's output
 
   return (
     <div className="mt-4">
@@ -96,10 +91,9 @@ export function AIExplainButton({
             </div>
             <span className="font-bold text-purple-800 text-base">شرح مساعد الذكاء الاصطناعي</span>
           </div>
-          <div 
-            className="prose prose-sm prose-purple max-w-none"
-            dangerouslySetInnerHTML={{ __html: `<p>${formatExplanation(explanation)}</p>` }}
-          />
+          <div className="prose prose-sm prose-purple max-w-none whitespace-pre-wrap">
+            <MathRenderer text={explanation.replace(/\*\*(.*?)\*\*/g, '$1')} />
+          </div>
         </div>
       )}
     </div>
