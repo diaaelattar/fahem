@@ -15,6 +15,7 @@ export type QuestionType = 'mcq' | 'true_false' | 'fill_blank'
 export type DifficultyLevel = 'easy' | 'medium' | 'hard'
 export type ProcessingStatus = 'pending' | 'processing' | 'completed' | 'failed'
 export type FileType = 'pdf' | 'docx' | 'pptx' | 'mp3' | 'mp4' | 'wav' | 'jpg' | 'jpeg' | 'png' | 'youtube' | 'text'
+export type ExamType = 'partial' | 'monthly' | 'midterm' | 'final' | 'homework' | 'custom'
 
 export interface Database {
   public: {
@@ -60,6 +61,41 @@ export interface Database {
         Row: { id: number; name_ar: string; name_en: string | null; sort_order: number }
         Insert: Omit<Database['public']['Tables']['educational_stages']['Row'], 'id'>
         Update: Partial<Database['public']['Tables']['educational_stages']['Insert']>
+      }
+      semesters: {
+        Row: { id: number; name_ar: string; name_en: string | null; sort_order: number }
+        Insert: Omit<Database['public']['Tables']['semesters']['Row'], 'id'>
+        Update: Partial<Database['public']['Tables']['semesters']['Insert']>
+      }
+      units: {
+        Row: {
+          id: number
+          subject_id: number | null
+          grade_id: number | null
+          semester_id: number | null
+          name_ar: string
+          description: string | null
+          sort_order: number
+          is_active: boolean
+          created_at: string
+        }
+        Insert: Omit<Database['public']['Tables']['units']['Row'], 'id' | 'created_at'>
+        Update: Partial<Database['public']['Tables']['units']['Insert']>
+      }
+      lessons: {
+        Row: {
+          id: number
+          unit_id: number | null
+          name_ar: string
+          learning_objectives: string[] | null
+          sort_order: number
+          duration_minutes: number
+          is_active: boolean
+          objectives: string | null
+          created_at: string
+        }
+        Insert: Omit<Database['public']['Tables']['lessons']['Row'], 'id' | 'created_at'>
+        Update: Partial<Database['public']['Tables']['lessons']['Insert']>
       }
       grades: {
         Row: { id: number; stage_id: number; name_ar: string; name_en: string | null; grade_number: number; sort_order: number }
@@ -131,6 +167,8 @@ export interface Database {
           grade_id: number | null
           semester_id: number | null
           unit_id: number | null
+          lesson_id: number | null
+          exam_type: ExamType
           duration_minutes: number
           total_points: number
           passing_score: number | null
@@ -193,6 +231,9 @@ export type Profile = Database['public']['Tables']['profiles']['Row']
 export type Student = Database['public']['Tables']['students']['Row']
 export type Grade = Database['public']['Tables']['grades']['Row']
 export type Subject = Database['public']['Tables']['subjects']['Row']
+export type Semester = Database['public']['Tables']['semesters']['Row']
+export type Unit = Database['public']['Tables']['units']['Row']
+export type Lesson = Database['public']['Tables']['lessons']['Row']
 export type Document = Database['public']['Tables']['documents']['Row']
 export type Question = Database['public']['Tables']['questions']['Row']
 export type Exam = Database['public']['Tables']['exams']['Row']
@@ -203,8 +244,14 @@ export type StudentWithProfile = Student & { profiles: Profile; grades: Grade | 
 export type QuestionWithRelations = Question & {
   subjects: Subject | null
   grades: Grade | null
+  units: Unit | null
+  lessons: Lesson | null
 }
 export type ExamWithRelations = Exam & {
   subjects: Subject | null
   grades: Grade | null
+  semesters: Semester | null
+  units: Unit | null
+  lessons: Lesson | null
 }
+export type UnitWithLessons = Unit & { lessons: Lesson[] }

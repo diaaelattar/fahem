@@ -161,7 +161,7 @@ export default async function ExamReportPage({ params }: Props) {
             {[
               { label: 'عدد الأسئلة', value: exam.questions_count || '—' },
               { label: 'الدرجة الكاملة', value: exam.total_points },
-              { label: 'درجة النجاح', value: exam.passing_score ? `${exam.passing_score} من ${exam.total_points}` : '—' },
+              { label: 'نسبة النجاح', value: exam.passing_score ? `${exam.passing_score}٪ (${Math.ceil(exam.total_points * (exam.passing_score / 100))} نقطة)` : '—' },
               { label: 'مدة الاختبار', value: `${exam.duration_minutes} دقيقة` },
               { label: 'متوسط وقت الحل', value: totalAttempts > 0 ? `${formatTime(avgTime)} دقيقة` : '—' },
               { label: 'تاريخ الإنشاء', value: formatDate(exam.created_at) },

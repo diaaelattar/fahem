@@ -1,144 +1,120 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import {
-  Search, Plus, Trash2, GripVertical, ChevronDown, Loader2,
-  Clock, BookOpen, Settings2, Eye, EyeOff, Save, CheckCircle,
-  SlidersHorizontal, ToggleLeft, Shuffle, BarChart2
-} from 'lucide-react'
+import { Plus, Trash2, Loader2, BookOpen, Save, Eye, CheckCircle, GripVertical, BarChart2 } from 'lucide-react'
+import { QuestionFilterSidebar, type QuestionFilters } from './QuestionFilterSidebar'
+import { ExamSummaryStats } from './ExamSummaryStats'
+import { ExamBuilderSettings } from './ExamBuilderSettings'
+import type { QuestionItem, SelectedQuestion, ExamBuilderProps, ExamFormState } from './ExamBuilderTypes'
+import { TYPE_AR, DIFF_AR, DIFF_COLOR } from './ExamBuilderTypes'
 
-interface Question {
-  id: string
-  question_type: string
-  question_text: string
-  difficulty_level: string
-  points: number
-  subjects?: { name_ar: string; icon: string }
-  grades?: { name_ar: string }
+const DEFAULT_FORM: ExamFormState = {
+  title: '', description: '', subjectId: '', gradeId: '', semesterId: '',
+  unitId: '', lessonId: '', examType: 'partial', duration: '30',
+  passingScore: '', instructions: '', isPublished: false,
+  availableFrom: '', availableUntil: '', shuffleQuestions: true,
+  shuffleOptions: true, showResultsImmediately: true, allowedAttempts: '1',
 }
 
-interface SelectedQuestion extends Question {
-  order: number
-  points_override?: number
-}
-
-interface Props {
-  subjects: { id: number; name_ar: string; icon: string }[]
-  grades: { id: number; name_ar: string; grade_number: number }[]
-  semesters: { id: number; name_ar: string }[]
-  examId?: string  // for editing
-  initialData?: any
-}
-
-const TYPE_AR: Record<string, string> = { mcq: 'اختيار من متعدد', true_false: 'صح/خطأ', fill_blank: 'ملء فراغ' }
-const DIFF_AR: Record<string, string> = { easy: 'سهل', medium: 'متوسط', hard: 'صعب' }
-const DIFF_COLOR: Record<string, string> = { easy: 'bg-green-100 text-green-700', medium: 'bg-yellow-100 text-yellow-700', hard: 'bg-red-100 text-red-700' }
-
-export function ExamBuilder({ subjects, grades, semesters, examId, initialData }: Props) {
+export function ExamBuilder({ subjects, grades, semesters, units, lessons, examId, initialData }: ExamBuilderProps) {
   const router = useRouter()
   const supabase = createClient()
 
-  // Form fields
-  const [title, setTitle] = useState(initialData?.title || '')
-  const [description, setDescription] = useState(initialData?.description || '')
-  const [subjectId, setSubjectId] = useState(initialData?.subject_id?.toString() || '')
-  const [gradeId, setGradeId] = useState(initialData?.grade_id?.toString() || '')
-  const [semesterId, setSemesterId] = useState(initialData?.semester_id?.toString() || '')
-  const [duration, setDuration] = useState(initialData?.duration_minutes?.toString() || '30')
-  const [passingScore, setPassingScore] = useState(initialData?.passing_score?.toString() || '')
-  const [instructions, setInstructions] = useState(initialData?.instructions || '')
-  const [isPublished, setIsPublished] = useState(initialData?.is_published || false)
-  const [availableFrom, setAvailableFrom] = useState(initialData?.available_from?.slice(0,16) || '')
-  const [availableUntil, setAvailableUntil] = useState(initialData?.available_until?.slice(0,16) || '')
-  const [shuffleQuestions, setShuffleQuestions] = useState(initialData?.shuffle_questions ?? true)
-  const [shuffleOptions, setShuffleOptions] = useState(initialData?.shuffle_options ?? true)
-  const [showResultsImmediately, setShowResultsImmediately] = useState(initialData?.show_results_immediately ?? true)
-  const [allowedAttempts, setAllowedAttempts] = useState(initialData?.allowed_attempts?.toString() || '1')
+  const [form, setForm] = useState<ExamFormState>(() =>
+    initialData ? {
+      title: initialData.title || '',
+      description: initialData.description || '',
+      subjectId: initialData.subject_id?.toString() || '',
+      gradeId: initialData.grade_id?.toString() || '',
+      semesterId: initialData.semester_id?.toString() || '',
+      unitId: initialData.unit_id?.toString() || '',
+      lessonId: initialData.lesson_id?.toString() || '',
+      examType: initialData.exam_type || 'partial',
+      duration: initialData.duration_minutes?.toString() || '30',
+      passingScore: initialData.passing_score?.toString() || '',
+      instructions: initialData.instructions || '',
+      isPublished: initialData.is_published || false,
+      availableFrom: initialData.available_from?.slice(0, 16) || '',
+      availableUntil: initialData.available_until?.slice(0, 16) || '',
+      shuffleQuestions: initialData.shuffle_questions ?? true,
+      shuffleOptions: initialData.shuffle_options ?? true,
+      showResultsImmediately: initialData.show_results_immediately ?? true,
+      allowedAttempts: initialData.allowed_attempts?.toString() || '1',
+    } : DEFAULT_FORM
+  )
 
-  // Question bank
-  const [allQuestions, setAllQuestions] = useState<Question[]>([])
+  const [filters, setFilters] = useState<QuestionFilters>({
+    search: '', gradeId: '', subjectId: '', semesterId: '',
+    unitId: '', lessonId: '', questionType: '', difficulty: '',
+  })
+
+  const [bankQuestions, setBankQuestions] = useState<QuestionItem[]>([])
   const [selectedQuestions, setSelectedQuestions] = useState<SelectedQuestion[]>([])
-  const [searchTerm, setSearchTerm] = useState('')
-  const [filterGrade, setFilterGrade] = useState('')
-  const [filterSubject, setFilterSubject] = useState('')
-  const [filterType, setFilterType] = useState('')
-  const [loadingQuestions, setLoadingQuestions] = useState(false)
+  const [loadingQ, setLoadingQ] = useState(false)
   const [activeTab, setActiveTab] = useState<'settings' | 'questions'>('settings')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
 
-  const totalPoints = selectedQuestions.reduce((sum, q) => sum + (q.points_override || q.points), 0)
+  const totalPoints = selectedQuestions.reduce((s, q) => s + (q.points_override ?? q.points), 0)
 
-  // Load questions from bank
-  useEffect(() => {
-    loadQuestions()
-  }, [filterGrade, filterSubject, filterType])
+  // Load bank questions whenever filters change
+  const loadQuestions = useCallback(async () => {
+    setLoadingQ(true)
+    let q = supabase
+      .from('questions')
+      .select('id, question_type, question_text, difficulty_level, points, unit_id, lesson_id, subjects(name_ar,icon), grades(name_ar), units(name_ar), lessons(name_ar)')
+      .eq('is_approved', true)
+      .order('created_at', { ascending: false })
+      .limit(150)
 
-  // Pre-load selected questions for edit mode
+    if (filters.gradeId)      q = q.eq('grade_id', filters.gradeId)
+    if (filters.subjectId)    q = q.eq('subject_id', filters.subjectId)
+    // if (filters.semesterId)   q = q.eq('semester_id', filters.semesterId) // Requires DB migration
+    if (filters.unitId)       q = q.eq('unit_id', filters.unitId)
+    if (filters.lessonId)     q = q.eq('lesson_id', filters.lessonId)
+    if (filters.questionType) q = q.eq('question_type', filters.questionType)
+    if (filters.difficulty)   q = q.eq('difficulty_level', filters.difficulty)
+    if (filters.search)       q = q.ilike('question_text', `%${filters.search}%`)
+
+    const { data } = await q
+    setBankQuestions((data || []) as unknown as QuestionItem[])
+    setLoadingQ(false)
+  }, [filters, supabase])
+
+  useEffect(() => { loadQuestions() }, [loadQuestions])
+
   useEffect(() => {
     if (examId && initialData) {
-      loadExamQuestions()
+      supabase.from('exam_questions')
+        .select('question_id, question_order, points_override, questions(id,question_type,question_text,difficulty_level,points,unit_id,lesson_id,subjects(name_ar,icon),grades(name_ar))')
+        .eq('exam_id', examId)
+        .order('question_order')
+        .then(({ data }) => {
+          if (data) setSelectedQuestions(data.map((eq: any) => ({ ...eq.questions, order: eq.question_order, points_override: eq.points_override })))
+        })
     }
   }, [examId])
 
-  async function loadQuestions() {
-    setLoadingQuestions(true)
-    let q = supabase.from('questions')
-      .select('id, question_type, question_text, difficulty_level, points, subjects(name_ar, icon), grades(name_ar)')
-      .eq('is_approved', true)
-      .order('created_at', { ascending: false })
-      .limit(100)
-
-    if (filterGrade) q = q.eq('grade_id', filterGrade)
-    if (filterSubject) q = q.eq('subject_id', filterSubject)
-    if (filterType) q = q.eq('question_type', filterType)
-    if (searchTerm) q = q.ilike('question_text', `%${searchTerm}%`)
-
-    const { data } = await q
-    setAllQuestions((data || []) as unknown as Question[])
-    setLoadingQuestions(false)
-  }
-
-  async function loadExamQuestions() {
-    const { data } = await supabase
-      .from('exam_questions')
-      .select('question_id, question_order, points_override, questions(id, question_type, question_text, difficulty_level, points, subjects(name_ar, icon), grades(name_ar))')
-      .eq('exam_id', examId)
-      .order('question_order')
-
-    if (data) {
-      setSelectedQuestions(data.map((eq: any) => ({
-        ...eq.questions,
-        order: eq.question_order,
-        points_override: eq.points_override,
-      })))
-    }
-  }
-
-  function addQuestion(q: Question) {
+  const addQuestion = (q: QuestionItem) => {
     if (selectedQuestions.find(s => s.id === q.id)) return
     setSelectedQuestions(prev => [...prev, { ...q, order: prev.length + 1 }])
   }
 
-  function removeQuestion(id: string) {
-    setSelectedQuestions(prev =>
-      prev.filter(q => q.id !== id).map((q, i) => ({ ...q, order: i + 1 }))
-    )
-  }
+  const removeQuestion = (id: string) =>
+    setSelectedQuestions(prev => prev.filter(q => q.id !== id).map((q, i) => ({ ...q, order: i + 1 })))
 
-  function updatePoints(id: string, pts: number) {
+  const updatePoints = (id: string, pts: number) =>
     setSelectedQuestions(prev => prev.map(q => q.id === id ? { ...q, points_override: pts } : q))
-  }
 
-  async function handleSave(publish = false) {
-    if (!title.trim()) { setError('العنوان مطلوب'); return }
-    if (!subjectId) { setError('اختر المادة الدراسية'); return }
-    if (!gradeId) { setError('اختر الصف الدراسي'); return }
-    if (selectedQuestions.length === 0) { setError('أضف سؤالاً واحداً على الأقل'); return }
-    if (!duration || parseInt(duration) < 1) { setError('مدة الاختبار يجب أن تكون أكبر من صفر'); return }
+  const handleSave = async (publish: boolean) => {
+    if (!form.title.trim())               { setError('العنوان مطلوب'); return }
+    if (!form.subjectId)                  { setError('اختر المادة الدراسية'); return }
+    if (!form.gradeId)                    { setError('اختر الصف الدراسي'); return }
+    if (selectedQuestions.length === 0)   { setError('أضف سؤالاً واحداً على الأقل'); return }
+    if (!form.duration || parseInt(form.duration) < 1) { setError('مدة الاختبار يجب أن تكون أكبر من صفر'); return }
 
     setError('')
     setSaving(true)
@@ -149,38 +125,39 @@ export function ExamBuilder({ subjects, grades, semesters, examId, initialData }
 
       const examData = {
         admin_id: user.id,
-        title: title.trim(),
-        description: description.trim() || null,
-        subject_id: parseInt(subjectId),
-        grade_id: parseInt(gradeId),
-        semester_id: semesterId ? parseInt(semesterId) : null,
-        duration_minutes: parseInt(duration),
+        title: form.title.trim(),
+        description: form.description.trim() || null,
+        subject_id: parseInt(form.subjectId),
+        grade_id: parseInt(form.gradeId),
+        semester_id: form.semesterId ? parseInt(form.semesterId) : null,
+        unit_id: form.unitId ? parseInt(form.unitId) : null,
+        lesson_id: form.lessonId ? parseInt(form.lessonId) : null,
+        exam_type: form.examType,
+        duration_minutes: parseInt(form.duration),
         total_points: totalPoints,
-        passing_score: passingScore ? parseInt(passingScore) : null,
-        instructions: instructions.trim() || null,
-        is_published: publish || isPublished,
-        available_from: availableFrom ? new Date(availableFrom).toISOString() : null,
-        available_until: availableUntil ? new Date(availableUntil).toISOString() : null,
-        shuffle_questions: shuffleQuestions,
-        shuffle_options: shuffleOptions,
-        show_results_immediately: showResultsImmediately,
-        allowed_attempts: parseInt(allowedAttempts) || 1,
+        passing_score: form.passingScore ? parseInt(form.passingScore) : null,
+        instructions: form.instructions.trim() || null,
+        is_published: publish || form.isPublished,
+        available_from: form.availableFrom ? new Date(form.availableFrom).toISOString() : null,
+        available_until: form.availableUntil ? new Date(form.availableUntil).toISOString() : null,
+        shuffle_questions: form.shuffleQuestions,
+        shuffle_options: form.shuffleOptions,
+        show_results_immediately: form.showResultsImmediately,
+        allowed_attempts: parseInt(form.allowedAttempts) || 1,
       }
 
       let finalExamId = examId
 
       if (examId) {
-        const { error } = await supabase.from('exams').update(examData).eq('id', examId)
-        if (error) throw error
-        // حذف الأسئلة القديمة وإعادة إدراجها
+        const { error: e } = await supabase.from('exams').update(examData).eq('id', examId)
+        if (e) throw e
         await supabase.from('exam_questions').delete().eq('exam_id', examId)
       } else {
-        const { data, error } = await supabase.from('exams').insert(examData).select('id').single()
-        if (error) throw error
-        finalExamId = data.id
+        const { data, error: e } = await supabase.from('exams').insert(examData as any).select('id').single()
+        if (e) throw e
+        finalExamId = (data as any).id
       }
 
-      // إضافة الأسئلة
       const questionsData = selectedQuestions.map((q, i) => ({
         exam_id: finalExamId,
         question_id: q.id,
@@ -188,10 +165,9 @@ export function ExamBuilder({ subjects, grades, semesters, examId, initialData }
         points_override: q.points_override || null,
       }))
 
-      const { error: qError } = await supabase.from('exam_questions').insert(questionsData)
-      if (qError) throw qError
+      const { error: qErr } = await supabase.from('exam_questions').insert(questionsData as any)
+      if (qErr) throw qErr
 
-      // تحديث total_points
       await supabase.from('exams').update({ total_points: totalPoints }).eq('id', finalExamId)
 
       setSaved(true)
@@ -203,11 +179,7 @@ export function ExamBuilder({ subjects, grades, semesters, examId, initialData }
     }
   }
 
-  const filteredAvailable = allQuestions.filter(q => {
-    if (selectedQuestions.find(s => s.id === q.id)) return false
-    if (searchTerm && !q.question_text.includes(searchTerm)) return false
-    return true
-  })
+  const availableInBank = bankQuestions.filter(q => !selectedQuestions.find(s => s.id === q.id))
 
   if (saved) return (
     <div className="text-center py-20">
@@ -241,183 +213,60 @@ export function ExamBuilder({ subjects, grades, semesters, examId, initialData }
 
       {/* Settings Tab */}
       {activeTab === 'settings' && (
-        <div className="grid lg:grid-cols-2 gap-6">
-          {/* Basic Info */}
-          <div className="bg-white rounded-2xl border border-border p-6 space-y-4">
-            <h3 className="font-bold text-base flex items-center gap-2"><BookOpen className="w-4 h-4 text-primary" />المعلومات الأساسية</h3>
-
-            <div>
-              <label className="text-sm font-semibold block mb-1.5">عنوان الاختبار *</label>
-              <input value={title} onChange={e => setTitle(e.target.value)}
-                placeholder="مثال: اختبار الفصل الأول - الجبر"
-                className="w-full px-3 py-2.5 border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
-            </div>
-
-            <div>
-              <label className="text-sm font-semibold block mb-1.5">وصف الاختبار</label>
-              <textarea value={description} onChange={e => setDescription(e.target.value)}
-                placeholder="وصف مختصر للاختبار..."
-                rows={2}
-                className="w-full px-3 py-2.5 border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none" />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-sm font-semibold block mb-1.5">المادة الدراسية *</label>
-                <select value={subjectId} onChange={e => setSubjectId(e.target.value)}
-                  className="w-full px-3 py-2.5 border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white">
-                  <option value="">اختر المادة</option>
-                  {subjects.map(s => <option key={s.id} value={s.id}>{s.icon} {s.name_ar}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="text-sm font-semibold block mb-1.5">الصف الدراسي *</label>
-                <select value={gradeId} onChange={e => setGradeId(e.target.value)}
-                  className="w-full px-3 py-2.5 border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white">
-                  <option value="">اختر الصف</option>
-                  {grades.map(g => <option key={g.id} value={g.id}>{g.name_ar}</option>)}
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-sm font-semibold block mb-1.5">الفصل الدراسي</label>
-                <select value={semesterId} onChange={e => setSemesterId(e.target.value)}
-                  className="w-full px-3 py-2.5 border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white">
-                  <option value="">اختياري</option>
-                  {semesters.map(s => <option key={s.id} value={s.id}>{s.name_ar}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="text-sm font-semibold block mb-1.5">مدة الاختبار (دقيقة) *</label>
-                <input type="number" min={1} max={300} value={duration} onChange={e => setDuration(e.target.value)}
-                  className="w-full px-3 py-2.5 border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
-              </div>
-            </div>
-
-            <div>
-              <label className="text-sm font-semibold block mb-1.5">درجة النجاح</label>
-              <input type="number" min={0} value={passingScore} onChange={e => setPassingScore(e.target.value)}
-                placeholder={`اتركه فارغاً للتعيين تلقائياً (${Math.ceil(totalPoints * 0.5)} = 50٪)`}
-                className="w-full px-3 py-2.5 border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
-            </div>
-
-            <div>
-              <label className="text-sm font-semibold block mb-1.5">تعليمات الاختبار</label>
-              <textarea value={instructions} onChange={e => setInstructions(e.target.value)}
-                placeholder="تعليمات تظهر للطالب قبل بدء الاختبار..."
-                rows={3}
-                className="w-full px-3 py-2.5 border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none" />
-            </div>
-          </div>
-
-          {/* Advanced Settings */}
-          <div className="space-y-4">
-            {/* Schedule */}
-            <div className="bg-white rounded-2xl border border-border p-6 space-y-4">
-              <h3 className="font-bold text-base flex items-center gap-2"><Clock className="w-4 h-4 text-primary" />جدولة الاختبار</h3>
-              <div>
-                <label className="text-sm font-semibold block mb-1.5">تاريخ البدء</label>
-                <input type="datetime-local" value={availableFrom} onChange={e => setAvailableFrom(e.target.value)}
-                  className="w-full px-3 py-2.5 border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
-              </div>
-              <div>
-                <label className="text-sm font-semibold block mb-1.5">تاريخ الانتهاء</label>
-                <input type="datetime-local" value={availableUntil} onChange={e => setAvailableUntil(e.target.value)}
-                  className="w-full px-3 py-2.5 border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
-              </div>
-              <div>
-                <label className="text-sm font-semibold block mb-1.5">عدد المحاولات المسموحة</label>
-                <select value={allowedAttempts} onChange={e => setAllowedAttempts(e.target.value)}
-                  className="w-full px-3 py-2.5 border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white">
-                  {[1,2,3,5,10].map(n => <option key={n} value={n}>{n} {n === 1 ? 'محاولة' : 'محاولات'}</option>)}
-                  <option value="-1">غير محدود</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Options */}
-            <div className="bg-white rounded-2xl border border-border p-6 space-y-4">
-              <h3 className="font-bold text-base flex items-center gap-2"><SlidersHorizontal className="w-4 h-4 text-primary" />خيارات الاختبار</h3>
-              {[
-                { label: 'ترتيب عشوائي للأسئلة', desc: 'تظهر الأسئلة بترتيب مختلف لكل طالب', state: shuffleQuestions, set: setShuffleQuestions },
-                { label: 'ترتيب عشوائي للخيارات', desc: 'تُخلط خيارات MCQ لكل طالب', state: shuffleOptions, set: setShuffleOptions },
-                { label: 'عرض النتيجة فوراً', desc: 'يرى الطالب درجته بعد التسليم مباشرة', state: showResultsImmediately, set: setShowResultsImmediately },
-              ].map(opt => (
-                <div key={opt.label} className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-medium">{opt.label}</p>
-                    <p className="text-xs text-muted-foreground">{opt.desc}</p>
-                  </div>
-                  <button onClick={() => opt.set(!opt.state)}
-                    className={`w-11 h-6 rounded-full transition-colors relative ${opt.state ? 'bg-primary' : 'bg-muted'}`}>
-                    <span className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${opt.state ? 'translate-x-[1.4rem]' : 'translate-x-1'}`} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+        <ExamBuilderSettings
+          form={form} onChange={setForm}
+          subjects={subjects} grades={grades} semesters={semesters}
+          units={units} lessons={lessons} totalPoints={totalPoints}
+        />
       )}
 
       {/* Questions Tab */}
       {activeTab === 'questions' && (
-        <div className="grid lg:grid-cols-2 gap-5">
-          {/* Question Bank - Left */}
+        <div className="grid lg:grid-cols-3 gap-5">
+          {/* Filter Sidebar */}
+          <div className="space-y-4">
+            <QuestionFilterSidebar
+              filters={filters} onChange={setFilters}
+              grades={grades} subjects={subjects} semesters={semesters}
+              units={units} lessons={lessons}
+              totalShown={availableInBank.length} totalInBank={bankQuestions.length}
+            />
+            <ExamSummaryStats questions={selectedQuestions} durationMinutes={parseInt(form.duration) || 0} />
+          </div>
+
+          {/* Bank */}
           <div className="bg-white rounded-2xl border border-border overflow-hidden">
-            <div className="p-4 border-b border-border">
-              <h3 className="font-bold mb-3">بنك الأسئلة</h3>
-              <div className="space-y-2">
-                <div className="relative">
-                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <input value={searchTerm}
-                    onChange={e => { setSearchTerm(e.target.value); setTimeout(loadQuestions, 400) }}
-                    placeholder="بحث في الأسئلة..."
-                    className="w-full pr-9 pl-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
-                </div>
-                <div className="flex gap-2">
-                  <select value={filterGrade} onChange={e => setFilterGrade(e.target.value)}
-                    className="flex-1 px-2 py-1.5 border border-border rounded-lg text-xs bg-white focus:outline-none">
-                    <option value="">كل الصفوف</option>
-                    {grades.map(g => <option key={g.id} value={g.id}>{g.name_ar}</option>)}
-                  </select>
-                  <select value={filterSubject} onChange={e => setFilterSubject(e.target.value)}
-                    className="flex-1 px-2 py-1.5 border border-border rounded-lg text-xs bg-white focus:outline-none">
-                    <option value="">كل المواد</option>
-                    {subjects.map(s => <option key={s.id} value={s.id}>{s.name_ar}</option>)}
-                  </select>
-                  <select value={filterType} onChange={e => setFilterType(e.target.value)}
-                    className="flex-1 px-2 py-1.5 border border-border rounded-lg text-xs bg-white focus:outline-none">
-                    <option value="">كل الأنواع</option>
-                    <option value="mcq">اختيار متعدد</option>
-                    <option value="true_false">صح/خطأ</option>
-                    <option value="fill_blank">ملء فراغ</option>
-                  </select>
-                </div>
-              </div>
+            <div className="p-4 border-b border-border flex items-center justify-between">
+              <h3 className="font-bold">بنك الأسئلة</h3>
+              <span className="text-xs text-muted-foreground bg-slate-100 px-2 py-0.5 rounded-lg">{availableInBank.length} سؤال</span>
             </div>
-            <div className="overflow-y-auto" style={{ maxHeight: '500px' }}>
-              {loadingQuestions ? (
-                <div className="flex items-center justify-center py-10">
+            <div className="overflow-y-auto" style={{ maxHeight: 520 }}>
+              {loadingQ ? (
+                <div className="flex items-center justify-center py-12">
                   <Loader2 className="w-6 h-6 animate-spin text-primary" />
                 </div>
-              ) : filteredAvailable.length === 0 ? (
-                <div className="text-center py-10 text-sm text-muted-foreground">
-                  {allQuestions.length === 0 ? 'لا توجد أسئلة معتمدة في البنك بعد' : 'لا توجد نتائج مطابقة'}
+              ) : availableInBank.length === 0 ? (
+                <div className="text-center py-12 text-sm text-muted-foreground px-4">
+                  {bankQuestions.length === 0 ? 'لا توجد أسئلة معتمدة' : 'جميع الأسئلة مضافة أو لا توجد نتائج مطابقة'}
                 </div>
               ) : (
                 <div className="divide-y divide-border">
-                  {filteredAvailable.map(q => (
+                  {availableInBank.map(q => (
                     <div key={q.id} className="p-3 hover:bg-muted/30 transition-colors group">
                       <div className="flex items-start gap-2">
                         <div className="flex-1 min-w-0">
-                          <div className="flex flex-wrap gap-1.5 mb-1">
-                            <span className="text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">{TYPE_AR[q.question_type]}</span>
-                            <span className={`text-xs px-1.5 py-0.5 rounded ${DIFF_COLOR[q.difficulty_level]}`}>{DIFF_AR[q.difficulty_level]}</span>
-                            <span className="text-xs text-muted-foreground">{q.points} درجة</span>
+                          <div className="flex flex-wrap gap-1.5 mb-1.5">
+                            <span className="text-[10px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">{TYPE_AR[q.question_type]}</span>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded ${DIFF_COLOR[q.difficulty_level]}`}>{DIFF_AR[q.difficulty_level]}</span>
+                            {(q.units as any)?.name_ar && (
+                              <span className="text-[10px] bg-purple-50 text-purple-700 px-1.5 py-0.5 rounded">{(q.units as any).name_ar}</span>
+                            )}
+                            {(q.lessons as any)?.name_ar && (
+                              <span className="text-[10px] bg-teal-50 text-teal-700 px-1.5 py-0.5 rounded">{(q.lessons as any).name_ar}</span>
+                            )}
+                            <span className="text-[10px] text-muted-foreground">{q.points} درجة</span>
                           </div>
-                          <p className="text-sm leading-relaxed line-clamp-2">{q.question_text}</p>
+                          <p className="text-sm leading-relaxed line-clamp-2" dangerouslySetInnerHTML={{ __html: q.question_text }} />
                         </div>
                         <button onClick={() => addQuestion(q)}
                           className="shrink-0 w-7 h-7 rounded-lg bg-primary/10 hover:bg-primary hover:text-white text-primary flex items-center justify-center transition-all">
@@ -431,19 +280,18 @@ export function ExamBuilder({ subjects, grades, semesters, examId, initialData }
             </div>
           </div>
 
-          {/* Selected Questions - Right */}
+          {/* Selected */}
           <div className="bg-white rounded-2xl border border-border overflow-hidden">
             <div className="p-4 border-b border-border flex items-center justify-between">
               <div>
                 <h3 className="font-bold">أسئلة الاختبار</h3>
-                <p className="text-xs text-muted-foreground">{selectedQuestions.length} سؤال • {totalPoints} درجة إجمالية</p>
+                <p className="text-xs text-muted-foreground">{selectedQuestions.length} سؤال • {totalPoints} درجة</p>
               </div>
               {selectedQuestions.length > 0 && (
-                <button onClick={() => setSelectedQuestions([])}
-                  className="text-xs text-red-500 hover:underline">مسح الكل</button>
+                <button onClick={() => setSelectedQuestions([])} className="text-xs text-red-500 hover:underline">مسح الكل</button>
               )}
             </div>
-            <div className="overflow-y-auto" style={{ maxHeight: '500px' }}>
+            <div className="overflow-y-auto" style={{ maxHeight: 520 }}>
               {selectedQuestions.length === 0 ? (
                 <div className="text-center py-16">
                   <BookOpen className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
@@ -454,13 +302,15 @@ export function ExamBuilder({ subjects, grades, semesters, examId, initialData }
                   {selectedQuestions.map((q, i) => (
                     <div key={q.id} className="p-3 hover:bg-muted/20">
                       <div className="flex items-start gap-2">
-                        <span className="w-6 h-6 rounded-md bg-primary/10 text-primary text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">{i+1}</span>
+                        <GripVertical className="w-4 h-4 text-muted-foreground/40 mt-1 shrink-0 cursor-grab" />
+                        <span className="w-6 h-6 rounded-md bg-primary/10 text-primary text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm leading-snug line-clamp-2 mb-1.5">{q.question_text}</p>
+                          <p className="text-sm leading-snug line-clamp-2 mb-1.5" dangerouslySetInnerHTML={{ __html: q.question_text }} />
                           <div className="flex items-center gap-2">
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded ${DIFF_COLOR[q.difficulty_level]}`}>{DIFF_AR[q.difficulty_level]}</span>
                             <span className="text-xs text-muted-foreground">الدرجة:</span>
                             <input type="number" min={1} max={20}
-                              value={q.points_override || q.points}
+                              value={q.points_override ?? q.points}
                               onChange={e => updatePoints(q.id, parseInt(e.target.value) || q.points)}
                               className="w-14 px-2 py-0.5 border border-border rounded text-xs text-center focus:outline-none focus:ring-1 focus:ring-primary/30" />
                           </div>
@@ -498,8 +348,7 @@ export function ExamBuilder({ subjects, grades, semesters, examId, initialData }
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
           حفظ ونشر الاختبار
         </button>
-        <button onClick={() => router.back()}
-          className="mr-auto text-sm text-muted-foreground hover:text-foreground transition-colors">
+        <button onClick={() => router.back()} className="mr-auto text-sm text-muted-foreground hover:text-foreground transition-colors">
           إلغاء
         </button>
       </div>
