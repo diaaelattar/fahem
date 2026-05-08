@@ -23,11 +23,17 @@ export default async function ExamsPage() {
           <h1 className="text-3xl font-display font-bold">الاختبارات</h1>
           <p className="text-muted-foreground mt-1">إنشاء وإدارة الاختبارات</p>
         </div>
-        <a href="/admin/exams/new"
-          className="flex items-center gap-2 bg-primary text-white px-4 py-2.5 rounded-xl font-medium text-sm hover:bg-primary/90 transition-colors">
-          <Plus className="w-4 h-4" />
-          اختبار جديد
-        </a>
+        <div className="flex gap-2">
+          <a href="/admin/exams/batch"
+            className="flex items-center gap-2 border border-border bg-white px-4 py-2.5 rounded-xl font-medium text-sm hover:bg-muted transition-colors">
+            توليد آلي
+          </a>
+          <a href="/admin/exams/new"
+            className="flex items-center gap-2 bg-primary text-white px-4 py-2.5 rounded-xl font-medium text-sm hover:bg-primary/90 transition-colors">
+            <Plus className="w-4 h-4" />
+            اختبار جديد
+          </a>
+        </div>
       </div>
 
       {exams && exams.length > 0 ? (
