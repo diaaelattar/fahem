@@ -63,7 +63,16 @@ export function ExamInterface({
   const [submitted, setSubmitted] = useState(false)
   const [result, setResult] = useState<any>(null)
   const [showConfirm, setShowConfirm] = useState(false)
-  const [immediateFeeback, setImmediateFeedback] = useState<Record<string, boolean>>({})
+  const [immediateFeedback, setImmediateFeedback] = useState<Record<string, boolean>>({})
+
+  const normalizeArabic = (text: string) => {
+    if (!text) return ''
+    return text.trim().toLowerCase()
+      .replace(/[أإآ]/g, 'ا')
+      .replace(/ة/g, 'ه')
+      .replace(/ى/g, 'ي')
+      .replace(/[\u064B-\u065F]/g, '')
+  }
 
   const handleSubmit = useCallback(async () => {
     if (storeSubmitting || submitted) return
@@ -148,21 +157,28 @@ export function ExamInterface({
   const currentQ = questions[currentIdx]
 
   const handleAnswer = (value: string) => {
-    // If immediate feedback is on and already answered, prevent changing answer (optional, but good for practice)
-    if (exam.show_results_immediately && answers[currentQ.id]) return;
+    // If immediate feedback is on and already answered/checked, prevent changing answer
+    if (exam.show_results_immediately && immediateFeedback[currentQ.id]) return;
 
     setAnswer(currentQ.id, value)
     
-    // Auto-advance logic
-    if (currentQ.question_type !== 'fill_blank') {
-      // If immediate feedback is off, advance quickly
-      if (!exam.show_results_immediately) {
-        setTimeout(() => {
-          if (currentIdx < questions.length - 1) {
-            setCurrentIdx(prev => prev + 1)
-          }
-        }, 500)
+    // Auto-advance logic for MCQ and TF
+    if (currentQ.question_type !== 'fill_blank' && currentQ.question_type !== 'essay' && currentQ.question_type !== 'correction') {
+      if (exam.show_results_immediately) {
+         setImmediateFeedback(prev => ({ ...prev, [currentQ.id]: true }))
+      } else {
+         setTimeout(() => {
+           if (currentIdx < questions.length - 1) {
+             setCurrentIdx(prev => prev + 1)
+           }
+         }, 500)
       }
+    }
+  }
+
+  const submitTextAnswer = () => {
+    if (exam.show_results_immediately && answers[currentQ.id]) {
+      setImmediateFeedback(prev => ({ ...prev, [currentQ.id]: true }))
     }
   }
 
@@ -301,7 +317,7 @@ export function ExamInterface({
             {currentQ.options.map((opt, i) => {
               const isSelected = answers[currentQ.id] === opt;
               const isCorrectOpt = currentQ.correct_answer === opt;
-              const showFeedback = exam.show_results_immediately && answers[currentQ.id];
+              const showFeedback = exam.show_results_immediately && immediateFeedback[currentQ.id];
               
               let btnClass = `answer-option w-full text-right ${isSelected ? 'selected' : ''}`;
               if (showFeedback) {
@@ -327,7 +343,7 @@ export function ExamInterface({
             {['صح', 'خطأ'].map(opt => {
               const isSelected = answers[currentQ.id] === opt;
               const isCorrectOpt = currentQ.correct_answer === opt;
-              const showFeedback = exam.show_results_immediately && answers[currentQ.id];
+              const showFeedback = exam.show_results_immediately && immediateFeedback[currentQ.id];
               
               let btnClass = `answer-option flex-col justify-center py-8 ${isSelected ? 'selected' : ''}`;
               if (showFeedback) {
@@ -353,6 +369,8 @@ export function ExamInterface({
                 type="text"
                 value={answers[currentQ.id] || ''}
                 onChange={e => handleAnswer(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && submitTextAnswer()}
+                disabled={exam.show_results_immediately && immediateFeedback[currentQ.id]}
                 placeholder="اكتب إجابتك هنا..."
                 className="w-full px-4 py-3 border-2 border-border rounded-xl focus:border-primary focus:outline-none transition-colors"
               />
@@ -360,31 +378,37 @@ export function ExamInterface({
               <textarea
                 value={answers[currentQ.id] || ''}
                 onChange={e => handleAnswer(e.target.value)}
+                disabled={exam.show_results_immediately && immediateFeedback[currentQ.id]}
                 placeholder="اكتب إجابتك هنا بوضوح..."
                 className="w-full px-4 py-3 border-2 border-border rounded-xl focus:border-primary focus:outline-none transition-colors h-32 resize-none"
               />
+            )}
+            {exam.show_results_immediately && !immediateFeedback[currentQ.id] && answers[currentQ.id] && (
+               <button onClick={submitTextAnswer} className="mt-3 bg-primary text-white px-4 py-2 rounded-xl font-bold text-sm w-full sm:w-auto hover:bg-primary/90 transition-colors">
+                 تحقق من الإجابة
+               </button>
             )}
           </div>
         )}
 
         {/* Immediate Feedback Box (Practice Mode) */}
-        {exam.show_results_immediately && answers[currentQ.id] && currentQ.correct_answer && (
+        {exam.show_results_immediately && immediateFeedback[currentQ.id] && currentQ.correct_answer && (
           <div className={`mt-6 p-4 rounded-xl border-2 ${
-            answers[currentQ.id] === currentQ.correct_answer 
+            normalizeArabic(answers[currentQ.id] as string) === normalizeArabic(currentQ.correct_answer)
               ? 'bg-green-50 border-green-200' 
               : 'bg-red-50 border-red-200'
           }`}>
             <h4 className={`font-bold flex items-center gap-2 ${
-              answers[currentQ.id] === currentQ.correct_answer ? 'text-green-700' : 'text-red-700'
+              normalizeArabic(answers[currentQ.id] as string) === normalizeArabic(currentQ.correct_answer) ? 'text-green-700' : 'text-red-700'
             }`}>
-              {answers[currentQ.id] === currentQ.correct_answer ? (
+              {normalizeArabic(answers[currentQ.id] as string) === normalizeArabic(currentQ.correct_answer) ? (
                 <><CheckCircle className="w-5 h-5" /> إجابة صحيحة!</>
               ) : (
                 <><XCircle className="w-5 h-5" /> إجابة خاطئة</>
               )}
             </h4>
             
-            {answers[currentQ.id] !== currentQ.correct_answer && (
+            {normalizeArabic(answers[currentQ.id] as string) !== normalizeArabic(currentQ.correct_answer) && (
               <div className="mt-2 text-sm">
                 <strong>الإجابة الصحيحة هي:</strong> <span className="text-green-700 font-bold">{currentQ.correct_answer}</span>
               </div>
@@ -397,7 +421,7 @@ export function ExamInterface({
             )}
 
             {/* AI Explain Button - only for wrong answers */}
-            {answers[currentQ.id] !== currentQ.correct_answer && (
+            {normalizeArabic(answers[currentQ.id] as string) !== normalizeArabic(currentQ.correct_answer) && (
               <AIExplainButton
                 questionId={currentQ.id}
                 questionText={currentQ.question_text}
