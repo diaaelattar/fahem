@@ -20,7 +20,7 @@ export default async function WrongAnswersPage() {
       .select(`
         id, times_wrong, times_correct_after, is_mastered, last_practiced_at, added_at,
         questions(
-          id, question_type, question_text, options, correct_answer, explanation, points, difficulty_level,
+          id, question_type, context_passage, question_text, options, correct_answer, explanation, points, difficulty_level,
           subjects(id, name_ar, icon)
         )
       `)

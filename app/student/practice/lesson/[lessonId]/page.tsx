@@ -34,7 +34,7 @@ export default async function PracticeLessonPage({ params }: Props) {
   // جلب أسئلة الدرس
   const { data: questions } = await supabase
     .from('questions')
-    .select('id, question_type, question_text, options, correct_answer, explanation, points, difficulty_level')
+    .select('id, question_type, context_passage, question_text, options, correct_answer, explanation, points, difficulty_level')
     .eq('lesson_id', lessonId)
     .order('created_at')
 

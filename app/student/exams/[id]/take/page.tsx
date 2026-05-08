@@ -70,8 +70,8 @@ export default async function TakeExamPage({ params, searchParams }: Props) {
   // في وضع الاختبار الحقيقي: لا نجلب correct_answer و explanation أبداً من قاعدة البيانات
   // في وضع التدريب فقط: نجلب الإجابات لعرض التغذية الراجعة الفورية
   const questionsSelect = isPracticeMode
-    ? 'question_order, questions(id, question_type, question_text, options, points, question_image_url, correct_answer, explanation)'
-    : 'question_order, questions(id, question_type, question_text, options, points, question_image_url)'
+    ? 'question_order, questions(id, question_type, context_passage, question_text, options, points, question_image_url, correct_answer, explanation)'
+    : 'question_order, questions(id, question_type, context_passage, question_text, options, points, question_image_url)'
 
   const { data: examQuestions } = await supabase
     .from('exam_questions')
@@ -99,6 +99,7 @@ export default async function TakeExamPage({ params, searchParams }: Props) {
     .map((eq: any) => ({
       id: eq.questions.id,
       question_type: eq.questions.question_type,
+      context_passage: eq.questions.context_passage,
       question_text: eq.questions.question_text,
       options: eq.questions.options,
       points: eq.questions.points,

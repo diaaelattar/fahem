@@ -67,7 +67,7 @@ export function ExamBuilder({ subjects, grades, semesters, units, lessons, examI
     setLoadingQ(true)
     let q = supabase
       .from('questions')
-      .select('id, question_type, question_text, difficulty_level, points, unit_id, lesson_id, subjects(name_ar,icon), grades(name_ar), units(name_ar), lessons(name_ar)')
+      .select('id, question_type, context_passage, question_text, difficulty_level, points, unit_id, lesson_id, subjects(name_ar,icon), grades(name_ar), units(name_ar), lessons(name_ar)')
       .eq('is_approved', true)
       .order('created_at', { ascending: false })
       .limit(150)
@@ -91,7 +91,7 @@ export function ExamBuilder({ subjects, grades, semesters, units, lessons, examI
   useEffect(() => {
     if (examId && initialData) {
       supabase.from('exam_questions')
-        .select('question_id, question_order, points_override, questions(id,question_type,question_text,difficulty_level,points,unit_id,lesson_id,subjects(name_ar,icon),grades(name_ar))')
+        .select('question_id, question_order, points_override, questions(id,question_type,context_passage,question_text,difficulty_level,points,unit_id,lesson_id,subjects(name_ar,icon),grades(name_ar))')
         .eq('exam_id', examId)
         .order('question_order')
         .then(({ data }) => {
@@ -276,6 +276,9 @@ export function ExamBuilder({ subjects, grades, semesters, units, lessons, examI
                             )}
                             <span className="text-[10px] text-muted-foreground">{q.points} درجة</span>
                           </div>
+                          {q.context_passage && (
+                            <div className="mb-1 text-[11px] text-indigo-700 bg-indigo-50/50 p-1.5 rounded border border-indigo-100 line-clamp-1 italic">القطعة: {q.context_passage}</div>
+                          )}
                           <p className="text-sm leading-relaxed line-clamp-2" dangerouslySetInnerHTML={{ __html: q.question_text }} />
                         </div>
                         <button onClick={() => addQuestion(q)}
@@ -330,6 +333,9 @@ export function ExamBuilder({ subjects, grades, semesters, units, lessons, examI
                         <GripVertical className="w-4 h-4 text-muted-foreground/40 mt-1 shrink-0 cursor-grab" />
                         <span className="w-6 h-6 rounded-md bg-primary/10 text-primary text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
                         <div className="flex-1 min-w-0">
+                          {q.context_passage && (
+                            <div className="mb-1 text-[11px] text-indigo-700 bg-indigo-50/50 p-1.5 rounded border border-indigo-100 line-clamp-2 italic">القطعة: {q.context_passage}</div>
+                          )}
                           <p className="text-sm leading-snug line-clamp-2 mb-1.5" dangerouslySetInnerHTML={{ __html: q.question_text }} />
                           <div className="flex items-center gap-2">
                             <span className={`text-[10px] px-1.5 py-0.5 rounded ${DIFF_COLOR[q.difficulty_level]}`}>{DIFF_AR[q.difficulty_level]}</span>

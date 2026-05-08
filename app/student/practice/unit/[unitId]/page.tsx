@@ -42,7 +42,7 @@ export default async function PracticeUnitPage({ params }: Props) {
   // جلب أسئلة الوحدة كاملة
   const { data: questions } = await supabase
     .from('questions')
-    .select('id, question_type, question_text, options, correct_answer, explanation, points, difficulty_level, lesson_id')
+    .select('id, question_type, context_passage, question_text, options, correct_answer, explanation, points, difficulty_level, lesson_id')
     .eq('unit_id', unitId)
     .order('lesson_id', { ascending: true })
 

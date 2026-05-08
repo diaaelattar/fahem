@@ -61,7 +61,7 @@ export default async function QuestionsPage({ searchParams }: { searchParams: Se
   let query = supabase
     .from('questions')
     .select(`
-      id, question_type, question_text, difficulty_level, bloom_level,
+      id, question_type, context_passage, question_text, difficulty_level, bloom_level,
       points, status, is_approved, usage_count, created_at,
       subjects(name_ar, icon),
       grades(name_ar),
@@ -404,8 +404,16 @@ export default async function QuestionsPage({ searchParams }: { searchParams: Se
                       </span>
                     </div>
 
+                    {/* القطعة المرجعية إن وجدت */}
+                    {q.context_passage && (
+                      <div className="mb-2 mt-2 p-2.5 bg-indigo-50 border border-indigo-100 rounded-lg text-xs text-indigo-900 italic relative">
+                        <span className="font-bold text-indigo-800 absolute -top-2.5 right-3 bg-indigo-50 px-1 border border-indigo-100 rounded-full text-[9px]">القطعة المرجعية</span>
+                        <MathRenderer text={q.context_passage} className="line-clamp-2 leading-relaxed" />
+                      </div>
+                    )}
+                    
                     {/* نص السؤال */}
-                    <MathRenderer text={q.question_text} className="text-sm font-medium leading-relaxed line-clamp-2" />
+                    <MathRenderer text={q.question_text} className="text-sm font-medium leading-relaxed line-clamp-2 mt-2" />
 
                     {/* التسلسل التعليمي */}
                     <div className="flex flex-wrap items-center gap-1 mt-2 text-[10px] text-muted-foreground">

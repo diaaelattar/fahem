@@ -90,7 +90,7 @@ export default async function ResultDetailPage({ params }: Props) {
       .from('exam_questions')
       .select(`
         question_order,
-        questions(id, question_type, question_text, options, correct_answer, explanation, points, question_image_url, difficulty_level)
+        questions(id, question_type, context_passage, question_text, options, correct_answer, explanation, points, question_image_url, difficulty_level)
       `)
       .eq('exam_id', exam.id)
       .order('question_order')
@@ -335,6 +335,12 @@ export default async function ResultDetailPage({ params }: Props) {
               <div className="p-6">
                 {q.question_image_url && (
                   <img src={q.question_image_url} alt="سؤال مصور" className="rounded-2xl mb-6 max-h-64 object-contain shadow-sm border border-border" />
+                )}
+                {q.context_passage && (
+                  <div className="mb-6 bg-indigo-50/50 border border-indigo-100 rounded-2xl p-6 text-indigo-950 leading-relaxed italic relative">
+                    <div className="absolute top-0 right-6 -translate-y-1/2 bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded-full shadow-sm">القطعة المرجعية:</div>
+                    <MathRenderer text={q.context_passage} className="text-lg" />
+                  </div>
                 )}
                 <MathRenderer text={q.question_text} className="text-lg font-bold mb-6" />
 

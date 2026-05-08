@@ -40,7 +40,7 @@ export default async function PracticeSubjectPage({ params }: Props) {
   // جلب أسئلة هذه المادة للصف الدراسي
   const { data: questions, error } = await supabase
     .from('questions')
-    .select('id, question_type, question_text, options, correct_answer, explanation, points, difficulty_level')
+    .select('id, question_type, context_passage, question_text, options, correct_answer, explanation, points, difficulty_level')
     .eq('subject_id', subjectIdNum)
     .eq('grade_id', student?.grade_id || 0)
     .order('created_at')
@@ -49,7 +49,7 @@ export default async function PracticeSubjectPage({ params }: Props) {
     // حاول جلب الأسئلة بدون فلتر الصف كحل بديل
     const { data: allGradeQ } = await supabase
       .from('questions')
-      .select('id, question_type, question_text, options, correct_answer, explanation, points, difficulty_level')
+      .select('id, question_type, context_passage, question_text, options, correct_answer, explanation, points, difficulty_level')
       .eq('subject_id', subjectIdNum)
       .limit(30)
 

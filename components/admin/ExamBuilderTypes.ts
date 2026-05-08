@@ -3,6 +3,7 @@ import type { ExamType } from '@/types/supabase'
 export interface QuestionItem {
   id: string
   question_type: string
+  context_passage?: string | null
   question_text: string
   difficulty_level: string
   points: number
