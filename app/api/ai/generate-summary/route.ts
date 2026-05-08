@@ -7,9 +7,14 @@ export const runtime = 'edge'
 const MODELS = ['gemini-2.5-flash', 'gemini-flash-latest']
 
 function getModel(name: string) {
-  return new GoogleGenerativeAI(
-    process.env.GOOGLE_GENERATIVE_AI_API_KEY || ''
-  ).getGenerativeModel({ 
+  const keys = [
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY_2
+  ].filter(Boolean) as string[]
+  
+  const selectedKey = keys[Math.floor(Math.random() * keys.length)] || ''
+
+  return new GoogleGenerativeAI(selectedKey).getGenerativeModel({ 
     model: name,
     generationConfig: { temperature: 0.3, maxOutputTokens: 2000 }
   })

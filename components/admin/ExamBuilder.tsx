@@ -3,8 +3,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Plus, Trash2, Loader2, BookOpen, Save, Eye, CheckCircle, GripVertical, BarChart2 } from 'lucide-react'
+import { Plus, Trash2, Loader2, BookOpen, Save, Eye, CheckCircle, GripVertical, BarChart2, Sparkles } from 'lucide-react'
 import { QuestionFilterSidebar, type QuestionFilters } from './QuestionFilterSidebar'
+import { AutoSelectModal } from './AutoSelectModal'
 import { ExamSummaryStats } from './ExamSummaryStats'
 import { ExamBuilderSettings } from './ExamBuilderSettings'
 import type { QuestionItem, SelectedQuestion, ExamBuilderProps, ExamFormState } from './ExamBuilderTypes'
@@ -57,6 +58,7 @@ export function ExamBuilder({ subjects, grades, semesters, units, lessons, examI
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
+  const [isAutoSelectOpen, setIsAutoSelectOpen] = useState(false)
 
   const totalPoints = selectedQuestions.reduce((s, q) => s + (q.points_override ?? q.points), 0)
 
@@ -101,6 +103,14 @@ export function ExamBuilder({ subjects, grades, semesters, units, lessons, examI
   const addQuestion = (q: QuestionItem) => {
     if (selectedQuestions.find(s => s.id === q.id)) return
     setSelectedQuestions(prev => [...prev, { ...q, order: prev.length + 1 }])
+  }
+
+  const handleAutoAdd = (newQuestions: QuestionItem[]) => {
+    setSelectedQuestions(prev => {
+      const currentIds = new Set(prev.map(q => q.id))
+      const toAdd = newQuestions.filter(q => !currentIds.has(q.id))
+      return [...prev, ...toAdd.map((q, i) => ({ ...q, order: prev.length + i + 1 }))]
+    })
   }
 
   const removeQuestion = (id: string) =>
@@ -282,14 +292,29 @@ export function ExamBuilder({ subjects, grades, semesters, units, lessons, examI
 
           {/* Selected */}
           <div className="bg-white rounded-2xl border border-border overflow-hidden">
-            <div className="p-4 border-b border-border flex items-center justify-between">
+            <div className="p-4 border-b border-border flex items-center justify-between bg-slate-50">
               <div>
-                <h3 className="font-bold">أسئلة الاختبار</h3>
-                <p className="text-xs text-muted-foreground">{selectedQuestions.length} سؤال • {totalPoints} درجة</p>
+                <h3 className="font-bold flex items-center gap-2">
+                  أسئلة الاختبار
+                  {selectedQuestions.length > 0 && (
+                    <span className="text-xs font-normal text-muted-foreground bg-white px-2 py-0.5 rounded-md border border-border">
+                      {selectedQuestions.length} سؤال • {totalPoints} درجة
+                    </span>
+                  )}
+                </h3>
               </div>
-              {selectedQuestions.length > 0 && (
-                <button onClick={() => setSelectedQuestions([])} className="text-xs text-red-500 hover:underline">مسح الكل</button>
-              )}
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => setIsAutoSelectOpen(true)}
+                  disabled={availableInBank.length === 0}
+                  className="flex items-center gap-1.5 text-xs font-bold bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg hover:bg-indigo-200 transition-colors disabled:opacity-50"
+                >
+                  <Sparkles className="w-3.5 h-3.5" /> توليد عشوائي
+                </button>
+                {selectedQuestions.length > 0 && (
+                  <button onClick={() => setSelectedQuestions([])} className="text-xs text-red-500 hover:underline px-2">مسح الكل</button>
+                )}
+              </div>
             </div>
             <div className="overflow-y-auto" style={{ maxHeight: 520 }}>
               {selectedQuestions.length === 0 ? (
@@ -352,6 +377,14 @@ export function ExamBuilder({ subjects, grades, semesters, units, lessons, examI
           إلغاء
         </button>
       </div>
+
+      {isAutoSelectOpen && (
+        <AutoSelectModal 
+          availableQuestions={availableInBank}
+          onAdd={handleAutoAdd}
+          onClose={() => setIsAutoSelectOpen(false)}
+        />
+      )}
     </div>
   )
 }
