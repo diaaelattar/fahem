@@ -58,7 +58,8 @@ export async function POST(req: NextRequest) {
         const examQuestionsData = selectedQuestions.map((q, idx) => ({
           exam_id: (exam as any).id,
           question_id: q.id,
-          question_order: idx + 1
+          question_order: idx + 1,
+          points_override: q.points || 1
         }))
 
         const { error: eqError } = await supabase.from('exam_questions').insert(examQuestionsData)
@@ -115,7 +116,8 @@ export async function POST(req: NextRequest) {
         const examQuestionsData = selectedQuestions.map((q, idx) => ({
           exam_id: (exam as any).id,
           question_id: q.id,
-          question_order: idx + 1
+          question_order: idx + 1,
+          points_override: q.points || 1
         }))
 
         const { error: eqError } = await supabase.from('exam_questions').insert(examQuestionsData)
