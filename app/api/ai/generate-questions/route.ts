@@ -6,7 +6,15 @@ import { parseGeminiJSON } from '@/lib/ai/gemini-client'
 
 // ─── إعداد Gemini ───────────────────────────────────────────────────────────
 function getGenAI() {
-  return new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY || '')
+  const keys = [
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY_2,
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY_3,
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY_4
+  ].filter(Boolean) as string[]
+  
+  const selectedKey = keys[Math.floor(Math.random() * keys.length)] || ''
+  return new GoogleGenerativeAI(selectedKey)
 }
 
 // نماذج متسقة مع الـ File API - مرتبة حسب الأولوية وتوافر الكوتا

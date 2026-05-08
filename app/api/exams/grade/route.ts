@@ -9,7 +9,9 @@ const MODELS = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.0-flash']
 function getModel(name: string) {
   const keys = [
     process.env.GOOGLE_GENERATIVE_AI_API_KEY,
-    process.env.GOOGLE_GENERATIVE_AI_API_KEY_2
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY_2,
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY_3,
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY_4
   ].filter(Boolean) as string[]
   
   const selectedKey = keys[Math.floor(Math.random() * keys.length)] || ''
