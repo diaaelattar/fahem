@@ -7,6 +7,7 @@ import { Clock, ChevronRight, ChevronLeft, CheckCircle, XCircle, Send, AlertTria
 import { MathRenderer } from '@/components/ui/MathRenderer'
 import { useExamStore } from '@/lib/store/exam-store'
 import { AIExplainButton } from '@/components/student/AIExplainButton'
+import { MathKeyboard } from '@/components/ui/MathKeyboard'
 
 interface Question {
   id: string
@@ -180,6 +181,11 @@ export function ExamInterface({
     if (exam.show_results_immediately && answers[currentQ.id]) {
       setImmediateFeedback(prev => ({ ...prev, [currentQ.id]: true }))
     }
+  }
+
+  const handleMathInsert = (symbol: string) => {
+    const currentVal = answers[currentQ.id] || ''
+    handleAnswer((currentVal as string) + symbol)
   }
 
   if (submitted && result) {
@@ -363,7 +369,8 @@ export function ExamInterface({
 
         {/* Fill Blank / Essay / Correction */}
         {(currentQ.question_type === 'fill_blank' || currentQ.question_type === 'essay' || currentQ.question_type === 'correction') && (
-          <div className="mt-4">
+          <div className="mt-4 flex flex-col gap-3">
+            <MathKeyboard onInsert={handleMathInsert} className="mb-1" />
             {currentQ.question_type === 'fill_blank' ? (
               <input
                 type="text"
@@ -371,8 +378,8 @@ export function ExamInterface({
                 onChange={e => handleAnswer(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && submitTextAnswer()}
                 disabled={exam.show_results_immediately && immediateFeedback[currentQ.id]}
-                placeholder="اكتب إجابتك هنا..."
-                className="w-full px-4 py-3 border-2 border-border rounded-xl focus:border-primary focus:outline-none transition-colors"
+                placeholder="اكتب إجابتك هنا (يمكنك استخدام الرموز الرياضية بالأعلى)..."
+                className="w-full px-4 py-3 border-2 border-border rounded-xl focus:border-primary focus:outline-none transition-colors font-mono dir-ltr text-left"
               />
             ) : (
               <textarea
@@ -380,7 +387,7 @@ export function ExamInterface({
                 onChange={e => handleAnswer(e.target.value)}
                 disabled={exam.show_results_immediately && immediateFeedback[currentQ.id]}
                 placeholder="اكتب إجابتك هنا بوضوح..."
-                className="w-full px-4 py-3 border-2 border-border rounded-xl focus:border-primary focus:outline-none transition-colors h-32 resize-none"
+                className="w-full px-4 py-3 border-2 border-border rounded-xl focus:border-primary focus:outline-none transition-colors h-32 resize-none font-mono dir-ltr text-left"
               />
             )}
             {exam.show_results_immediately && !immediateFeedback[currentQ.id] && answers[currentQ.id] && (

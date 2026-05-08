@@ -7,6 +7,8 @@ import {
   BookOpen, Zap, Target, Mic, Square, Loader2
 } from 'lucide-react'
 import { MathRenderer } from '@/components/ui/MathRenderer'
+import { MathKeyboard } from '@/components/ui/MathKeyboard'
+import { AIExplainButton } from '@/components/student/AIExplainButton'
 
 interface Question {
   id: string
@@ -199,6 +201,10 @@ export function PracticeSessionClient({ questions, subject, studentId }: Props) 
   const handleFillSubmit = () => {
     if (!fillInput.trim()) return
     handleAnswer(fillInput.trim())
+  }
+
+  const handleMathInsert = (symbol: string) => {
+    setFillInput(prev => prev + symbol)
   }
 
   const handleNext = useCallback(async () => {
@@ -410,14 +416,15 @@ export function PracticeSessionClient({ questions, subject, studentId }: Props) 
         {/* Fill Blank / Essay / Correction */}
         {(current.question_type === 'fill_blank' || current.question_type === 'essay' || current.question_type === 'correction') && !showAnswer && (
           <div className="flex flex-col gap-3">
+            <MathKeyboard onInsert={handleMathInsert} className="mb-1" />
             {current.question_type === 'fill_blank' ? (
               <input
                 type="text"
                 value={fillInput}
                 onChange={e => setFillInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleFillSubmit()}
-                placeholder="اكتب إجابتك هنا..."
-                className="w-full px-4 py-3 border-2 border-border rounded-xl text-base focus:outline-none focus:border-primary transition-colors"
+                placeholder="اكتب إجابتك هنا (يمكنك استخدام الرموز الرياضية بالأعلى)..."
+                className="w-full px-4 py-3 border-2 border-border rounded-xl text-base focus:outline-none focus:border-primary transition-colors font-mono dir-ltr text-left"
                 autoFocus
                 disabled={isGrading}
               />
@@ -427,7 +434,7 @@ export function PracticeSessionClient({ questions, subject, studentId }: Props) 
                   value={fillInput}
                   onChange={e => setFillInput(e.target.value)}
                   placeholder="اكتب إجابتك هنا بوضوح..."
-                  className="w-full px-4 py-3 border-2 border-border rounded-xl text-base focus:outline-none focus:border-primary transition-colors resize-none h-32"
+                  className="w-full px-4 py-3 border-2 border-border rounded-xl text-base focus:outline-none focus:border-primary transition-colors resize-none h-32 font-mono dir-ltr text-left"
                   autoFocus
                   disabled={isGrading || isTranscribing}
                 />
