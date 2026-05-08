@@ -6,6 +6,7 @@ import { ArrowRight, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { DeleteExamButton } from './DeleteExamButton'
+import { ExportExamButton } from '@/components/admin/ExportExamButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -43,7 +44,10 @@ export default async function EditExamPage({ params }: { params: { id: string } 
             <p className="text-muted-foreground text-sm mt-0.5">{exam.title}</p>
           </div>
         </div>
-        <DeleteExamButton examId={params.id} examTitle={exam.title} />
+        <div className="flex items-center gap-2">
+          <ExportExamButton examId={params.id} examTitle={exam.title} />
+          <DeleteExamButton examId={params.id} examTitle={exam.title} />
+        </div>
       </div>
 
       {/* Builder in edit mode */}

@@ -82,38 +82,14 @@ export function ExamInterface({
       // 1. Save answers JSON for RPC grading
       await supabase.from('exam_attempts').update({ answers }).eq('id', attemptId)
 
-      // 2. Grade Exam
-      const { data, error } = await supabase.rpc('grade_exam_attempt', { p_attempt_id: attemptId })
-      if (error) throw error
-      
-      const passingScore = exam?.passing_score || 50;
-      const isPassedFixed = (data.percentage >= passingScore);
-      if (data.is_passed !== isPassedFixed) {
-         data.is_passed = isPassedFixed;
-         await supabase.from('exam_attempts').update({ is_passed: isPassedFixed }).eq('id', attemptId);
-      }
-
-      // 3. Insert into student_answers for Analytics (Phase 3 requirement)
-      const { data: userData } = await supabase.auth.getUser()
-      const studentId = userData?.user?.id
-      
-      if (studentId) {
-        const studentAnswersPayload = Object.entries(answers).map(([questionId, ans]) => ({
-          attempt_id: attemptId,
-          student_id: studentId,
-          exam_id: exam.id,
-          question_id: questionId,
-          student_answer: typeof ans === 'string' ? ans : JSON.stringify(ans),
-          // is_correct will be computed/updated later or handled by triggers if needed.
-          // For MCQ/TF we can approximate it if we had correct_answer, but we don't send it to client.
-          // We rely on the RPC 'grade_exam_attempt' to grade.
-          // To make the dashboard work, we can just insert them here. 
-          // Ideally the RPC should insert them, but inserting here is a quick fix.
-        }))
-        if (studentAnswersPayload.length > 0) {
-          await supabase.from('student_answers').upsert(studentAnswersPayload, { onConflict: 'attempt_id,question_id' })
-        }
-      }
+      // 2. Grade Exam using AI Semantic Endpoint
+      const res = await fetch('/api/exams/grade', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ attemptId })
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'فشل التقييم')
 
       setResult(data)
       setSubmitted(true)
