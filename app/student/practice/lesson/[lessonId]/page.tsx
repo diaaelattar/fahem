@@ -7,6 +7,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { Target } from 'lucide-react'
 import { PracticeSessionClient } from '@/components/student/PracticeSessionClient'
+import { LessonSummaryClient } from '@/components/student/LessonSummaryClient'
 
 interface Props { params: { lessonId: string } }
 
@@ -20,7 +21,7 @@ export default async function PracticeLessonPage({ params }: Props) {
   const { data: lesson } = await supabase
     .from('lessons')
     .select(`
-      id, name_ar, duration_minutes, objectives,
+      id, name_ar, duration_minutes, objectives, summary,
       units(id, name_ar, subjects(id, name_ar, icon), grades(id, name_ar))
     `)
     .eq('id', lessonId)
@@ -83,6 +84,8 @@ export default async function PracticeLessonPage({ params }: Props) {
           </div>
         )}
       </div>
+
+      <LessonSummaryClient summary={(lesson as any).summary} />
 
       <PracticeSessionClient
         questions={shuffled as any[]}

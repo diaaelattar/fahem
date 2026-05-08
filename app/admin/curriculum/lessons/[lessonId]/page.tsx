@@ -10,6 +10,7 @@ import {
   CheckCircle, HelpCircle, Edit2
 } from 'lucide-react'
 import { LessonQuestionsClient } from '@/components/admin/LessonQuestionsClient'
+import { GenerateSummaryClient } from '@/components/admin/GenerateSummaryClient'
 
 interface Props { params: { lessonId: string } }
 
@@ -23,7 +24,7 @@ export default async function LessonDetailPage({ params }: Props) {
   const { data: lesson } = await supabase
     .from('lessons')
     .select(`
-      id, name_ar, sort_order, duration_minutes, is_active, objectives,
+      id, name_ar, sort_order, duration_minutes, is_active, objectives, summary,
       units(
         id, name_ar,
         subjects(id, name_ar, icon, grade_id:grade_id),
@@ -117,13 +118,16 @@ export default async function LessonDetailPage({ params }: Props) {
 
       {/* Objectives */}
       {(lesson as any).objectives && (
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5">
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 mb-6">
           <h3 className="font-bold text-amber-800 mb-2 flex items-center gap-2">
             <Target className="w-4 h-4" /> أهداف الدرس
           </h3>
           <p className="text-sm text-amber-900 leading-relaxed">{(lesson as any).objectives}</p>
         </div>
       )}
+
+      {/* AI Summary Generator */}
+      <GenerateSummaryClient lessonId={lessonId} initialSummary={(lesson as any).summary} />
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
