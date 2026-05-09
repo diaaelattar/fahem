@@ -190,6 +190,7 @@ export default function LoginPage() {
                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'تسجيل الدخول'}
               </button>
             </form>
+          </div>
           
           <div className="bg-slate-50 border-t border-border p-6 text-center">
             <p className="text-sm text-slate-600 font-medium">
