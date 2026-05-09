@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Printer, Eye, EyeOff } from 'lucide-react'
+import { MathRenderer } from '@/components/ui/MathRenderer'
 
 export function PrintExamClient({ exam, questions }: { exam: any, questions: any[] }) {
   const [showAnswers, setShowAnswers] = useState(false)
@@ -70,10 +71,12 @@ export function PrintExamClient({ exam, questions }: { exam: any, questions: any
                 <div className="flex-1">
                   {q.context_passage && (
                     <div className="bg-slate-50 p-3 rounded mb-3 text-sm italic border border-slate-200">
-                      {q.context_passage}
+                      <MathRenderer text={q.context_passage} />
                     </div>
                   )}
-                  <div className="font-medium text-lg leading-relaxed" dangerouslySetInnerHTML={{ __html: q.question_text }} />
+                  <div className="font-medium text-lg leading-relaxed">
+                    <MathRenderer text={q.question_text} />
+                  </div>
                 </div>
                 <div className="shrink-0 text-sm font-bold text-slate-500 bg-slate-50 px-2 py-1 rounded">
                   ({q.points_override ?? q.points} درجات)
@@ -90,7 +93,7 @@ export function PrintExamClient({ exam, questions }: { exam: any, questions: any
                         <div className={`w-4 h-4 rounded-full border border-slate-400 flex items-center justify-center shrink-0 ${isCorrect ? 'bg-green-100 border-green-600' : ''}`}>
                            {isCorrect && <div className="w-2 h-2 rounded-full bg-green-600" />}
                         </div>
-                        <span dangerouslySetInnerHTML={{ __html: opt }} />
+                        <MathRenderer text={opt} />
                       </div>
                     )
                   })}
@@ -111,13 +114,17 @@ export function PrintExamClient({ exam, questions }: { exam: any, questions: any
                   {q.question_type !== 'mcq' && (
                     <div className="bg-green-50 p-3 rounded border border-green-200 mb-2">
                       <span className="font-bold text-green-800 text-sm block mb-1">الإجابة الصحيحة:</span>
-                      <div className="text-green-700 font-medium" dangerouslySetInnerHTML={{ __html: q.correct_answer }} />
+                      <div className="text-green-700 font-medium">
+                        <MathRenderer text={q.correct_answer} />
+                      </div>
                     </div>
                   )}
                   {q.explanation && (
                     <div className="bg-blue-50 p-3 rounded border border-blue-200">
                       <span className="font-bold text-blue-800 text-sm block mb-1">التفسير:</span>
-                      <div className="text-blue-700 text-sm" dangerouslySetInnerHTML={{ __html: q.explanation }} />
+                      <div className="text-blue-700 text-sm">
+                        <MathRenderer text={q.explanation} />
+                      </div>
                     </div>
                   )}
                 </div>
