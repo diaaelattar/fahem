@@ -2,16 +2,20 @@
 
 import { createClient } from '@supabase/supabase-js'
 
-export async function saveStudentGradeAction(userId: string, gradeId: number) {
+export async function saveStudentGradeAction(
+  userId: string,
+  gradeId: number,
+  educationType: string = 'public'
+) {
   // Use Service Role key to bypass RLS and guarantee the update/insert works
   const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY! // MUST have this in .env.local
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
   // 1. Get user email to ensure profile is complete
   const { data: { user } } = await supabaseAdmin.auth.admin.getUserById(userId)
-  
+
   // 2. Ensure profile exists
   const { error: profileError } = await supabaseAdmin.from('profiles').upsert({
     id: userId,
@@ -22,11 +26,12 @@ export async function saveStudentGradeAction(userId: string, gradeId: number) {
 
   if (profileError) throw new Error(profileError.message)
 
-  // 3. Ensure student row exists and update grade
+  // 3. Ensure student row exists and update grade + education_type
   const { error: studentError } = await supabaseAdmin.from('students').upsert({
     id: userId,
     grade_id: gradeId,
-  }, { onConflict: 'id' }) 
+    education_type: educationType,
+  }, { onConflict: 'id' })
 
   if (studentError) throw new Error(studentError.message)
 
@@ -35,5 +40,5 @@ export async function saveStudentGradeAction(userId: string, gradeId: number) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ userId, amount: 10, reason: 'أول تسجيل دخول 🎉' })
-  }).catch(() => {}) 
+  }).catch(() => {})
 }

@@ -82,6 +82,68 @@ export function ExamInterface({
       .replace(/[\u064B-\u065F]/g, '')
   }
 
+  const checkAnswer = (studentAns: string, correctAns: string, type: string) => {
+    if (!studentAns || !correctAns) return false;
+    
+    if (type === 'true_false') {
+      const isStudentTrue = studentAns === 'صح' || studentAns.toLowerCase() === 'true';
+      const isCorrectTrue = correctAns === 'صح' || correctAns.toLowerCase() === 'true';
+      const isStudentFalse = studentAns === 'خطأ' || studentAns.toLowerCase() === 'false';
+      const isCorrectFalse = correctAns === 'خطأ' || correctAns.toLowerCase() === 'false';
+      
+      return (isStudentTrue && isCorrectTrue) || (isStudentFalse && isCorrectFalse);
+    }
+
+    const normStudent = normalizeArabic(studentAns);
+    const normCorrect = normalizeArabic(correctAns);
+
+    if (type === 'mcq') {
+      return normStudent === normCorrect;
+    }
+
+    if (normStudent === normCorrect) return true;
+    
+    // Lenient match for text questions (fill_blank, essay, correction)
+    // Avoid single-character matches by enforcing length
+    if (normStudent.length >= 3 && normCorrect.includes(normStudent)) {
+      return true;
+    }
+    if (normCorrect.length >= 3 && normStudent.includes(normCorrect)) {
+      return true;
+    }
+
+    // Word overlap check
+    const studentWords = normStudent.split(/\s+/).filter(w => w.length >= 2);
+    const correctWords = normCorrect.split(/\s+/).filter(w => w.length >= 2);
+    
+    if (studentWords.length > 0 && correctWords.length > 0) {
+      const intersection = correctWords.filter(w => studentWords.includes(w));
+      
+      // Accept if the student gave a short answer (1-2 words) that is entirely correct
+      if (studentWords.length <= 2 && intersection.length === studentWords.length) {
+         return true;
+      }
+
+      const matchRatioCorrect = intersection.length / correctWords.length;
+      const matchRatioStudent = intersection.length / studentWords.length;
+      
+      if (matchRatioCorrect >= 0.4 || matchRatioStudent >= 0.5) {
+         return true;
+      }
+    }
+    
+    return false;
+  }
+
+  const getDisplayCorrectAnswer = (correctAns: string, type: string) => {
+    if (!correctAns) return '';
+    if (type === 'true_false') {
+      if (correctAns.toLowerCase() === 'true' || correctAns === 'صح') return 'صح';
+      if (correctAns.toLowerCase() === 'false' || correctAns === 'خطأ') return 'خطأ';
+    }
+    return correctAns;
+  }
+
   const handleSubmit = useCallback(async () => {
     if (storeSubmitting || submitted) return
     submitExam() // sets isSubmitting to true in store
@@ -305,7 +367,7 @@ export function ExamInterface({
           <div className="space-y-3">
             {currentQ.options.map((opt, i) => {
               const isSelected = answers[currentQ.id] === opt;
-              const isCorrectOpt = currentQ.correct_answer === opt;
+              const isCorrectOpt = checkAnswer(opt, currentQ.correct_answer || '', 'mcq');
               const showFeedback = exam.show_results_immediately && immediateFeedback[currentQ.id];
               
               let btnClass = `answer-option w-full text-right ${isSelected ? 'selected' : ''}`;
@@ -331,7 +393,7 @@ export function ExamInterface({
           <div className="grid grid-cols-2 gap-4">
             {['صح', 'خطأ'].map(opt => {
               const isSelected = answers[currentQ.id] === opt;
-              const isCorrectOpt = currentQ.correct_answer === opt;
+              const isCorrectOpt = checkAnswer(opt, currentQ.correct_answer || '', 'true_false');
               const showFeedback = exam.show_results_immediately && immediateFeedback[currentQ.id];
               
               let btnClass = `answer-option flex-col justify-center py-8 ${isSelected ? 'selected' : ''}`;
@@ -403,23 +465,23 @@ export function ExamInterface({
         {/* Immediate Feedback Box (Practice Mode) */}
         {exam.show_results_immediately && immediateFeedback[currentQ.id] && currentQ.correct_answer && (
           <div className={`mt-6 p-4 rounded-xl border-2 ${
-            normalizeArabic(answers[currentQ.id] as string) === normalizeArabic(currentQ.correct_answer)
+            checkAnswer(answers[currentQ.id] as string, currentQ.correct_answer, currentQ.question_type)
               ? 'bg-green-50 border-green-200' 
               : 'bg-red-50 border-red-200'
           }`}>
             <h4 className={`font-bold flex items-center gap-2 ${
-              normalizeArabic(answers[currentQ.id] as string) === normalizeArabic(currentQ.correct_answer) ? 'text-green-700' : 'text-red-700'
+              checkAnswer(answers[currentQ.id] as string, currentQ.correct_answer, currentQ.question_type) ? 'text-green-700' : 'text-red-700'
             }`}>
-              {normalizeArabic(answers[currentQ.id] as string) === normalizeArabic(currentQ.correct_answer) ? (
+              {checkAnswer(answers[currentQ.id] as string, currentQ.correct_answer, currentQ.question_type) ? (
                 <><CheckCircle className="w-5 h-5" /> إجابة صحيحة!</>
               ) : (
                 <><XCircle className="w-5 h-5" /> إجابة خاطئة</>
               )}
             </h4>
             
-            {normalizeArabic(answers[currentQ.id] as string) !== normalizeArabic(currentQ.correct_answer) && (
+            {!checkAnswer(answers[currentQ.id] as string, currentQ.correct_answer, currentQ.question_type) && (
               <div className="mt-2 text-sm">
-                <strong>الإجابة الصحيحة هي:</strong> <span className="text-green-700 font-bold">{currentQ.correct_answer}</span>
+                <strong>الإجابة الصحيحة هي:</strong> <span className="text-green-700 font-bold">{getDisplayCorrectAnswer(currentQ.correct_answer, currentQ.question_type)}</span>
               </div>
             )}
             
@@ -430,11 +492,11 @@ export function ExamInterface({
             )}
 
             {/* AI Explain Button - only for wrong answers */}
-            {normalizeArabic(answers[currentQ.id] as string) !== normalizeArabic(currentQ.correct_answer) && (
+            {!checkAnswer(answers[currentQ.id] as string, currentQ.correct_answer, currentQ.question_type) && (
               <AIExplainButton
                 questionId={currentQ.id}
                 questionText={currentQ.question_text}
-                correctAnswer={currentQ.correct_answer}
+                correctAnswer={getDisplayCorrectAnswer(currentQ.correct_answer, currentQ.question_type)}
                 studentAnswer={answers[currentQ.id] as string}
               />
             )}
