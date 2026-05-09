@@ -1,22 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Trash2, Loader2, Info } from 'lucide-react'
 import { MathRenderer } from '@/components/ui/MathRenderer'
 import { QuestionApprovalButtons } from '@/components/admin/QuestionApprovalButtons'
 import { toast } from 'sonner'
 import { bulkDeleteQuestionsAction } from '@/app/admin/questions/actions'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
 
 export function QuestionsListClient({ 
   questions,
@@ -100,11 +89,12 @@ export function QuestionsListClient({
 
       {/* ── زر تحديد الكل ── */}
       <div className="flex items-center gap-2 mb-3 px-2">
-        <Checkbox 
+        <input 
+          type="checkbox"
           id="select-all" 
           checked={questions.length > 0 && selectedIds.length === questions.length}
-          onCheckedChange={toggleSelectAll}
-          className="w-5 h-5 border-slate-300 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+          onChange={toggleSelectAll}
+          className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-600 cursor-pointer"
         />
         <label htmlFor="select-all" className="text-sm font-bold text-slate-700 cursor-pointer select-none">
           تحديد جميع أسئلة الصفحة ({questions.length})
@@ -131,10 +121,12 @@ export function QuestionsListClient({
                 `}
                 onClick={() => toggleSelection(q.id)}
               >
-                <Checkbox 
+                <input 
+                  type="checkbox"
                   checked={isSelected}
-                  onCheckedChange={() => toggleSelection(q.id)}
-                  className="w-5 h-5 border-slate-300 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                  onChange={() => toggleSelection(q.id)}
+                  onClick={(e) => e.stopPropagation()}
+                  className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-600 cursor-pointer"
                 />
               </div>
 
@@ -209,33 +201,37 @@ export function QuestionsListClient({
       </div>
 
       {/* مودال التأكيد */}
-      <AlertDialog open={showConfirmModal} onOpenChange={setShowConfirmModal}>
-        <AlertDialogContent dir="rtl" className="max-w-md">
-          <AlertDialogHeader>
-            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center text-red-600 mx-auto mb-2">
+      {showConfirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl" dir="rtl">
+            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center text-red-600 mx-auto mb-4">
               <Trash2 className="w-6 h-6" />
             </div>
-            <AlertDialogTitle className="text-center text-xl font-bold">تأكيد الحذف النهائي</AlertDialogTitle>
-            <AlertDialogDescription className="text-center text-base">
+            <h2 className="text-center text-xl font-bold mb-2">تأكيد الحذف النهائي</h2>
+            <p className="text-center text-slate-600 mb-6 leading-relaxed">
               هل أنت متأكد من أنك تريد حذف <span className="font-bold text-red-600">{selectedIds.length} سؤال</span> بشكل نهائي؟
               لا يمكن التراجع عن هذا الإجراء وسيتم مسحهم من قاعدة البيانات.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="sm:justify-between flex-row-reverse sm:flex-row gap-2 mt-4">
-            <AlertDialogCancel disabled={isDeleting} className="mt-0 sm:mt-0 bg-slate-100 hover:bg-slate-200 border-0 flex-1">
-              تراجع
-            </AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={(e) => { e.preventDefault(); handleBulkDelete(); }}
-              disabled={isDeleting}
-              className="bg-red-600 hover:bg-red-700 text-white flex-1 flex items-center justify-center gap-2"
-            >
-              {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-              {isDeleting ? 'جاري الحذف...' : 'نعم، احذف نهائياً'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </p>
+            <div className="flex flex-row-reverse sm:flex-row gap-3">
+              <button
+                disabled={isDeleting}
+                onClick={() => setShowConfirmModal(false)}
+                className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl transition-colors disabled:opacity-50"
+              >
+                تراجع
+              </button>
+              <button
+                disabled={isDeleting}
+                onClick={(e) => { e.preventDefault(); handleBulkDelete(); }}
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                {isDeleting ? 'جاري الحذف...' : 'نعم، احذف نهائياً'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }
