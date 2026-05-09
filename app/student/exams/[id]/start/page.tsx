@@ -138,8 +138,8 @@ function ExamStartScreen({ exam }: { exam: any }) {
             <p className="flex items-center gap-2"><span className="text-primary">✓</span> يمكنك التنقل بين الأسئلة بحرية</p>
             <p className="flex items-center gap-2"><span className="text-primary">✓</span> سيتم التسليم التلقائي عند انتهاء الوقت</p>
             <p className="flex items-center gap-2"><span className="text-primary">✓</span> يتم حفظ إجاباتك تلقائياً كل 30 ثانية</p>
-            {exam.passing_score && (
-              <p className="flex items-center gap-2"><span className="text-primary">✓</span> درجة النجاح: {exam.passing_score} من {exam.total_points}</p>
+            {exam.passing_score != null && (
+              <p className="flex items-center gap-2"><span className="text-primary">✓</span> نسبة النجاح: <strong>{exam.passing_score}%</strong></p>
             )}
           </div>
 

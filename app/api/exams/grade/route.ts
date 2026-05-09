@@ -218,9 +218,9 @@ export async function POST(req: NextRequest) {
     let finalTotalPoints = originalTotalPoints - pointsToExclude
     if (finalTotalPoints <= 0) finalTotalPoints = 1 // Prevent division by zero
 
-    // نسبة النجاح (مثلاً إذا استبعدنا أسئلة، نعتمد على النسبة المئوية بدلاً من الدرجة المطلقة)
+    // نسبة النجاح (passing_score مخزنة كنسبة مئوية 0-100، وليس درجة مطلقة)
     const percentage = finalTotalPoints > 0 ? (totalScore / finalTotalPoints) * 100 : 0
-    const passThreshold = examData.passing_score ? (examData.passing_score / originalTotalPoints) * 100 : 50
+    const passThreshold = examData.passing_score ?? 50  // مباشرة كنسبة مئوية
     const isPassed = percentage >= passThreshold
 
     // 5. Update Attempt in DB

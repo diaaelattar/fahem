@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import {
   Brain, Loader2, CheckCircle, ArrowRight, ArrowLeft,
-  GraduationCap, School, BookOpen, Globe, Mosque, Landmark
+  GraduationCap, School, BookOpen, Globe, Library, Landmark
 } from 'lucide-react'
 
 // ====== Types ======
@@ -66,7 +66,7 @@ const EDU_TYPES = [
     id: 'azhar',
     label: 'تعليم أزهر',
     sublabel: 'يشمل المواد الدينية المتخصصة',
-    icon: Mosque,
+    icon: Library,
     gradient: 'from-amber-500 to-orange-500',
     bg: 'bg-amber-50 border-amber-200 hover:border-amber-500',
     selectedBg: 'border-amber-500 bg-amber-50 ring-2 ring-amber-300',

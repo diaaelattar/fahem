@@ -145,7 +145,8 @@ export function ExamBuilder({ subjects, grades, semesters, units, lessons, examI
         exam_type: form.examType,
         duration_minutes: parseInt(form.duration),
         total_points: totalPoints,
-        passing_score: form.passingScore ? parseInt(form.passingScore) : null,
+        questions_count: selectedQuestions.length, // عدد الأسئلة الفعلي
+        passing_score: form.passingScore ? parseFloat(form.passingScore) : null, // نسبة مئوية 0-100
         instructions: form.instructions.trim() || null,
         is_published: publish || form.isPublished,
         available_from: form.availableFrom ? new Date(form.availableFrom).toISOString() : null,
