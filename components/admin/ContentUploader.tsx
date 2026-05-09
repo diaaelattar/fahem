@@ -281,11 +281,20 @@ export function ContentUploader({ subjects, grades }: Props) {
 
         if (targetPages.length === 0) throw new Error('تحديد نطاق الصفحات غير صحيح أو خارج نطاق الملف')
 
-        // تقسيم الصفحات إلى مجموعات (Chunks)
-        const currentChunkSize = isChunked ? chunkSize : targetPages.length
+        // تقسيم الصفحات إلى مجموعات متداخلة (Overlapping Chunks)
+        // التداخل بصفحة واحدة يضمن عدم ضياع السؤال المقسم بين صفحتين
+        const currentChunkSize = isChunked ? Math.max(2, chunkSize) : targetPages.length
         const chunks: number[][] = []
-        for (let i = 0; i < targetPages.length; i += currentChunkSize) {
-          chunks.push(targetPages.slice(i, i + currentChunkSize))
+        
+        if (isChunked && currentChunkSize < targetPages.length) {
+          let i = 0
+          while (i < targetPages.length) {
+            chunks.push(targetPages.slice(i, i + currentChunkSize))
+            if (i + currentChunkSize >= targetPages.length) break
+            i += (currentChunkSize - 1) // التقدم مع ترك صفحة واحدة للتداخل
+          }
+        } else {
+          chunks.push(targetPages)
         }
 
         addLog(`سيتم معالجة الملف على ${chunks.length} مرحلة.`, 'info')
@@ -370,6 +379,25 @@ export function ContentUploader({ subjects, grades }: Props) {
           }
           
           setProgress(Math.round(40 + ((i + 1) / chunks.length) * 60))
+        }
+
+        // إزالة الأسئلة المكررة الناتجة عن تداخل الصفحات
+        if (isChunked && chunks.length > 1) {
+          addLog('جاري إزالة الأسئلة المكررة الناتجة عن دمج الأجزاء...', 'loading')
+          const uniqueMap = new Map()
+          allQuestions.forEach(q => {
+            if (!q.question_text) return
+            // توحيد النص للبحث عن التطابق (إزالة المسافات الزائدة)
+            const norm = q.question_text.trim().replace(/\s+/g, ' ')
+            if (!uniqueMap.has(norm)) {
+              uniqueMap.set(norm, q)
+            }
+          })
+          const originalCount = allQuestions.length
+          allQuestions = Array.from(uniqueMap.values())
+          if (originalCount > allQuestions.length) {
+            addLog(`تمت تصفية ${originalCount - allQuestions.length} سؤال مكرر.`, 'info')
+          }
         }
       } else {
         // المسارات الأخرى (نص ملصوق، إلخ) - معالجة واحدة
@@ -657,10 +685,10 @@ export function ContentUploader({ subjects, grades }: Props) {
                       onChange={e => setChunkSize(Number(e.target.value))}
                       className="px-2 py-1 border border-border rounded text-xs bg-white focus:outline-none focus:ring-1 focus:ring-primary/30"
                     >
-                      <option value={1}>1 صفحة</option>
                       <option value={2}>2 صفحة</option>
                       <option value={3}>3 صفحات</option>
                       <option value={5}>5 صفحات</option>
+                      <option value={10}>10 صفحات</option>
                     </select>
                   )}
                   <input 
