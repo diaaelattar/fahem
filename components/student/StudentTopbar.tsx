@@ -39,7 +39,7 @@ export function StudentTopbar({ profile }: { profile: Profile }) {
         <img
           src={(profile as any).avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${profile.full_name}`}
           alt={profile.full_name}
-          className="w-8 h-8 rounded-xl object-cover border-2 border-border"
+          className="w-8 h-8 rounded-xl object-cover border-2 border-border shrink-0"
         />
 
         {/* Name - mobile only compact */}

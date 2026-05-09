@@ -38,6 +38,8 @@ export default async function ResultDetailPage({ params }: Props) {
     .eq('student_id', (profile as any).id)
     .single() as any
 
+  console.log("Attempt Fetch Result:", attempt)
+
   // 🔄 إذا لم يتم العثور على محاولة بهذا المعرف، قد يكون المعرف هو معرف اختبار (Exam ID)
   // سنحاول العثور على آخر محاولة مكتملة لهذا الطالب في هذا الاختبار
   if (!attempt.data) {

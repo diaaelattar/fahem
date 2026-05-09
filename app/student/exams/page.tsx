@@ -46,8 +46,11 @@ export default async function StudentExamsPage() {
                   <div className="flex items-start justify-between mb-3">
                     <div className="text-3xl">{exam.subjects?.icon || '📚'}</div>
                     {attempt
-                      ? <span className={`text-xs px-2 py-1 rounded-full font-bold ${attempt.is_passed ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                          {attempt.is_passed ? '✅ ناجح' : '❌ راسب'} • {attempt.percentage?.toFixed(0)}٪
+                      ? <span className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-bold ${attempt.is_passed ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                          <span className="text-[10px]">{attempt.is_passed ? '✅' : '❌'}</span>
+                          <span>{attempt.is_passed ? 'ناجح' : 'راسب'}</span>
+                          <span className="opacity-50">•</span>
+                          <span dir="ltr">{attempt.percentage?.toFixed(0)}%</span>
                         </span>
                       : isExpired
                         ? <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">منتهي</span>
