@@ -27,6 +27,7 @@ export default async function ResultDetailPage({ params }: Props) {
     .select(`
       id, score, percentage, is_passed, completed_at, started_at,
       time_spent_seconds, attempt_number, answers, feedback,
+      student_answers(question_id, is_correct, teacher_feedback, score_awarded),
       exams(
         id, title, total_points, passing_score, show_results_immediately,
         allowed_attempts, subjects(name_ar, icon),
@@ -83,13 +84,50 @@ export default async function ResultDetailPage({ params }: Props) {
       .eq('id', params.id)
   }
 
-  // جلب أسئلة الاختبار مع الإجابات الصحيحة (بعد الانتهاء فقط)
+  const studentAnswersRecords = (attempt.student_answers as any[]) || []
+  const answerDetailsMap = new Map(studentAnswersRecords.map(a => [a.question_id, a]))
+
+  const normalizeArabic = (text: string) => {
+    if (!text) return ''
+    return text.trim().toLowerCase()
+      .replace(/[أإآ]/g, 'ا')
+      .replace(/ة/g, 'ه')
+      .replace(/ى/g, 'ي')
+      .replace(/[\u064B-\u065F]/g, '')
+  }
+
+  const checkAnswer = (studentAns: string, correctAns: string, type: string): boolean => {
+    if (!studentAns || !correctAns) return false
+    if (type === 'true_false') {
+      const isStudentTrue  = studentAns === 'صح'  || studentAns.toLowerCase() === 'true'
+      const isCorrectTrue  = correctAns  === 'صح'  || correctAns.toLowerCase()  === 'true'
+      const isStudentFalse = studentAns === 'خطأ' || studentAns.toLowerCase() === 'false'
+      const isCorrectFalse = correctAns  === 'خطأ' || correctAns.toLowerCase()  === 'false'
+      return (isStudentTrue && isCorrectTrue) || (isStudentFalse && isCorrectFalse)
+    }
+    const ns = normalizeArabic(studentAns)
+    const nc = normalizeArabic(correctAns)
+    if (type === 'mcq') return ns === nc
+    if (ns === nc) return true
+    if (nc.length >= 3 && ns.includes(nc)) return true
+    if (ns.length >= 3 && nc.includes(ns)) return true
+    const sw = ns.split(/\s+/).filter(w => w.length >= 2)
+    const cw = nc.split(/\s+/).filter(w => w.length >= 2)
+    if (sw.length > 0 && cw.length > 0) {
+      const common = cw.filter(w => sw.includes(w))
+      if (sw.length <= 2 && common.length === sw.length) return true
+      if (common.length / cw.length >= 0.4 || common.length / sw.length >= 0.5) return true
+    }
+    return false
+  }
+
   let questionsWithAnswers: any[] = []
   if (exam?.show_results_immediately) {
     const { data: examQuestions } = await supabase
       .from('exam_questions')
       .select(`
         question_order,
+        points_override,
         questions(id, question_type, context_passage, question_text, options, correct_answer, explanation, points, question_image_url, difficulty_level)
       `)
       .eq('exam_id', exam.id)
@@ -100,18 +138,24 @@ export default async function ResultDetailPage({ params }: Props) {
       .map((eq: any) => {
         const q = eq.questions
         const studentAnswer = answers[q.id]
-        const questionFeedback = feedback[q.id] || {}
         
-        // استخدام التصحيح المخزن في الداتابيز إذا وجد، وإلا قارن محلياً
-        const isCorrect = questionFeedback.is_correct !== undefined 
-          ? questionFeedback.is_correct 
-          : studentAnswer?.trim().toLowerCase() === q.correct_answer?.trim().toLowerCase()
+        // الأولوية 1: سجلات student_answers (التي تم تقييمها من API)
+        const sa = answerDetailsMap.get(q.id)
+        
+        let isCorrect = false;
+        if (sa && sa.is_correct !== undefined) {
+          isCorrect = sa.is_correct;
+        } else {
+          // الأولوية 2: التقييم المحلي للطوارئ (باستخدام دالة checkAnswer المرنة)
+          isCorrect = checkAnswer(studentAnswer, q.correct_answer, q.question_type)
+        }
 
         return {
           ...q,
+          points: eq.points_override || q.points || 1, // استخدام النقاط المخصصة إن وجدت
           studentAnswer,
           isCorrect,
-          explanation: questionFeedback.explanation || q.explanation, // الأولوية للتفسير من الموديل
+          explanation: sa?.teacher_feedback || q.explanation, // الأولوية للتفسير من الموديل
           isAnswered: studentAnswer !== undefined && studentAnswer !== '',
         }
       })
@@ -153,6 +197,11 @@ export default async function ResultDetailPage({ params }: Props) {
 
   const percentage = (attempt as any).percentage || 0
   const isPassed = (attempt as any).is_passed
+  
+  // الدرجة الكلية الفعلية بناءً على الأسئلة أو النسبة المحتسبة لتجنب خطأ التناقض
+  const actualTotalPoints = attempt.score > 0 && percentage > 0 
+    ? Math.round((attempt.score / percentage) * 100) 
+    : (questionsWithAnswers.length > 0 ? questionsWithAnswers.reduce((sum, q) => sum + q.points, 0) : exam?.total_points)
 
   const getScoreColor = (pct: number) => {
     if (pct >= 90) return 'text-egypt-green'
@@ -211,7 +260,7 @@ export default async function ResultDetailPage({ params }: Props) {
             
             <div className="text-right">
               <div className="text-3xl font-bold text-foreground">
-                {(attempt as any).score} <span className="text-muted-foreground text-xl">/ {exam?.total_points}</span>
+                {(attempt as any).score} <span className="text-muted-foreground text-xl">/ {actualTotalPoints}</span>
               </div>
               <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1">الدرجات المحصلة</p>
               <div className="mt-4 flex items-center gap-2">

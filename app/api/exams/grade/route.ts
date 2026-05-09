@@ -108,7 +108,7 @@ export async function POST(req: NextRequest) {
     // 2. Fetch Questions
     const { data: examQuestions } = await supabase
       .from('exam_questions')
-      .select('questions(id, question_type, correct_answer, points, question_text, explanation)')
+      .select('points_override, questions(id, question_type, correct_answer, points, question_text, explanation)')
       .eq('exam_id', attempt.exam_id)
 
     if (!examQuestions) throw new Error('Questions not found')
@@ -122,7 +122,7 @@ export async function POST(req: NextRequest) {
       const q = eq.questions as any
       if (!q) continue
 
-      const qPoints = Math.max(1, q.points || 1)
+      const qPoints = eq.points_override || Math.max(1, q.points || 1)
       const studentAns = answers[q.id]
       let isCorrect = false
       let scoreAwarded = 0
@@ -212,7 +212,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 4. Calculate Final Result
-    const originalTotalPoints = examQuestions.reduce((sum, eq) => sum + Math.max(1, (eq.questions as any)?.points || 1), 0)
+    const originalTotalPoints = examQuestions.reduce((sum, eq) => sum + Math.max(1, eq.points_override || (eq.questions as any)?.points || 1), 0)
     let finalTotalPoints = originalTotalPoints - pointsToExclude
     if (finalTotalPoints <= 0) finalTotalPoints = 1 // Prevent division by zero
 
