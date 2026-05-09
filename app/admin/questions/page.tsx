@@ -1,8 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/auth/permissions'
 import { HelpCircle, Filter, X, BookOpen, GraduationCap, Calendar, Layers, FileText } from 'lucide-react'
-import { MathRenderer } from '@/components/ui/MathRenderer'
-import { QuestionApprovalButtons } from '@/components/admin/QuestionApprovalButtons'
+import { QuestionsListClient } from '@/components/admin/QuestionsListClient'
 import Link from 'next/link'
 
 interface SearchParams {
@@ -373,81 +372,13 @@ export default async function QuestionsPage({ searchParams }: { searchParams: Se
 
       {/* ── قائمة الأسئلة ── */}
       {questions && questions.length > 0 ? (
-        <div className="space-y-2">
-          {questions.map((q: any) => {
-            const typeInfo = TYPE_LABELS[q.question_type] || { label: q.question_type, color: 'bg-slate-100 text-slate-700' }
-            const bloom = q.bloom_level ? BLOOM_LABELS[q.bloom_level] : null
-            return (
-              <div
-                key={q.id}
-                className="bg-white rounded-2xl border border-border p-4 hover:border-primary/30 transition-all group"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    {/* Badges row */}
-                    <div className="flex flex-wrap items-center gap-1.5 mb-2">
-                      <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${typeInfo.color}`}>
-                        {typeInfo.label}
-                      </span>
-                      {q.difficulty_level && (
-                        <span className={`text-[11px] px-2 py-0.5 rounded-full border font-medium ${DIFF_COLORS[q.difficulty_level]}`}>
-                          {q.difficulty_level === 'easy' ? 'سهل' : q.difficulty_level === 'medium' ? 'متوسط' : 'صعب'}
-                        </span>
-                      )}
-                      {bloom && (
-                        <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${bloom.color}`}>
-                          بلوم: {bloom.ar}
-                        </span>
-                      )}
-                      <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${STATUS_STYLES[q.status || 'draft']}`}>
-                        {q.status === 'approved' ? '✓ معتمد' : q.status === 'review' ? '⏳ مراجعة' : q.status === 'rejected' ? '✗ مرفوض' : 'مسودة'}
-                      </span>
-                    </div>
-
-                    {/* القطعة المرجعية إن وجدت */}
-                    {q.context_passage && (
-                      <div className="mb-2 mt-2 p-2.5 bg-indigo-50 border border-indigo-100 rounded-lg text-xs text-indigo-900 italic relative">
-                        <span className="font-bold text-indigo-800 absolute -top-2.5 right-3 bg-indigo-50 px-1 border border-indigo-100 rounded-full text-[9px]">القطعة المرجعية</span>
-                        <MathRenderer text={q.context_passage} className="line-clamp-2 leading-relaxed" />
-                      </div>
-                    )}
-                    
-                    {/* نص السؤال */}
-                    <MathRenderer text={q.question_text} className="text-sm font-medium leading-relaxed line-clamp-2 mt-2" />
-
-                    {/* التسلسل التعليمي */}
-                    <div className="flex flex-wrap items-center gap-1 mt-2 text-[10px] text-muted-foreground">
-                      {q.grades?.name_ar && (
-                        <span className="bg-slate-100 px-2 py-0.5 rounded-full">{q.grades.name_ar}</span>
-                      )}
-                      {q.subjects?.name_ar && (
-                        <span className="bg-slate-100 px-2 py-0.5 rounded-full">{q.subjects.icon} {q.subjects.name_ar}</span>
-                      )}
-                      {q.units?.name_ar && (
-                        <span className="bg-slate-100 px-2 py-0.5 rounded-full">📦 {q.units.name_ar}</span>
-                      )}
-                      {q.lessons?.name_ar && (
-                        <span className="bg-slate-100 px-2 py-0.5 rounded-full">📄 {q.lessons.name_ar}</span>
-                      )}
-                      <span className="mr-auto">{q.points} {q.points === 1 ? 'درجة' : 'درجات'} • استُخدم {q.usage_count} مرة</span>
-                    </div>
-                  </div>
-
-                  {/* أزرار التحكم */}
-                  <div className="flex flex-col items-end gap-2 shrink-0">
-                    <QuestionApprovalButtons questionId={q.id} currentStatus={q.status || 'draft'} />
-                    <a
-                      href={`/admin/questions/${q.id}`}
-                      className="text-xs text-primary opacity-0 group-hover:opacity-100 transition-opacity hover:underline"
-                    >
-                      تعديل
-                    </a>
-                  </div>
-                </div>
-              </div>
-            )
-          })}
-        </div>
+        <QuestionsListClient 
+          questions={questions}
+          TYPE_LABELS={TYPE_LABELS}
+          DIFF_COLORS={DIFF_COLORS}
+          BLOOM_LABELS={BLOOM_LABELS}
+          STATUS_STYLES={STATUS_STYLES}
+        />
       ) : (
         <div className="bg-white rounded-2xl border border-border p-16 text-center">
           <HelpCircle className="w-12 h-12 text-muted-foreground/40 mx-auto mb-4" />
