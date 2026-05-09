@@ -18,8 +18,8 @@ const config: Config = {
     },
     extend: {
       fontFamily: {
-        sans: ['Cairo', 'Noto Kufi Arabic', ...fontFamily.sans],
-        display: ['Tajawal', ...fontFamily.sans],
+        sans: ['Calibri', 'Arial', 'sans-serif'],
+        display: ['Calibri', 'Arial', 'sans-serif'],
       },
       colors: {
         border: 'hsl(var(--border))',

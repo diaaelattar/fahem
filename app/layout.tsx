@@ -1,21 +1,7 @@
 import type { Metadata } from 'next'
-import { Cairo, Tajawal } from 'next/font/google'
 import './globals.css'
 import 'katex/dist/katex.min.css'
 import { Toaster } from 'sonner'
-
-const cairo = Cairo({
-  subsets: ['arabic', 'latin'],
-  variable: '--font-cairo',
-  display: 'swap',
-})
-
-const tajawal = Tajawal({
-  subsets: ['arabic', 'latin'],
-  weight: ['400', '500', '700', '800'],
-  variable: '--font-tajawal',
-  display: 'swap',
-})
 
 export const metadata: Metadata = {
   title: 'استباق مصر | منصة التدريب والتحديات الذكي',
@@ -33,7 +19,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="ar" dir="rtl" className={`${cairo.variable} ${tajawal.variable}`}>
+    <html lang="ar" dir="rtl">
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
         <meta name="mobile-web-app-capable" content="yes" />
@@ -53,7 +39,7 @@ export default function RootLayout({
           closeButton
           duration={3500}
           toastOptions={{
-            style: { fontFamily: 'Cairo, sans-serif', fontSize: '14px' },
+            style: { fontFamily: 'Calibri, Arial, sans-serif', fontSize: '14px' },
           }}
         />
       </body>
