@@ -332,9 +332,10 @@ export function ContentUploader({ subjects, grades }: Props) {
                   chunkIndex: i,
                   totalChunks: chunks.length,
                   fileData: chunkBase64, 
-                  questionCount,
+                  questionCount: generationMode === 'EXACT_EXTRACT' ? 0 : questionCount,
                   requestedTypes,
                   targetCognitiveLevel,
+                  generationMode,
                 }),
               })
 
@@ -413,7 +414,7 @@ export function ContentUploader({ subjects, grades }: Props) {
             subjectId,
             gradeId,
             generationMode,
-            questionCount,
+            questionCount: generationMode === 'EXACT_EXTRACT' ? 0 : questionCount,
             requestedTypes,
             targetCognitiveLevel,
           }),
