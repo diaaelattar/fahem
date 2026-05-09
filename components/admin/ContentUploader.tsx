@@ -40,6 +40,7 @@ export function ContentUploader({ subjects, grades }: Props) {
   const [status, setStatus] = useState<Status>('idle')
   const [progress, setProgress] = useState(0)
   const [errorMsg, setErrorMsg] = useState('')
+  const [expertMsg, setExpertMsg] = useState('')
   const [generatedQuestions, setGeneratedQuestions] = useState<any[]>([])
   const [documentId, setDocumentId] = useState('')
   const [generationMode, setGenerationMode] = useState<'SMART_GEN' | 'EXACT_EXTRACT'>('SMART_GEN')
@@ -84,6 +85,49 @@ export function ContentUploader({ subjects, grades }: Props) {
     }
     fetchLessons()
   }, [unitId])
+
+  // Expert Heuristics Effect
+  useEffect(() => {
+    if (subjectId && gradeId && subjects.length > 0 && grades.length > 0) {
+      const subject = subjects.find(s => s.id.toString() === subjectId)
+      const grade = grades.find(g => g.id.toString() === gradeId)
+      
+      if (subject && grade) {
+        applyExpertDefaults(grade.name_ar, subject.name_ar)
+      }
+    } else {
+      setExpertMsg('')
+    }
+  }, [subjectId, gradeId])
+
+  const applyExpertDefaults = (gradeName: string, subjectName: string) => {
+    let qCount = 12
+    let cognitive = 'متنوع'
+    let qTypes = ['mcq', 'true_false', 'fill_blank']
+    let stage = ''
+
+    if (gradeName.includes('الابتدائي')) {
+      stage = 'المرحلة الابتدائية'
+      qCount = 10
+      cognitive = 'أساسي (تذكر وفهم)'
+      qTypes = ['mcq', 'true_false']
+    } else if (gradeName.includes('الإعدادي')) {
+      stage = 'المرحلة الإعدادية'
+      qCount = 15
+      cognitive = 'متوسط (تطبيق وتحليل)'
+      qTypes = ['mcq', 'true_false', 'fill_blank']
+    } else if (gradeName.includes('الثانوي')) {
+      stage = 'المرحلة الثانوية'
+      qCount = 20
+      cognitive = 'متقدم (تحليل وتقييم وإبداع)'
+      qTypes = ['mcq'] // نظام الثانوية يعتمد على الاختيار المتعدد
+    }
+
+    setQuestionCount(qCount)
+    setTargetCognitiveLevel(cognitive)
+    setRequestedTypes(qTypes)
+    setExpertMsg(`✨ تم ضبط الذكاء الاصطناعي لاستخلاص الأسئلة وفقاً للمعايير التربوية لـ ${stage} (${subjectName}).`)
+  }
   
   // ─── خيارات التجزئة المتقدمة ──────────────────────────────────────────────
   const [showAdvanced, setShowAdvanced] = useState(false)
@@ -672,7 +716,15 @@ export function ContentUploader({ subjects, grades }: Props) {
       {/* Sidebar - Settings */}
       <div className="space-y-4">
         <div className="bg-white rounded-2xl border border-border p-5 space-y-4">
-          <h3 className="font-bold text-base">إعدادات المحتوى</h3>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <h3 className="font-bold text-base">إعدادات المحتوى</h3>
+            {expertMsg && (
+              <div className="bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 animate-fade-in border border-emerald-200">
+                <Sparkles className="w-3.5 h-3.5" />
+                {expertMsg}
+              </div>
+            )}
+          </div>
 
           <div>
             <label className="text-sm font-semibold block mb-1.5">عنوان المحتوى *</label>

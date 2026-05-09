@@ -7,7 +7,8 @@ import { Clock, ChevronRight, ChevronLeft, CheckCircle, XCircle, Send, AlertTria
 import { MathRenderer } from '@/components/ui/MathRenderer'
 import { useExamStore } from '@/lib/store/exam-store'
 import { AIExplainButton } from '@/components/student/AIExplainButton'
-import { MathKeyboard } from '@/components/ui/MathKeyboard'
+import { MathLiveInput } from '@/components/ui/MathLiveInput'
+import { Calculator } from 'lucide-react'
 
 interface Question {
   id: string
@@ -65,6 +66,12 @@ export function ExamInterface({
   const [result, setResult] = useState<any>(null)
   const [showConfirm, setShowConfirm] = useState(false)
   const [immediateFeedback, setImmediateFeedback] = useState<Record<string, boolean>>({})
+  const [showMath, setShowMath] = useState(false)
+
+  // Reset math mode when changing questions
+  useEffect(() => {
+    setShowMath(false)
+  }, [currentIdx])
 
   const normalizeArabic = (text: string) => {
     if (!text) return ''
@@ -346,16 +353,34 @@ export function ExamInterface({
         {/* Fill Blank / Essay / Correction */}
         {(currentQ.question_type === 'fill_blank' || currentQ.question_type === 'essay' || currentQ.question_type === 'correction') && (
           <div className="mt-4 flex flex-col gap-3">
-            <MathKeyboard onInsert={handleMathInsert} className="mb-1" />
-            {currentQ.question_type === 'fill_blank' ? (
+            <div className="flex justify-end">
+              <button
+                onClick={() => setShowMath(!showMath)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-colors border ${
+                  showMath ? 'bg-primary text-white border-primary' : 'bg-slate-50 text-slate-600 border-border hover:bg-slate-100'
+                }`}
+              >
+                <Calculator className="w-4 h-4" />
+                {showMath ? 'إغلاق لوحة الرياضيات' : 'كتابة رموز رياضية'}
+              </button>
+            </div>
+
+            {showMath ? (
+              <MathLiveInput
+                value={answers[currentQ.id] || ''}
+                onChange={val => handleAnswer(val)}
+                className="w-full text-left font-mono"
+              />
+            ) : currentQ.question_type === 'fill_blank' ? (
               <input
                 type="text"
                 value={answers[currentQ.id] || ''}
                 onChange={e => handleAnswer(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && submitTextAnswer()}
                 disabled={exam.show_results_immediately && immediateFeedback[currentQ.id]}
-                placeholder="اكتب إجابتك هنا (يمكنك استخدام الرموز الرياضية بالأعلى)..."
-                className="w-full px-4 py-3 border-2 border-border rounded-xl focus:border-primary focus:outline-none transition-colors font-mono dir-ltr text-left"
+                placeholder="اكتب إجابتك هنا..."
+                className="w-full px-4 py-3 border-2 border-border rounded-xl focus:border-primary focus:outline-none transition-colors"
+                dir="auto"
               />
             ) : (
               <textarea
@@ -363,7 +388,8 @@ export function ExamInterface({
                 onChange={e => handleAnswer(e.target.value)}
                 disabled={exam.show_results_immediately && immediateFeedback[currentQ.id]}
                 placeholder="اكتب إجابتك هنا بوضوح..."
-                className="w-full px-4 py-3 border-2 border-border rounded-xl focus:border-primary focus:outline-none transition-colors h-32 resize-none font-mono dir-ltr text-left"
+                className="w-full px-4 py-3 border-2 border-border rounded-xl focus:border-primary focus:outline-none transition-colors h-32 resize-none"
+                dir="auto"
               />
             )}
             {exam.show_results_immediately && !immediateFeedback[currentQ.id] && answers[currentQ.id] && (

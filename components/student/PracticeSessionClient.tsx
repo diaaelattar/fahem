@@ -1,14 +1,15 @@
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import {
   CheckCircle, XCircle, ChevronLeft, Trophy, RotateCcw,
-  BookOpen, Zap, Target, Mic, Square, Loader2
+  BookOpen, Zap, Target, Mic, Square, Loader2, Calculator
 } from 'lucide-react'
 import { MathRenderer } from '@/components/ui/MathRenderer'
 import { MathKeyboard } from '@/components/ui/MathKeyboard'
 import { AIExplainButton } from '@/components/student/AIExplainButton'
+import { MathLiveInput } from '@/components/ui/MathLiveInput'
 
 interface Question {
   id: string
@@ -41,6 +42,12 @@ export function PracticeSessionClient({ questions, subject, studentId }: Props) 
   const [finished, setFinished] = useState(false)
   const [streak, setStreak] = useState(0)
   const [maxStreak, setMaxStreak] = useState(0)
+  const [showMath, setShowMath] = useState(false)
+
+  // Reset math when question changes
+  useEffect(() => {
+    setShowMath(false)
+  }, [currentIdx])
 
   // ─── Arabic Normalization ───
   const normalizeArabic = (text: string) => {
@@ -415,18 +422,36 @@ export function PracticeSessionClient({ questions, subject, studentId }: Props) 
 
         {/* Fill Blank / Essay / Correction */}
         {(current.question_type === 'fill_blank' || current.question_type === 'essay' || current.question_type === 'correction') && !showAnswer && (
-          <div className="flex flex-col gap-3">
-            <MathKeyboard onInsert={handleMathInsert} className="mb-1" />
-            {current.question_type === 'fill_blank' ? (
+          <div className="flex flex-col gap-3 relative">
+            <div className="flex justify-end mb-1">
+              <button
+                onClick={() => setShowMath(!showMath)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-colors border ${
+                  showMath ? 'bg-primary text-white border-primary' : 'bg-slate-50 text-slate-600 border-border hover:bg-slate-100'
+                }`}
+              >
+                <Calculator className="w-4 h-4" />
+                {showMath ? 'إغلاق لوحة الرياضيات' : 'كتابة رموز رياضية'}
+              </button>
+            </div>
+
+            {showMath ? (
+              <MathLiveInput
+                value={fillInput}
+                onChange={val => setFillInput(val)}
+                className="w-full text-left font-mono"
+              />
+            ) : current.question_type === 'fill_blank' ? (
               <input
                 type="text"
                 value={fillInput}
                 onChange={e => setFillInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleFillSubmit()}
-                placeholder="اكتب إجابتك هنا (يمكنك استخدام الرموز الرياضية بالأعلى)..."
-                className="w-full px-4 py-3 border-2 border-border rounded-xl text-base focus:outline-none focus:border-primary transition-colors font-mono dir-ltr text-left"
+                placeholder="اكتب إجابتك هنا..."
+                className="w-full px-4 py-3 border-2 border-border rounded-xl text-base focus:outline-none focus:border-primary transition-colors"
                 autoFocus
                 disabled={isGrading}
+                dir="auto"
               />
             ) : (
               <div className="relative">
@@ -434,9 +459,10 @@ export function PracticeSessionClient({ questions, subject, studentId }: Props) 
                   value={fillInput}
                   onChange={e => setFillInput(e.target.value)}
                   placeholder="اكتب إجابتك هنا بوضوح..."
-                  className="w-full px-4 py-3 border-2 border-border rounded-xl text-base focus:outline-none focus:border-primary transition-colors resize-none h-32 font-mono dir-ltr text-left"
+                  className="w-full px-4 py-3 border-2 border-border rounded-xl text-base focus:outline-none focus:border-primary transition-colors resize-none h-32"
                   autoFocus
                   disabled={isGrading || isTranscribing}
+                  dir="auto"
                 />
                 
                 {/* Audio Recording Button */}

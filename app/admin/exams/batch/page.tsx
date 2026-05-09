@@ -14,6 +14,7 @@ export default function BatchExamCreator() {
   const [saved, setSaved] = useState(false)
   const [createdCount, setCreatedCount] = useState(0)
   const [error, setError] = useState('')
+  const [expertMsg, setExpertMsg] = useState('')
 
   const [subjects, setSubjects] = useState<any[]>([])
   const [grades, setGrades] = useState<any[]>([])
@@ -27,7 +28,12 @@ export default function BatchExamCreator() {
     numberOfExams: 3,
     questionsPerExam: 15,
     titlePrefix: 'اختبار عام',
-    durationMinutes: 60
+    durationMinutes: 60,
+    passingScore: '',
+    shuffleQuestions: true,
+    shuffleOptions: true,
+    showResultsImmediately: true,
+    allowedAttempts: '1'
   })
 
   useEffect(() => {
@@ -45,6 +51,68 @@ export default function BatchExamCreator() {
     }
     loadMeta()
   }, [supabase])
+
+  // Expert Heuristics Effect
+  useEffect(() => {
+    if (form.subjectId && form.gradeId && subjects.length > 0 && grades.length > 0) {
+      const subject = subjects.find(s => s.id == form.subjectId)
+      const grade = grades.find(g => g.id == form.gradeId)
+      
+      if (subject && grade) {
+        applyExpertDefaults(grade.name_ar, subject.name_ar)
+      }
+    } else {
+      setExpertMsg('')
+    }
+  }, [form.subjectId, form.gradeId])
+
+  const applyExpertDefaults = (gradeName: string, subjectName: string) => {
+    let qCount = 15
+    let duration = 60
+    let attempts = '1'
+    let stage = ''
+
+    if (gradeName.includes('الابتدائي')) {
+      stage = 'المرحلة الابتدائية'
+      qCount = 15
+      duration = 45
+      attempts = '2'
+    } else if (gradeName.includes('الإعدادي')) {
+      stage = 'المرحلة الإعدادية'
+      qCount = 30
+      duration = 90
+      attempts = '1'
+    } else if (gradeName.includes('الثانوي')) {
+      stage = 'المرحلة الثانوية'
+      qCount = 40
+      duration = 150
+      attempts = '1'
+    }
+
+    // Adjust duration based on subject
+    const mathScience = ['رياضيات', 'فيزياء', 'كيمياء', 'أحياء', 'علوم', 'جبر', 'هندسة']
+    const languages = ['عربي', 'لغة عربية', 'انجليزي', 'لغة إنجليزية', 'فرنساوي', 'لغة فرنسية']
+
+    let perQuestion = duration / qCount
+    
+    if (mathScience.some(s => subjectName.includes(s))) {
+      perQuestion += 1.5 
+    } else if (languages.some(s => subjectName.includes(s))) {
+      perQuestion += 1 
+    }
+
+    duration = Math.round(qCount * perQuestion)
+
+    setForm(prev => ({
+      ...prev,
+      questionsPerExam: qCount,
+      durationMinutes: duration,
+      allowedAttempts: attempts,
+      passingScore: '50'
+    }))
+
+    setExpertMsg(`✨ تم ضبط إعدادات الاختبار تلقائياً وفقاً للمعايير التربوية لـ ${stage} (${subjectName}).`)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -116,15 +184,23 @@ export default function BatchExamCreator() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-3xl border border-border overflow-hidden">
+      <form onSubmit={handleSubmit} className="bg-white rounded-3xl border border-border overflow-hidden shadow-sm">
         <div className="p-6 md:p-8 space-y-8">
           
           {/* Metadata */}
           <div>
-            <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-              <span className="w-6 h-6 rounded-md bg-primary/10 text-primary flex items-center justify-center text-sm">1</span>
-              البيانات الأساسية
-            </h3>
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-3">
+              <h3 className="text-lg font-bold flex items-center gap-2">
+                <span className="w-6 h-6 rounded-md bg-primary/10 text-primary flex items-center justify-center text-sm">1</span>
+                البيانات الأساسية
+              </h3>
+              {expertMsg && (
+                <div className="bg-emerald-50 text-emerald-700 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 animate-fade-in border border-emerald-200">
+                  <Sparkles className="w-4 h-4" />
+                  {expertMsg}
+                </div>
+              )}
+            </div>
             <div className="grid md:grid-cols-3 gap-5">
               <div>
                 <label className="block text-sm font-bold mb-2">المادة الدراسية *</label>
@@ -216,6 +292,41 @@ export default function BatchExamCreator() {
                 <input type="number" min={10} max={180} required value={form.durationMinutes} onChange={e => setForm({ ...form, durationMinutes: parseInt(e.target.value) || 60 })}
                   className="w-full border border-border rounded-xl px-4 py-3 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
               </div>
+              
+              <div>
+                <label className="block text-sm font-bold mb-2">درجة النجاح المئوية (%) (اختياري)</label>
+                <input type="number" min={1} max={100} value={form.passingScore} onChange={e => setForm({ ...form, passingScore: e.target.value })}
+                  className="w-full border border-border rounded-xl px-4 py-3 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" placeholder="مثال: 50" />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold mb-2">عدد المحاولات المسموحة</label>
+                <select value={form.allowedAttempts} onChange={e => setForm({ ...form, allowedAttempts: e.target.value })}
+                  className="w-full border border-border rounded-xl px-4 py-3 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all">
+                  <option value="1">محاولة واحدة</option>
+                  <option value="2">محاولتان</option>
+                  <option value="3">3 محاولات</option>
+                  <option value="-1">غير محدود</option>
+                </select>
+              </div>
+            </div>
+
+            <hr className="border-border my-6" />
+            
+            <h4 className="text-sm font-bold mb-4">خيارات العرض</h4>
+            <div className="grid sm:grid-cols-3 gap-4">
+              <label className="flex items-center gap-3 p-3 border border-border rounded-xl cursor-pointer hover:bg-slate-50">
+                <input type="checkbox" checked={form.shuffleQuestions} onChange={e => setForm({ ...form, shuffleQuestions: e.target.checked })} className="w-4 h-4 text-primary rounded" />
+                <span className="text-sm font-bold">خلط الأسئلة عشوائياً</span>
+              </label>
+              <label className="flex items-center gap-3 p-3 border border-border rounded-xl cursor-pointer hover:bg-slate-50">
+                <input type="checkbox" checked={form.shuffleOptions} onChange={e => setForm({ ...form, shuffleOptions: e.target.checked })} className="w-4 h-4 text-primary rounded" />
+                <span className="text-sm font-bold">خلط الخيارات عشوائياً</span>
+              </label>
+              <label className="flex items-center gap-3 p-3 border border-border rounded-xl cursor-pointer hover:bg-slate-50">
+                <input type="checkbox" checked={form.showResultsImmediately} onChange={e => setForm({ ...form, showResultsImmediately: e.target.checked })} className="w-4 h-4 text-primary rounded" />
+                <span className="text-sm font-bold">إظهار النتيجة فوراً</span>
+              </label>
             </div>
           </div>
         </div>

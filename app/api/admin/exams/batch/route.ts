@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
     if (profile?.role !== 'admin') return NextResponse.json({ error: 'صلاحيات غير كافية' }, { status: 403 })
 
     const body = await req.json()
-    const { subjectId, gradeId, semesterId, mode, numberOfExams, questionsPerExam, titlePrefix, durationMinutes } = body
+    const { subjectId, gradeId, semesterId, mode, numberOfExams, questionsPerExam, titlePrefix, durationMinutes, passingScore, shuffleQuestions, shuffleOptions, showResultsImmediately, allowedAttempts } = body
 
     if (!subjectId || !gradeId || !mode) {
       return NextResponse.json({ error: 'بيانات غير مكتملة' }, { status: 400 })
@@ -47,6 +47,11 @@ export async function POST(req: NextRequest) {
           semester_id: semesterId || null,
           duration_minutes: durationMinutes || 60,
           total_points: totalPoints,
+          passing_score: passingScore ? parseInt(passingScore) : null,
+          shuffle_questions: shuffleQuestions,
+          shuffle_options: shuffleOptions,
+          show_results_immediately: showResultsImmediately,
+          allowed_attempts: parseInt(allowedAttempts) || 1,
           is_published: true,
           questions_count: selectedQuestions.length
         }
@@ -106,6 +111,11 @@ export async function POST(req: NextRequest) {
           unit_id: unit.id,
           duration_minutes: durationMinutes || 45,
           total_points: totalPoints,
+          passing_score: passingScore ? parseInt(passingScore) : null,
+          shuffle_questions: shuffleQuestions,
+          shuffle_options: shuffleOptions,
+          show_results_immediately: showResultsImmediately,
+          allowed_attempts: parseInt(allowedAttempts) || 1,
           is_published: true,
           questions_count: selectedQuestions.length
         }
