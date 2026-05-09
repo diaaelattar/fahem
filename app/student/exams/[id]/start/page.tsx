@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireStudent } from '@/lib/auth/permissions'
 import { notFound, redirect } from 'next/navigation'
-import { Clock, BookOpen, AlertCircle, CheckCircle } from 'lucide-react'
+import { Clock, BookOpen, AlertCircle, CheckCircle, Star } from 'lucide-react'
 import { startExamAction } from './actions'
 
 interface Props {
@@ -48,7 +48,12 @@ export default async function StartExamPage({ params }: Props) {
           <a href="/student/exams" className="bg-muted text-muted-foreground px-6 py-2.5 rounded-xl font-medium text-sm hover:bg-muted/80">
             العودة للاختبارات
           </a>
-          {previousAttempts?.length ? (
+          {canAttempt?.is_limit_reached ? (
+            <a href="https://wa.me/201234567890" target="_blank" rel="noopener noreferrer" className="bg-amber-500 text-white px-6 py-2.5 rounded-xl font-medium text-sm hover:bg-amber-600 flex items-center justify-center gap-2">
+              <Star className="w-4 h-4 fill-white" />
+              اشترك في باقة VIP
+            </a>
+          ) : previousAttempts?.length ? (
             <a href={`/student/results/${previousAttempts[0]?.id || params.id}`} className="bg-primary text-white px-6 py-2.5 rounded-xl font-medium text-sm hover:bg-primary/90">
               عرض النتيجة السابقة
             </a>

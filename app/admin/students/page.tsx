@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/auth/permissions'
 import { Users, Plus, Search, UserCheck, UserX } from 'lucide-react'
+import { PremiumToggle } from '@/components/admin/PremiumToggle'
 
 export default async function AdminStudentsPage() {
   await requireAdmin()
@@ -10,7 +11,7 @@ export default async function AdminStudentsPage() {
     .from('students')
     .select(`
       id, class_section, student_code, enrollment_date, xp_points, level,
-      profiles(full_name, email, is_active, created_at, avatar_url),
+      profiles(id, full_name, email, is_active, is_premium, created_at, avatar_url),
       grades(name_ar)
     `)
     .order('xp_points', { ascending: false })
@@ -72,7 +73,12 @@ export default async function AdminStudentsPage() {
                   </td>
                   <td className="px-5 py-4 text-sm text-muted-foreground">{student.grades?.name_ar || '—'}</td>
                   <td className="px-5 py-4">
-                    <span className="bg-amber-100 text-amber-700 text-[10px] font-black px-2 py-0.5 rounded-md">LVL {student.level || 1}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="bg-amber-100 text-amber-700 text-[10px] font-black px-2 py-1 rounded-md">LVL {student.level || 1}</span>
+                      {student.profiles?.id && (
+                        <PremiumToggle profileId={student.profiles.id} initialIsPremium={student.profiles.is_premium || false} />
+                      )}
+                    </div>
                   </td>
                   <td className="px-5 py-4 text-sm font-bold text-slate-700">{student.xp_points || 0}</td>
                   <td className="px-5 py-4">

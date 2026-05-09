@@ -3,8 +3,9 @@
 // app/admin/settings/page.tsx
 // إعدادات المنصة، الذكاء الاصطناعي، والملف الشخصي
 
-import { useState } from 'react'
-import { User, Settings, Sparkles, Save, CheckCircle, Upload } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { User, Settings, Sparkles, Save, CheckCircle, Upload, Star } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<'profile' | 'platform' | 'ai'>('platform')
@@ -20,22 +21,63 @@ export default function SettingsPage() {
     platformName: 'استباق مصر',
     contactEmail: 'support@istabaq.com',
     primaryColor: '#1B4F72',
-    allowStudentRegistration: false,
+    allowStudentRegistration: true,
+    enableExamLimit: true,
+    freeExamLimit: 3,
     // AI
     aiProvider: 'gemini',
     defaultQuestionCount: 5,
     defaultDifficulty: 'medium',
   })
 
-  const handleSave = (e: React.FormEvent) => {
+  const supabase = createClient()
+
+  useEffect(() => {
+    async function loadSettings() {
+      // 1. جلب إعدادات التقييد من قاعدة البيانات
+      const { data: sysSettings } = await supabase.from('system_settings').select('*').eq('id', 1).single()
+      if (sysSettings) {
+        setFormData(prev => ({
+          ...prev,
+          enableExamLimit: sysSettings.enable_exam_limit,
+          freeExamLimit: sysSettings.free_exam_limit
+        }))
+      }
+
+      // 2. جلب بيانات المدير الحالي
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data: profile } = await supabase.from('profiles').select('full_name, email').eq('id', user.id).single()
+        if (profile) {
+          setFormData(prev => ({
+            ...prev,
+            fullName: profile.full_name || 'مدير النظام',
+            email: profile.email || user.email || 'admin@istabaq.com'
+          }))
+        }
+      }
+    }
+    loadSettings()
+  }, [])
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
-    // هنا يجب إضافة كود التحديث الفعلي عبر Supabase
-    setTimeout(() => {
-      setSaving(false)
-      setSaved(true)
-      setTimeout(() => setSaved(false), 3000)
-    }, 1000)
+    
+    // حفظ إعدادات النظام في Supabase
+    await supabase.from('system_settings')
+      .upsert({ 
+        id: 1, 
+        enable_exam_limit: formData.enableExamLimit, 
+        free_exam_limit: formData.freeExamLimit,
+        updated_at: new Date().toISOString()
+      })
+
+    // (باقي الإعدادات الوهمية يمكن ربطها لاحقاً إذا أردت)
+
+    setSaving(false)
+    setSaved(true)
+    setTimeout(() => setSaved(false), 3000)
   }
 
   const TABS = [
@@ -116,6 +158,42 @@ export default function SettingsPage() {
                     <p className="text-xs text-muted-foreground pr-8">
                       إذا تم التعطيل، يمكن للمديرين فقط إضافة الطلاب.
                     </p>
+                  </div>
+
+                  {/* إعدادات الاشتراكات (Premium) */}
+                  <div className="space-y-4 border-t border-border pt-6 mt-6">
+                    <h3 className="font-bold text-lg flex items-center gap-2">
+                      <Star className="w-5 h-5 text-amber-500" />
+                      نظام الاشتراكات والحد الأقصى (Premium)
+                    </h3>
+                    
+                    <label className="flex items-center gap-3 cursor-pointer bg-amber-50 p-4 rounded-xl border border-amber-100">
+                      <input
+                        type="checkbox"
+                        checked={formData.enableExamLimit}
+                        onChange={e => setFormData({ ...formData, enableExamLimit: e.target.checked })}
+                        className="w-5 h-5 text-amber-600 rounded"
+                      />
+                      <div>
+                        <span className="text-sm font-bold text-amber-900 block">تفعيل تقييد الاختبارات اليومية للحسابات المجانية</span>
+                        <span className="text-xs text-amber-700">عند تفعيل هذا الخيار، سيتم تقييد الطلاب العاديين، بينما الطلاب المشتركين (VIP) يمكنهم إجراء اختبارات بلا حدود.</span>
+                      </div>
+                    </label>
+
+                    {formData.enableExamLimit && (
+                      <div className="space-y-2 pr-2">
+                        <label className="text-sm font-medium">الحد الأقصى اليومي للاختبارات (لكل مادة) للحساب المجاني</label>
+                        <input
+                          type="number"
+                          min={1}
+                          max={50}
+                          value={formData.freeExamLimit}
+                          onChange={e => setFormData({ ...formData, freeExamLimit: parseInt(e.target.value) || 1 })}
+                          className="w-full px-4 py-2.5 rounded-xl border border-border outline-none focus:ring-2 focus:ring-amber-500/20 max-w-xs"
+                        />
+                        <p className="text-xs text-muted-foreground">افتراضياً 3 اختبارات في اليوم لكل مادة للحفاظ على الباقات.</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

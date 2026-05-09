@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { LogOut, Zap, Flame, Brain } from 'lucide-react'
+import { LogOut, Zap, Flame, Brain, Star } from 'lucide-react'
 import type { Profile } from '@/types/supabase'
 import Link from 'next/link'
 import { InstallAppButton } from '@/components/shared/InstallAppButton'
@@ -43,9 +43,24 @@ export function StudentTopbar({ profile }: { profile: Profile }) {
         />
 
         {/* Name - mobile only compact */}
-        <span className="text-sm font-bold md:hidden line-clamp-1 max-w-[100px]">
-          {profile.full_name.split(' ')[0]}
-        </span>
+        <div className="flex flex-col md:hidden">
+          <span className="text-sm font-bold line-clamp-1 max-w-[90px]">
+            {profile.full_name.split(' ')[0]}
+          </span>
+          {(profile as any).is_premium && (
+            <span className="text-[9px] font-black text-amber-600 flex items-center gap-0.5">
+              <Star className="w-2 h-2 fill-amber-500" /> VIP
+            </span>
+          )}
+        </div>
+        
+        {/* VIP Desktop Badge */}
+        {(profile as any).is_premium && (
+          <div className="hidden md:flex items-center gap-1 bg-amber-100 text-amber-700 px-2 py-1 rounded-lg text-xs font-black border border-amber-200" title="حساب اشتراك مدفوع">
+            <Star className="w-3 h-3 fill-amber-500" />
+            VIP
+          </div>
+        )}
 
         {/* Logout */}
         <button
