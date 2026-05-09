@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { DeleteExamButton } from './DeleteExamButton'
 import { ExportExamButton } from '@/components/admin/ExportExamButton'
-import { Printer } from 'lucide-react'
+import { Printer, Eye } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
@@ -54,6 +54,15 @@ export default async function EditExamPage({ params }: { params: { id: string } 
           >
             <Printer className="w-4 h-4" />
             طباعة
+          </Link>
+          <Link 
+            href={`/admin/exams/${params.id}/preview`}
+            target="_blank"
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl text-sm font-bold transition-all shadow-sm"
+            title="معاينة الاختبار كما يراه الطالب"
+          >
+            <Eye className="w-4 h-4" />
+            معاينة
           </Link>
           <ExportExamButton examId={params.id} examTitle={exam.title} />
           <DeleteExamButton examId={params.id} examTitle={exam.title} />

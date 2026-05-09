@@ -36,6 +36,7 @@ export function ExamInterface({
   exam,
   questions,
   attemptId,
+  isPreview = false,
 }: {
   exam: ExamData
   questions: Question[]
@@ -192,7 +193,7 @@ export function ExamInterface({
       alert('حدث خطأ أثناء تسليم الاختبار: ' + err.message)
       // We can't revert storeSubmitting easily without a custom action, but page refresh will reset if needed
     }
-  }, [answers, attemptId, exam.id, exam.passing_score, storeSubmitting, submitted, supabase, submitExam, clearSession])
+  }, [answers, attemptId, exam.id, exam.passing_score, storeSubmitting, submitted, supabase, submitExam, clearSession, isPreview, questions, checkAnswer])
 
   // Countdown timer
   useEffect(() => {
