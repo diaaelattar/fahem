@@ -3,10 +3,10 @@
 // app/admin/questions/[id]/page.tsx
 // تعديل سؤال موجود في بنك الأسئلة
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useParams } from 'next/navigation'
-import { ArrowRight, Save, Trash2, CheckCircle, HelpCircle, Eye } from 'lucide-react'
+import { ArrowRight, Save, Trash2, CheckCircle, HelpCircle, Eye, ImagePlus, X, Loader2 } from 'lucide-react'
 import { MathRenderer } from '@/components/ui/MathRenderer'
 
 type QuestionType = 'mcq' | 'true_false' | 'fill_blank'
@@ -43,6 +43,11 @@ export default function EditQuestionPage() {
     options: ['', '', '', ''] as string[],
   })
 
+  const [imageUrl, setImageUrl] = useState<string | null>(null)
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const [imageError, setImageError] = useState('')
+  const imageInputRef = useRef<HTMLInputElement>(null)
+
   useEffect(() => {
     async function loadData() {
       const [
@@ -68,6 +73,7 @@ export default function EditQuestionPage() {
           is_approved: question.is_approved,
           options: question.options?.length ? question.options : ['', '', '', ''],
         })
+        setImageUrl(question.question_image_url || null)
       }
       setSubjects(s || [])
       setGrades(g || [])
@@ -115,6 +121,37 @@ export default function EditQuestionPage() {
     setDeleting(true)
     await supabase.from('questions').delete().eq('id', id)
     router.push('/admin/questions')
+  }
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadingImage(true)
+    setImageError('')
+    const form = new FormData()
+    form.append('file', file)
+    form.append('questionId', id as string)
+    const res = await fetch('/api/questions/upload-image', { method: 'POST', body: form })
+    const data = await res.json()
+    if (!res.ok) {
+      setImageError(data.error || 'فشل رفع الصورة')
+    } else {
+      setImageUrl(data.imageUrl)
+    }
+    setUploadingImage(false)
+    if (imageInputRef.current) imageInputRef.current.value = ''
+  }
+
+  const handleImageRemove = async () => {
+    if (!confirm('هل تريد حذف صورة السؤال؟')) return
+    setUploadingImage(true)
+    const res = await fetch('/api/questions/upload-image', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ questionId: id, imageUrl }),
+    })
+    if (res.ok) setImageUrl(null)
+    setUploadingImage(false)
   }
 
   if (loading) {
@@ -300,6 +337,75 @@ export default function EditQuestionPage() {
               placeholder={formData.question_type === 'mcq' ? 'يجب أن تطابق أحد الخيارات تماماً' : 'اكتب الإجابة الصحيحة'}
               className="w-full px-4 py-2.5 rounded-xl border border-border outline-none focus:ring-2 focus:ring-primary/20"
             />
+          )}
+        </div>
+
+        {/* صورة السؤال */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium flex items-center gap-2">
+            <ImagePlus className="w-4 h-4 text-primary" /> صورة السؤال (اختياري)
+          </label>
+
+          {imageUrl ? (
+            <div className="relative group rounded-xl overflow-hidden border border-border bg-muted/30">
+              <img
+                src={imageUrl}
+                alt="صورة السؤال"
+                className="w-full max-h-64 object-contain p-2"
+              />
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => imageInputRef.current?.click()}
+                  className="bg-white text-primary px-4 py-2 rounded-lg text-sm font-bold hover:bg-primary hover:text-white transition-colors"
+                >
+                  تغيير الصورة
+                </button>
+                <button
+                  type="button"
+                  onClick={handleImageRemove}
+                  disabled={uploadingImage}
+                  className="bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-600 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              {uploadingImage && (
+                <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                </div>
+              )}
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => imageInputRef.current?.click()}
+              disabled={uploadingImage}
+              className="w-full border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-primary/50 hover:bg-primary/5 transition-all group disabled:opacity-50"
+            >
+              {uploadingImage ? (
+                <div className="flex items-center justify-center gap-2 text-primary">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span className="text-sm font-medium">جاري رفع الصورة...</span>
+                </div>
+              ) : (
+                <>
+                  <ImagePlus className="w-10 h-10 text-muted-foreground group-hover:text-primary mx-auto mb-2 transition-colors" />
+                  <p className="text-sm font-medium text-muted-foreground group-hover:text-foreground">انقر لإرفاق صورة بالسؤال</p>
+                  <p className="text-xs text-muted-foreground/70 mt-1">JPG, PNG, WebP — بحد أقصى 5 ميجابايت</p>
+                </>
+              )}
+            </button>
+          )}
+          <input
+            ref={imageInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            className="hidden"
+            onChange={handleImageUpload}
+          />
+          {imageError && (
+            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{imageError}</p>
           )}
         </div>
 

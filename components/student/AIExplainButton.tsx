@@ -52,7 +52,7 @@ export function AIExplainButton({
       setExplanation(data.explanation)
       setExpanded(true)
     } catch (e: any) {
-      setError(e.message || 'فشل في جلب الشرح، حاول مرة أخرى')
+      setError('تعذر عرض الشرح نظراً لانشغال المساعد الذكي. يرجى المحاولة لاحقاً.')
     } finally {
       setLoading(false)
     }

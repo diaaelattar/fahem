@@ -14,6 +14,7 @@ interface SearchParams {
   lesson?: string
   status?: string
   bloom?: string
+  limit?: string
 }
 
 export const dynamic = 'force-dynamic'
@@ -57,6 +58,8 @@ export default async function QuestionsPage({ searchParams }: { searchParams: Se
     : { data: null }
 
   // ─── بناء استعلام الأسئلة ───
+  const limit = parseInt(searchParams.limit || '60', 10)
+
   let query = supabase
     .from('questions')
     .select(`
@@ -68,7 +71,7 @@ export default async function QuestionsPage({ searchParams }: { searchParams: Se
       lessons(name_ar)
     `)
     .order('created_at', { ascending: false })
-    .limit(60)
+    .limit(limit)
 
   if (searchParams.type)       query = query.eq('question_type', searchParams.type)
   if (searchParams.difficulty) query = query.eq('difficulty_level', searchParams.difficulty)
@@ -118,7 +121,7 @@ export default async function QuestionsPage({ searchParams }: { searchParams: Se
     const p = new URLSearchParams()
     const current = searchParams as Record<string, string | undefined>
     // نسخ الفلاتر الحالية
-    for (const k of ['type','difficulty','grade','subject','semester','unit','lesson','status','bloom']) {
+    for (const k of ['type','difficulty','grade','subject','semester','unit','lesson','status','bloom', 'limit']) {
       if (current[k]) p.set(k, current[k]!)
     }
     if (extra) {
@@ -147,7 +150,7 @@ export default async function QuestionsPage({ searchParams }: { searchParams: Se
         <div>
           <h1 className="text-3xl font-display font-bold">بنك الأسئلة</h1>
           <p className="text-muted-foreground mt-1 text-sm">
-            {questions?.length || 0} سؤال
+            يعرض {questions?.length || 0} سؤال (الحد الأقصى {limit})
             {searchParams.grade && grades && ` • ${grades.find(g => g.id == (searchParams.grade as any))?.name_ar}`}
             {searchParams.subject && subjects && ` • ${subjects.find(s => s.id == (searchParams.subject as any))?.name_ar}`}
           </p>
@@ -372,13 +375,25 @@ export default async function QuestionsPage({ searchParams }: { searchParams: Se
 
       {/* ── قائمة الأسئلة ── */}
       {questions && questions.length > 0 ? (
-        <QuestionsListClient 
+        <>
+          <QuestionsListClient 
           questions={questions}
           TYPE_LABELS={TYPE_LABELS}
           DIFF_COLORS={DIFF_COLORS}
           BLOOM_LABELS={BLOOM_LABELS}
           STATUS_STYLES={STATUS_STYLES}
         />
+        {questions.length === limit && (
+          <div className="flex justify-center mt-6 mb-8">
+            <Link
+              href={buildHref('limit', (limit + 60).toString())}
+              className="bg-white border-2 border-slate-200 px-8 py-3 rounded-2xl font-bold text-sm text-primary hover:bg-slate-50 hover:border-primary/30 transition-all shadow-sm"
+            >
+              عرض المزيد من الأسئلة ↓
+            </Link>
+          </div>
+        )}
+      </>
       ) : (
         <div className="bg-white rounded-2xl border border-border p-16 text-center">
           <HelpCircle className="w-12 h-12 text-muted-foreground/40 mx-auto mb-4" />

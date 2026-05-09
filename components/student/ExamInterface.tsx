@@ -14,6 +14,7 @@ interface Question {
   id: string
   question_type: 'mcq' | 'true_false' | 'fill_blank' | 'essay' | 'correction'
   question_text: string
+  question_image_url?: string | null
   options: string[] | null
   correct_answer?: string
   explanation?: string
@@ -360,6 +361,15 @@ export function ExamInterface({
             </div>
           )}
           <MathRenderer text={currentQ.question_text} className="text-xl font-medium leading-relaxed" />
+          {currentQ.question_image_url && (
+            <div className="mt-4 rounded-xl overflow-hidden border border-border bg-muted/30">
+              <img
+                src={currentQ.question_image_url}
+                alt="صورة السؤال"
+                className="w-full max-h-72 object-contain"
+              />
+            </div>
+          )}
         </div>
 
         {/* MCQ Options */}

@@ -114,6 +114,7 @@ export async function POST(req: NextRequest) {
     if (!examQuestions) throw new Error('Questions not found')
 
     let totalScore = 0
+    let pointsToExclude = 0
     let studentAnswersPayload: any[] = []
 
     // 3. Evaluate each answer
@@ -121,6 +122,7 @@ export async function POST(req: NextRequest) {
       const q = eq.questions as any
       if (!q) continue
 
+      const qPoints = Math.max(1, q.points || 1)
       const studentAns = answers[q.id]
       let isCorrect = false
       let scoreAwarded = 0
@@ -132,13 +134,13 @@ export async function POST(req: NextRequest) {
         // Exact Match
         if (studentAns.trim() === q.correct_answer?.trim()) {
           isCorrect = true
-          scoreAwarded = q.points
+          scoreAwarded = qPoints
         }
       } else if (q.question_type === 'fill_blank') {
         // Lenient match — accepts short, partial, and close answers
         if (checkAnswer(studentAns, q.correct_answer, 'fill_blank')) {
           isCorrect = true
-          scoreAwarded = q.points
+          scoreAwarded = qPoints
         }
       } else if (q.question_type === 'essay' || q.question_type === 'correction') {
         // AI Semantic Grading
@@ -155,12 +157,12 @@ export async function POST(req: NextRequest) {
 السؤال: ${q.question_text}
 الإجابة النموذجية أو القاعدة: ${q.correct_answer}
 إجابة الطالب: ${studentAns}
-الدرجة الكلية للسؤال: ${q.points}
+الدرجة الكلية للسؤال: ${qPoints}
 
 أرجع التقييم حصرياً بصيغة JSON كالتالي فقط بدون أي نصوص إضافية:
 {
   "is_correct": boolean,
-  "score_awarded": number (min 0, max ${q.points}, use integers or 0.5 steps),
+  "score_awarded": number (min 0, max ${qPoints}, use integers or 0.5 steps),
   "feedback": "رسالة مشجعة للطالب تشرح له لماذا أخذ هذه الدرجة (بالعربية الفصحى أو المصرية المبسطة)"
 }`
 
@@ -183,15 +185,15 @@ export async function POST(req: NextRequest) {
         try {
           const aiEval = JSON.parse(aiResultStr)
           isCorrect = aiEval.is_correct || aiEval.score_awarded > 0
-          scoreAwarded = Math.min(q.points, Math.max(0, Number(aiEval.score_awarded) || 0))
+          scoreAwarded = Math.min(qPoints, Math.max(0, Number(aiEval.score_awarded) || 0))
           aiFeedback = aiEval.feedback
         } catch (e) {
           console.error("Failed to parse AI grading:", aiResultStr)
-          // Fallback: use lenient check if AI fails
-          if (checkAnswer(studentAns, q.correct_answer, q.question_type)) {
-            isCorrect = true
-            scoreAwarded = q.points
-          }
+          // Fallback: AI Busy -> Exclude from total points
+          aiFeedback = 'تعذر التصحيح نظراً لانشغال المساعد الذكي. (تم استبعاد هذا السؤال من التقييم ولن يؤثر على درجاتك)'
+          scoreAwarded = 0
+          isCorrect = true // Show as "neutral" or not explicitly red
+          pointsToExclude += qPoints
         }
       }
 
@@ -210,9 +212,14 @@ export async function POST(req: NextRequest) {
     }
 
     // 4. Calculate Final Result
-    const passingScore = examData.passing_score || (examData.total_points / 2)
-    const percentage = examData.total_points > 0 ? (totalScore / examData.total_points) * 100 : 0
-    const isPassed = percentage >= passingScore
+    const originalTotalPoints = examQuestions.reduce((sum, eq) => sum + Math.max(1, (eq.questions as any)?.points || 1), 0)
+    let finalTotalPoints = originalTotalPoints - pointsToExclude
+    if (finalTotalPoints <= 0) finalTotalPoints = 1 // Prevent division by zero
+
+    // نسبة النجاح (مثلاً إذا استبعدنا أسئلة، نعتمد على النسبة المئوية بدلاً من الدرجة المطلقة)
+    const percentage = finalTotalPoints > 0 ? (totalScore / finalTotalPoints) * 100 : 0
+    const passThreshold = examData.passing_score ? (examData.passing_score / originalTotalPoints) * 100 : 50
+    const isPassed = percentage >= passThreshold
 
     // 5. Update Attempt in DB
     const { error: updateError } = await supabase
@@ -235,7 +242,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       score: totalScore,
-      total: examData.total_points,
+      total: finalTotalPoints,
       percentage,
       is_passed: isPassed
     })

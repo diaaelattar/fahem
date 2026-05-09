@@ -5,7 +5,7 @@ import { useDropzone } from 'react-dropzone'
 import { createClient } from '@/lib/supabase/client'
 import {
   UploadCloud, Youtube, FileText, Loader2, CheckCircle,
-  AlertCircle, Brain, ChevronDown, X, FileVideo, FileAudio, Image
+  AlertCircle, Brain, ChevronDown, X, FileVideo, FileAudio, Image, Sparkles
 } from 'lucide-react'
 import { QuestionPreviewGrid } from './QuestionPreviewGrid'
 import { PDFDocument } from 'pdf-lib'

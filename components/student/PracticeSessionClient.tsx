@@ -15,6 +15,7 @@ interface Question {
   id: string
   question_type: 'mcq' | 'true_false' | 'fill_blank' | 'essay' | 'correction'
   question_text: string
+  question_image_url?: string | null
   options: string[] | null
   correct_answer: string
   explanation: string | null
@@ -359,7 +360,18 @@ export function PracticeSessionClient({ questions, subject, studentId }: Props) 
         )}
 
         {/* Question Text */}
-        <MathRenderer text={current.question_text} className="text-xl font-bold mb-8 leading-relaxed" />
+        <MathRenderer text={current.question_text} className="text-xl font-bold mb-4 leading-relaxed" />
+
+        {/* Question Image */}
+        {current.question_image_url && (
+          <div className="mb-6 rounded-xl overflow-hidden border border-border bg-muted/30">
+            <img
+              src={current.question_image_url}
+              alt="صورة السؤال"
+              className="w-full max-h-64 object-contain"
+            />
+          </div>
+        )}
 
         {/* MCQ */}
         {current.question_type === 'mcq' && current.options && (
