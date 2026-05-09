@@ -117,8 +117,6 @@ export default function LoginPage() {
               </div>
             )}
 
-            </form>
-
             {/* Google Button */}
             <button
               type="button"
