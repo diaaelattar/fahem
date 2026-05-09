@@ -388,10 +388,16 @@ export function ContentUploader({ subjects, grades }: Props) {
           const uniqueMap = new Map()
           allQuestions.forEach(q => {
             if (!q.question_text) return
-            // توحيد النص للبحث عن التطابق (إزالة المسافات الزائدة)
-            const norm = q.question_text.trim().replace(/\s+/g, ' ')
-            if (!uniqueMap.has(norm)) {
+            // توحيد النص للبحث عن التطابق (إزالة المسافات الزائدة، التشكيل، وعلامات الترقيم)
+            const norm = q.question_text
+              .replace(/[\u064B-\u065F]/g, '') // إزالة التشكيل
+              .replace(/[^\u0621-\u064A0-9a-zA-Z]/g, '') // ترك الحروف والأرقام فقط
+              .toLowerCase()
+              
+            if (norm.length > 5 && !uniqueMap.has(norm)) {
               uniqueMap.set(norm, q)
+            } else if (norm.length <= 5 && !uniqueMap.has(q.question_text)) {
+               uniqueMap.set(q.question_text, q)
             }
           })
           const originalCount = allQuestions.length
