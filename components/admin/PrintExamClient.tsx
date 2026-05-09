@@ -77,6 +77,15 @@ export function PrintExamClient({ exam, questions }: { exam: any, questions: any
                   <div className="font-medium text-lg leading-relaxed">
                     <MathRenderer text={q.question_text} />
                   </div>
+                  {q.question_image_url && (
+                    <div className="mt-4 text-center">
+                      <img
+                        src={q.question_image_url}
+                        alt="صورة السؤال"
+                        className="max-h-48 object-contain inline-block border border-slate-200 rounded-lg shadow-sm"
+                      />
+                    </div>
+                  )}
                 </div>
                 <div className="shrink-0 text-sm font-bold text-slate-500 bg-slate-50 px-2 py-1 rounded">
                   ({q.points_override ?? q.points} درجات)

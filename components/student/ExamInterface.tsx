@@ -40,6 +40,7 @@ export function ExamInterface({
   exam: ExamData
   questions: Question[]
   attemptId: string
+  isPreview?: boolean
 }) {
   const router = useRouter()
   const supabase = createClient() as any
@@ -150,6 +151,27 @@ export function ExamInterface({
   const handleSubmit = useCallback(async () => {
     if (storeSubmitting || submitted) return
     submitExam() // sets isSubmitting to true in store
+
+    if (isPreview) {
+      // Mock grading for preview mode
+      let correct = 0;
+      Object.entries(answers).forEach(([qId, ans]) => {
+        const q = questions.find(q => q.id === qId);
+        if (q && q.correct_answer) {
+          if (checkAnswer(ans as string, q.correct_answer, q.question_type)) correct += q.points;
+        }
+      });
+      setResult({ 
+        is_passed: correct >= (exam.passing_score || 0), 
+        score: correct, 
+        total: exam.total_points, 
+        percentage: exam.total_points > 0 ? Math.round((correct/exam.total_points)*100) : 0 
+      })
+      setSubmitted(true)
+      clearSession()
+      return
+    }
+
     try {
       // 1. Save answers JSON for RPC grading
       await supabase.from('exam_attempts').update({ answers }).eq('id', attemptId)
@@ -187,12 +209,12 @@ export function ExamInterface({
 
   // Auto-save every 30 seconds
   useEffect(() => {
-    if (submitted || Object.keys(answers).length === 0) return
+    if (submitted || Object.keys(answers).length === 0 || isPreview) return
     const interval = setInterval(() => {
       supabase.from('exam_attempts').update({ answers }).eq('id', attemptId)
     }, 30000)
     return () => clearInterval(interval)
-  }, [answers, attemptId, submitted, supabase])
+  }, [answers, attemptId, submitted, supabase, isPreview])
 
   const formatTime = (secs: number | null) => {
     if (secs === null || secs < 0) return '--:--'
