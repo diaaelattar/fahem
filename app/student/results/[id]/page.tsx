@@ -94,6 +94,8 @@ export default async function ResultDetailPage({ params }: Props) {
       .replace(/ة/g, 'ه')
       .replace(/ى/g, 'ي')
       .replace(/[\u064B-\u065F]/g, '')
+      .replace(/[,،\-_/\\.:؛"']/g, ' ')
+      .replace(/\s+/g, ' ')
   }
 
   const checkAnswer = (studentAns: string, correctAns: string, type: string): boolean => {

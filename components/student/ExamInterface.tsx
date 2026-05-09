@@ -81,6 +81,8 @@ export function ExamInterface({
       .replace(/ة/g, 'ه')
       .replace(/ى/g, 'ي')
       .replace(/[\u064B-\u065F]/g, '')
+      .replace(/[,،\-_/\\.:؛"']/g, ' ')
+      .replace(/\s+/g, ' ')
   }
 
   const checkAnswer = (studentAns: string, correctAns: string, type: string) => {

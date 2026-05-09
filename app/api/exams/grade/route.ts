@@ -28,7 +28,9 @@ const normalizeArabic = (text: string) => {
     .replace(/[أإآ]/g, 'ا')
     .replace(/ة/g, 'ه')
     .replace(/ى/g, 'ي')
-    .replace(/[\u064B-\u065F]/g, '')
+    .replace(/[\u064B-\u065F]/g, '') // إزالة التشكيل
+    .replace(/[,،\-_/\\.:؛"']/g, ' ') // استبدال علامات الترقيم والفواصل بمسافة
+    .replace(/\s+/g, ' ') // إزالة المسافات الزائدة
 }
 
 /**
