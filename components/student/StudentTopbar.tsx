@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { LogOut, Zap, Flame, Brain } from 'lucide-react'
 import type { Profile } from '@/types/supabase'
 import Link from 'next/link'
+import { InstallAppButton } from '@/components/shared/InstallAppButton'
 
 export function StudentTopbar({ profile }: { profile: Profile }) {
   const router = useRouter()
@@ -32,6 +33,8 @@ export function StudentTopbar({ profile }: { profile: Profile }) {
 
       {/* Right side */}
       <div className="flex items-center gap-2">
+        <InstallAppButton />
+
         {/* Avatar */}
         <img
           src={(profile as any).avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${profile.full_name}`}
