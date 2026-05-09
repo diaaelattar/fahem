@@ -31,6 +31,55 @@ const normalizeArabic = (text: string) => {
     .replace(/[\u064B-\u065F]/g, '')
 }
 
+/**
+ * تحقق من صحة إجابة الطالب بمنطق مرن يقبل الإجابات القريبة والمختصرة
+ */
+const checkAnswer = (studentAns: string, correctAns: string, type: string): boolean => {
+  if (!studentAns || !correctAns) return false
+
+  if (type === 'true_false') {
+    const isStudentTrue  = studentAns === 'صح'  || studentAns.toLowerCase() === 'true'
+    const isCorrectTrue  = correctAns  === 'صح'  || correctAns.toLowerCase()  === 'true'
+    const isStudentFalse = studentAns === 'خطأ' || studentAns.toLowerCase() === 'false'
+    const isCorrectFalse = correctAns  === 'خطأ' || correctAns.toLowerCase()  === 'false'
+    return (isStudentTrue && isCorrectTrue) || (isStudentFalse && isCorrectFalse)
+  }
+
+  const ns = normalizeArabic(studentAns)
+  const nc = normalizeArabic(correctAns)
+
+  if (type === 'mcq') return ns === nc
+
+  // --- مرن للإكمال والمقالة والتصحيح ---
+
+  // تطابق تام
+  if (ns === nc) return true
+
+  // الإجابة تحتوي على الإجابة الصحيحة بالكامل (مع حد أدنى 3 أحرف لتجنب التطابق العرضي)
+  if (nc.length >= 3 && ns.includes(nc)) return true
+  // الإجابة الصحيحة تحتوي على إجابة الطالب
+  if (ns.length >= 3 && nc.includes(ns)) return true
+
+  // تحليل الكلمات
+  const sw = ns.split(/\s+/).filter(w => w.length >= 2)
+  const cw = nc.split(/\s+/).filter(w => w.length >= 2)
+
+  if (sw.length > 0 && cw.length > 0) {
+    const common = cw.filter(w => sw.includes(w))
+
+    // إجابة مختصرة (1-2 كلمة) وجميع كلماتها موجودة في الإجابة الصحيحة
+    if (sw.length <= 2 && common.length === sw.length) return true
+
+    const ratioCorrect = common.length / cw.length
+    const ratioStudent = common.length / sw.length
+
+    // نسبة 40٪ من كلمات الإجابة الصحيدة موجودة، أو 50٪ من كلمات الطالب صحيحة
+    if (ratioCorrect >= 0.4 || ratioStudent >= 0.5) return true
+  }
+
+  return false
+}
+
 export async function POST(req: NextRequest) {
   try {
     const supabase = createClient()
@@ -86,16 +135,23 @@ export async function POST(req: NextRequest) {
           scoreAwarded = q.points
         }
       } else if (q.question_type === 'fill_blank') {
-        // Normalized Match
-        if (normalizeArabic(studentAns) === normalizeArabic(q.correct_answer)) {
+        // Lenient match — accepts short, partial, and close answers
+        if (checkAnswer(studentAns, q.correct_answer, 'fill_blank')) {
           isCorrect = true
           scoreAwarded = q.points
         }
       } else if (q.question_type === 'essay' || q.question_type === 'correction') {
         // AI Semantic Grading
-        const prompt = `أنت مصحح امتحانات مصري خبير.
-قم بتقييم إجابة الطالب التالية بناءً على الإجابة النموذجية. 
-لا تتشدد في المطابقة الحرفية بل قيم "دلالة وفهم" الطالب.
+        const prompt = `أنت مصحح امتحانات مصري خبير ومتساهل في التصحيح.
+
+قم بتقييم إجابة الطالب بناءً على الإجابة النموذجية مع مراعاة هذه القواعد:
+- الإجابة المختصرة التي تحمل نفس المعنى تُعتبر صحيحة
+- الإجابة بصياغة مختلفة لكن بنفس الفكرة تُعتبر صحيحة أو شبه صحيحة
+- الأخطاء الإملائية البسيطة لا تُخصم درجات
+- إذا أجاب الطالب بجزء صحيح من الإجابة، أعطه درجة جزئية تناسب ما أجاب عنه
+- لا تتشدد في المطابقة الحرفية، قيّم الفهم والمعنى
+- إذا كانت الإجابة تحتوي على الفكرة الأساسية ولو بشكل مختصر فهي صحيحة
+
 السؤال: ${q.question_text}
 الإجابة النموذجية أو القاعدة: ${q.correct_answer}
 إجابة الطالب: ${studentAns}
@@ -131,8 +187,8 @@ export async function POST(req: NextRequest) {
           aiFeedback = aiEval.feedback
         } catch (e) {
           console.error("Failed to parse AI grading:", aiResultStr)
-          // Fallback to strict check if AI fails
-          if (normalizeArabic(studentAns) === normalizeArabic(q.correct_answer)) {
+          // Fallback: use lenient check if AI fails
+          if (checkAnswer(studentAns, q.correct_answer, q.question_type)) {
             isCorrect = true
             scoreAwarded = q.points
           }
