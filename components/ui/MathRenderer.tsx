@@ -23,6 +23,28 @@ interface MathRendererProps {
 export const MathRenderer: React.FC<MathRendererProps> = ({ text, className = '' }) => {
   if (!text) return null
 
+  // دالة مساعدة لتقديم النصوص المنسقة (غامق، مائل، تحته خط) بأمان
+  const renderFormattedText = (rawText: string) => {
+    const formatRegex = /(<u>.*?<\/u>|<b>.*?<\/b>|<i>.*?<\/i>|<strong>.*?<\/strong>)/g;
+    const segments = rawText.split(formatRegex).filter(Boolean);
+    
+    return segments.map((segment, i) => {
+      if (segment.startsWith('<u>') && segment.endsWith('</u>')) {
+        return <u key={i} className="underline underline-offset-4 decoration-primary decoration-2 font-bold">{segment.slice(3, -4)}</u>;
+      }
+      if (segment.startsWith('<b>') && segment.endsWith('</b>')) {
+        return <strong key={i} className="font-black">{segment.slice(3, -4)}</strong>;
+      }
+      if (segment.startsWith('<strong>') && segment.endsWith('</strong>')) {
+        return <strong key={i} className="font-black">{segment.slice(8, -9)}</strong>;
+      }
+      if (segment.startsWith('<i>') && segment.endsWith('</i>')) {
+        return <i key={i}>{segment.slice(3, -4)}</i>;
+      }
+      return <React.Fragment key={i}>{segment}</React.Fragment>;
+    });
+  };
+
   // Regex لتحديد كل أنواع محددات LaTeX الممكنة في مجموعة التقاط واحدة لتجنب تكرار الأجزاء
   const regex = /(\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\]|\$.*?\$|\\\(.*?\\\)|\(\s*[^\)]*?[\=\>\<:\^\_\\][^\)]*?\)|\(\s*[^\)]*?\.\.\.[^\)]*?\))/g
   const parts = text.split(regex).filter(part => part !== undefined)
