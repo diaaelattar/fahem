@@ -14,6 +14,25 @@ export function PrintExamClient({ exam, questions }: { exam: any, questions: any
   // To fix LaTeX math rendering, we rely on the global MathJax script loaded in layout
   // and the dangerouslySetInnerHTML works with it.
 
+  // Group questions by type
+  const groupedQuestions = questions.reduce((acc, q) => {
+    if (!acc[q.question_type]) acc[q.question_type] = []
+    acc[q.question_type].push(q)
+    return acc
+  }, {} as Record<string, any[]>)
+
+  const questionTypeTitles: Record<string, string> = {
+    mcq: 'اختر الإجابة الصحيحة (Choose the correct answer)',
+    true_false: 'ضع علامة (✓) أو (✗) (Put True or False)',
+    fill_blank: 'أكمل الفراغات الآتية (Fill in the blanks)',
+    correction: 'صوّب ما تحته خط (Correct the underlined)',
+    essay: 'أجب عن الأسئلة الآتية (Answer the following)',
+  }
+  
+  // Ordered types
+  const typeOrder = ['mcq', 'true_false', 'fill_blank', 'correction', 'essay']
+  const activeGroups = typeOrder.filter(t => groupedQuestions[t] && groupedQuestions[t].length > 0)
+
   return (
     <div className="min-h-screen bg-slate-100 p-8 print:p-0 print:bg-white" dir="rtl">
       {/* Control Bar (Hidden in Print) */}
@@ -63,9 +82,20 @@ export function PrintExamClient({ exam, questions }: { exam: any, questions: any
         </div>
 
         {/* Questions */}
-        <div className="p-8 space-y-8">
-          {questions.map((q, idx) => (
-            <div key={q.id} className="space-y-3 break-inside-avoid">
+        <div className="p-8 space-y-12">
+          {activeGroups.map((type, groupIdx) => {
+            const groupQ = groupedQuestions[type]
+            const questionNumbers = ['السؤال الأول', 'السؤال الثاني', 'السؤال الثالث', 'السؤال الرابع', 'السؤال الخامس']
+            const groupTitle = `${questionNumbers[groupIdx] || `السؤال ${groupIdx + 1}`}: ${questionTypeTitles[type]}`
+
+            return (
+              <div key={type} className="space-y-6">
+                <h3 className="font-bold text-xl text-slate-800 border-b-2 border-slate-800 pb-2 mb-6" dir="auto">
+                  {groupTitle}
+                </h3>
+                <div className="space-y-8">
+                  {groupQ.map((q, idx) => (
+                    <div key={q.id} className="space-y-3 break-inside-avoid">
               <div className="flex items-start gap-2">
                 <span className="font-bold shrink-0">{idx + 1}.</span>
                 <div className="flex-1">
@@ -138,8 +168,12 @@ export function PrintExamClient({ exam, questions }: { exam: any, questions: any
                   )}
                 </div>
               )}
-            </div>
-          ))}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )
+          })}
         </div>
       </div>
     </div>

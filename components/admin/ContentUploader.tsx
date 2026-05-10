@@ -332,7 +332,7 @@ export function ContentUploader({ subjects, grades }: Props) {
                   chunkIndex: i,
                   totalChunks: chunks.length,
                   fileData: chunkBase64, 
-                  questionCount: generationMode === 'EXACT_EXTRACT' ? 0 : questionCount,
+                  questionCount,
                   requestedTypes,
                   targetCognitiveLevel,
                   generationMode,
@@ -420,7 +420,7 @@ export function ContentUploader({ subjects, grades }: Props) {
             subjectId,
             gradeId,
             generationMode,
-            questionCount: generationMode === 'EXACT_EXTRACT' ? 0 : questionCount,
+            questionCount,
             requestedTypes,
             targetCognitiveLevel,
           }),
@@ -611,7 +611,7 @@ export function ContentUploader({ subjects, grades }: Props) {
             <div className="space-y-4 pt-2 border-t border-border animate-in fade-in slide-in-from-top-1">
               {/* خيارات توليد الأسئلة */}
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4">
-                <h4 className="text-sm font-bold text-slate-800">تخصيص محتوى الأسئلة (SMART_GEN)</h4>
+                <h4 className="text-sm font-bold text-slate-800">تخصيص محتوى الأسئلة (عدد وأنواع)</h4>
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
