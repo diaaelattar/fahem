@@ -22,6 +22,19 @@ function getModel(name: string) {
   })
 }
 
+// ---- Math/LaTeX normalization ----
+const normalizeMath = (text: string): string => {
+  if (!text) return ''
+  return text
+    .replace(/\$+/g, '')           // strip LaTeX $ delimiters
+    .replace(/\\text\{([^}]*)\}/g, '$1') // \text{x} → x
+    .replace(/\\[a-zA-Z]+\s*/g, '') // strip other LaTeX commands
+    .replace(/(\d),(\d)/g, '$1$2')  // 5,000 → 5000  (commas inside numbers)
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase()
+}
+
 const normalizeArabic = (text: string) => {
   if (!text) return ''
   return text.trim().toLowerCase()
@@ -29,8 +42,8 @@ const normalizeArabic = (text: string) => {
     .replace(/ة/g, 'ه')
     .replace(/ى/g, 'ي')
     .replace(/[\u064B-\u065F]/g, '') // إزالة التشكيل
-    .replace(/[,،\-_/\\.:؛"']/g, ' ') // استبدال علامات الترقيم والفواصل بمسافة
-    .replace(/\s+/g, ' ') // إزالة المسافات الزائدة
+    .replace(/[،\-_/\\.:؛"']/g, ' ') // استبدال علامات الترقيم بمسافة (استبعدنا الفاصلة الإنجليزية لأنها تُعالج في normalizeMath)
+    .replace(/\s+/g, ' ')            // إزالة المسافات الزائدة
 }
 
 /**
@@ -47,35 +60,35 @@ const checkAnswer = (studentAns: string, correctAns: string, type: string): bool
     return (isStudentTrue && isCorrectTrue) || (isStudentFalse && isCorrectFalse)
   }
 
+  // ── Math-aware comparison (runs first, before Arabic normalization) ──
+  const ms = normalizeMath(studentAns)
+  const mc = normalizeMath(correctAns)
+  if (ms === mc) return true
+  // Remove ALL spaces and compare (7+60+400 == 7 + 60 + 400)
+  if (ms.replace(/\s/g, '') === mc.replace(/\s/g, '')) return true
+  // Numeric equivalence: 1/2 == 0.5
+  const numS = Number(ms.replace(/\s/g, ''))
+  const numC = Number(mc.replace(/\s/g, ''))
+  if (!isNaN(numS) && !isNaN(numC) && Math.abs(numS - numC) < 1e-9) return true
+
   const ns = normalizeArabic(studentAns)
   const nc = normalizeArabic(correctAns)
 
   if (type === 'mcq') return ns === nc
 
   // --- مرن للإكمال والمقالة والتصحيح ---
-
-  // تطابق تام
   if (ns === nc) return true
-
-  // الإجابة تحتوي على الإجابة الصحيحة بالكامل (مع حد أدنى 3 أحرف لتجنب التطابق العرضي)
   if (nc.length >= 3 && ns.includes(nc)) return true
-  // الإجابة الصحيحة تحتوي على إجابة الطالب
   if (ns.length >= 3 && nc.includes(ns)) return true
 
-  // تحليل الكلمات
   const sw = ns.split(/\s+/).filter(w => w.length >= 2)
   const cw = nc.split(/\s+/).filter(w => w.length >= 2)
 
   if (sw.length > 0 && cw.length > 0) {
     const common = cw.filter(w => sw.includes(w))
-
-    // إجابة مختصرة (1-2 كلمة) وجميع كلماتها موجودة في الإجابة الصحيحة
     if (sw.length <= 2 && common.length === sw.length) return true
-
     const ratioCorrect = common.length / cw.length
     const ratioStudent = common.length / sw.length
-
-    // نسبة 40٪ من كلمات الإجابة الصحيدة موجودة، أو 50٪ من كلمات الطالب صحيحة
     if (ratioCorrect >= 0.4 || ratioStudent >= 0.5) return true
   }
 
