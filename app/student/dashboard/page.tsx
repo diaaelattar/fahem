@@ -132,6 +132,36 @@ export default async function StudentDashboardPage() {
         </div>
       </section>
 
+      {/* ── VIP Promotional Banner ──────────────────────────────────────── */}
+      {!profile.is_premium && (
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-amber-500 to-orange-500 p-6 text-white shadow-lg shadow-orange-500/20 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="absolute right-0 top-0 opacity-10">
+            <Star className="w-48 h-48 -mr-12 -mt-12" />
+          </div>
+          <div className="relative z-10 flex-1 text-center md:text-right">
+            <div className="inline-flex items-center gap-2 bg-white/20 rounded-full px-3 py-1 text-xs font-bold mb-3">
+              <Star className="w-3.5 h-3.5 fill-white" />
+              باقة VIP المميزة
+            </div>
+            <h3 className="text-xl md:text-2xl font-bold mb-2">افتح جميع الاختبارات بلا حدود!</h3>
+            <p className="text-orange-50 text-sm opacity-90 max-w-md">
+              اشترك الآن واستمتع باختبارات لا نهائية، تصحيح ذكي بالذكاء الاصطناعي، وتقارير أداء مفصلة لضمان تفوقك.
+            </p>
+          </div>
+          <div className="relative z-10 shrink-0 w-full md:w-auto">
+            <a 
+              href={`https://wa.me/201118209309?text=${encodeURIComponent(`السلام عليكم، أنا الطالب/ة ${profile.full_name}. أرغب في الاشتراك في باقة VIP لمنصة استباق التعليمية لتفعيل جميع الميزات.`)}`}
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full bg-white text-orange-600 px-8 py-3.5 rounded-2xl font-black text-sm hover:bg-orange-50 transition-all shadow-xl shadow-orange-900/10 hover:scale-105 active:scale-95"
+            >
+              <Zap className="w-4 h-4" />
+              اشترك وافتح المنصة
+            </a>
+          </div>
+        </div>
+      )}
+
       {/* ── XP & Level Card ─────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* XP Progress */}
