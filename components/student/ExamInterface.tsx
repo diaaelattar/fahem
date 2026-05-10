@@ -385,7 +385,10 @@ export function ExamInterface({
               <MathRenderer text={currentQ.context_passage} className="text-base" />
             </div>
           )}
-          <MathRenderer text={currentQ.question_text} className="text-xl font-medium leading-relaxed" />
+          <MathRenderer 
+            text={currentQ.question_text.replace(/^(\(?\d+[\)\.\-\s]\s*)/, '').trim()} 
+            className="text-xl font-medium leading-relaxed" 
+          />
           {currentQ.question_image_url && (
             <div className="mt-4 rounded-xl overflow-hidden border border-border bg-muted/30">
               <img

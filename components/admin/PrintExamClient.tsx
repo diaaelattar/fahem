@@ -75,7 +75,7 @@ export function PrintExamClient({ exam, questions }: { exam: any, questions: any
                     </div>
                   )}
                   <div className="font-medium text-lg leading-relaxed">
-                    <MathRenderer text={q.question_text} />
+                    <MathRenderer text={q.question_text.replace(/^(\(?\d+[\)\.\-\s]\s*)/, '').trim()} />
                   </div>
                   {q.question_image_url && (
                     <div className="mt-4 text-center">

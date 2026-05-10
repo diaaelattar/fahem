@@ -58,8 +58,6 @@ export function CreateExamFromLessonClient({ lesson, unit, questions }: Props) {
           grade_id: unit.grades?.id,
           duration_minutes: parseInt(form.duration_minutes) || 30,
           passing_score: parseFloat(form.passing_score) || 50,
-          total_points: calcPoints,
-          questions_count: selectedQ.length,
           is_published: form.is_published,
           shuffle_questions: form.shuffle,
           exam_type: 'lesson',

@@ -46,14 +46,12 @@ export async function POST(req: NextRequest) {
           grade_id: gradeId,
           semester_id: semesterId || null,
           duration_minutes: durationMinutes || 60,
-          total_points: totalPoints,
           passing_score: passingScore ? parseInt(passingScore) : null,
           shuffle_questions: shuffleQuestions,
           shuffle_options: shuffleOptions,
           show_results_immediately: showResultsImmediately,
           allowed_attempts: parseInt(allowedAttempts) || 1,
-          is_published: true,
-          questions_count: selectedQuestions.length
+          is_published: true
         }
 
         const { data: exam, error: examError } = await supabase.from('exams').insert(examData).select('id').single()
@@ -110,14 +108,12 @@ export async function POST(req: NextRequest) {
           semester_id: semesterId || null,
           unit_id: unit.id,
           duration_minutes: durationMinutes || 45,
-          total_points: totalPoints,
           passing_score: passingScore ? parseInt(passingScore) : null,
           shuffle_questions: shuffleQuestions,
           shuffle_options: shuffleOptions,
           show_results_immediately: showResultsImmediately,
           allowed_attempts: parseInt(allowedAttempts) || 1,
-          is_published: true,
-          questions_count: selectedQuestions.length
+          is_published: true
         }
 
         const { data: exam, error: examError } = await supabase.from('exams').insert(examData).select('id').single()
