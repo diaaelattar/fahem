@@ -7,16 +7,6 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { BookOpen, Save, ArrowRight } from 'lucide-react'
 
-const SUBJECTS = [
-  { id: 1, name: 'اللغة العربية', icon: '📖' },
-  { id: 2, name: 'اللغة الإنجليزية', icon: '🔤' },
-  { id: 3, name: 'الرياضيات', icon: '🔢' },
-  { id: 4, name: 'العلوم', icon: '🔬' },
-  { id: 5, name: 'الدراسات الاجتماعية', icon: '🌍' },
-  { id: 6, name: 'الفيزياء', icon: '⚡' },
-  { id: 7, name: 'الكيمياء', icon: '🧪' },
-  { id: 8, name: 'التاريخ', icon: '📜' },
-]
 
 export default function NewUnitPage() {
   const router = useRouter()
@@ -33,13 +23,17 @@ export default function NewUnitPage() {
     is_active: true,
   })
   const [grades, setGrades] = useState<any[]>([])
+  const [subjects, setSubjects] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  // جلب الصفوف عند تحميل الصفحة
+  // جلب الصفوف والمواد عند تحميل الصفحة
   useState(() => {
     supabase.from('grades').select('id, name_ar').order('grade_number').then(({ data }: any) => {
       setGrades(data || [])
+    })
+    supabase.from('subjects').select('id, name_ar, icon').order('id').then(({ data }: any) => {
+      setSubjects(data || [])
     })
   })
 
@@ -126,8 +120,8 @@ export default function NewUnitPage() {
               required
             >
               <option value="">اختر المادة...</option>
-              {SUBJECTS.map(s => (
-                <option key={s.id} value={s.id}>{s.icon} {s.name}</option>
+              {subjects.map(s => (
+                <option key={s.id} value={s.id}>{s.icon} {s.name_ar}</option>
               ))}
             </select>
           </div>
