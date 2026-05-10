@@ -39,6 +39,9 @@ export default async function StartExamPage({ params }: Props) {
       .single()
     const canPractice = !practiceExam // إذا لم يكن practice mode
 
+    const whatsappMessage = `السلام عليكم، أنا الطالب/ة ${profile.full_name}. أرغب في الاشتراك في باقة VIP لمنصة استباق التعليمية لتفعيل الاختبارات بلا حدود.`
+    const whatsappUrl = `https://wa.me/201118209309?text=${encodeURIComponent(whatsappMessage)}`
+
     return (
       <div className="max-w-lg mx-auto text-center py-16">
         <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
@@ -49,7 +52,7 @@ export default async function StartExamPage({ params }: Props) {
             العودة للاختبارات
           </a>
           {canAttempt?.is_limit_reached ? (
-            <a href="https://wa.me/201234567890" target="_blank" rel="noopener noreferrer" className="bg-amber-500 text-white px-6 py-2.5 rounded-xl font-medium text-sm hover:bg-amber-600 flex items-center justify-center gap-2">
+            <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="bg-amber-500 text-white px-6 py-2.5 rounded-xl font-medium text-sm hover:bg-amber-600 flex items-center justify-center gap-2">
               <Star className="w-4 h-4 fill-white" />
               اشترك في باقة VIP
             </a>
