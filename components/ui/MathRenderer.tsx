@@ -50,7 +50,7 @@ export const MathRenderer: React.FC<MathRendererProps> = ({ text, className = ''
   const parts = text.split(regex).filter(part => part !== undefined)
 
   return (
-    <div className={`math-container dir-rtl text-right leading-relaxed ${className}`}>
+    <div className={`math-container text-start leading-relaxed ${className}`} dir="auto">
       {/* Fallback to hide MathML if global CSS has conflicts */}
       <style dangerouslySetInnerHTML={{ __html: `.katex-mathml { display: none !important; }` }} />
       {parts.map((part, index) => {
@@ -80,7 +80,7 @@ export const MathRenderer: React.FC<MathRendererProps> = ({ text, className = ''
         }
 
         // نص عادي
-        return <span key={index} className="align-middle">{part}</span>
+        return <span key={index} className="align-middle" dir="auto">{renderFormattedText(part)}</span>
       })}
     </div>
   )
