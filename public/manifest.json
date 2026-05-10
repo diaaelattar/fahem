@@ -2,7 +2,7 @@
   "name": "استباق مصر",
   "short_name": "استباق",
   "description": "منصة التدريب والتحديات الذكية للمرحلة الإعدادية",
-  "start_url": "/student/dashboard",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
