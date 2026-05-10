@@ -76,6 +76,17 @@ export function ExamInterface({
     setShowMath(false)
   }, [currentIdx])
 
+  // Strip LaTeX, commas inside numbers, extra spaces
+  const normalizeMath = (text: string): string => {
+    if (!text) return ''
+    return text
+      .replace(/\$+/g, '')                        // remove $ delimiters
+      .replace(/\\text\{([^}]*)\}/g, '$1')        // \text{x} → x
+      .replace(/\\[a-zA-Z]+\s*/g, '')             // remove LaTeX commands
+      .replace(/(\d),(\d)/g, '$1$2')              // 5,000 → 5000
+      .replace(/\s+/g, ' ').trim().toLowerCase()
+  }
+
   const normalizeArabic = (text: string) => {
     if (!text) return ''
     return text.trim().toLowerCase()
@@ -83,7 +94,7 @@ export function ExamInterface({
       .replace(/ة/g, 'ه')
       .replace(/ى/g, 'ي')
       .replace(/[\u064B-\u065F]/g, '')
-      .replace(/[,،\-_/\\.:؛"']/g, ' ')
+      .replace(/[،\-_/\\.:؛"']/g, ' ')
       .replace(/\s+/g, ' ')
   }
 
@@ -95,46 +106,46 @@ export function ExamInterface({
       const isCorrectTrue = correctAns === 'صح' || correctAns.toLowerCase() === 'true';
       const isStudentFalse = studentAns === 'خطأ' || studentAns.toLowerCase() === 'false';
       const isCorrectFalse = correctAns === 'خطأ' || correctAns.toLowerCase() === 'false';
-      
       return (isStudentTrue && isCorrectTrue) || (isStudentFalse && isCorrectFalse);
     }
+
+    // ── Math-aware comparison ──
+    const ms = normalizeMath(studentAns)
+    const mc = normalizeMath(correctAns)
+
+    if (ms === mc) return true
+    // No-space comparison: "7+60" == "7 + 60"
+    if (ms.replace(/\s/g, '') === mc.replace(/\s/g, '')) return true
+
+    // Numeric-core: student writes "10", correct is "10 trees" or "10 cm"
+    // Extract the leading numeric part from each side
+    const numCoreS = ms.match(/^[\d./+\-\s×÷*]+/)?.[0]?.trim()
+    const numCoreC = mc.match(/^[\d./+\-\s×÷*]+/)?.[0]?.trim()
+    if (numCoreS && numCoreC && numCoreS.replace(/\s/g,'') === numCoreC.replace(/\s/g,'')) return true
+
+    // Numeric equivalence: 1/2 == 0.5
+    const numS = Number(ms.replace(/\s/g, ''))
+    const numC = Number(mc.replace(/\s/g, ''))
+    if (!isNaN(numS) && !isNaN(numC) && Math.abs(numS - numC) < 1e-9) return true
 
     const normStudent = normalizeArabic(studentAns);
     const normCorrect = normalizeArabic(correctAns);
 
-    if (type === 'mcq') {
-      return normStudent === normCorrect;
-    }
+    if (type === 'mcq') return normStudent === normCorrect;
 
     if (normStudent === normCorrect) return true;
-    
-    // Lenient match for text questions (fill_blank, essay, correction)
-    // Avoid single-character matches by enforcing length
-    if (normStudent.length >= 3 && normCorrect.includes(normStudent)) {
-      return true;
-    }
-    if (normCorrect.length >= 3 && normStudent.includes(normCorrect)) {
-      return true;
-    }
+    if (normStudent.length >= 3 && normCorrect.includes(normStudent)) return true;
+    if (normCorrect.length >= 3 && normStudent.includes(normCorrect)) return true;
 
-    // Word overlap check
     const studentWords = normStudent.split(/\s+/).filter(w => w.length >= 2);
     const correctWords = normCorrect.split(/\s+/).filter(w => w.length >= 2);
     
     if (studentWords.length > 0 && correctWords.length > 0) {
       const intersection = correctWords.filter(w => studentWords.includes(w));
-      
-      // Accept if the student gave a short answer (1-2 words) that is entirely correct
-      if (studentWords.length <= 2 && intersection.length === studentWords.length) {
-         return true;
-      }
-
+      if (studentWords.length <= 2 && intersection.length === studentWords.length) return true;
       const matchRatioCorrect = intersection.length / correctWords.length;
       const matchRatioStudent = intersection.length / studentWords.length;
-      
-      if (matchRatioCorrect >= 0.4 || matchRatioStudent >= 0.5) {
-         return true;
-      }
+      if (matchRatioCorrect >= 0.4 || matchRatioStudent >= 0.5) return true;
     }
     
     return false;
@@ -226,7 +237,10 @@ export function ExamInterface({
   
   const progress = ((currentIdx + 1) / questions.length) * 100
   const answeredCount = Object.keys(answers).length
-  const currentQ = questions[currentIdx]
+  const currentQ = questions[currentIdx] ?? questions[0]
+
+  // Guard: should never happen but prevents blank-screen crashes
+  if (!currentQ) return null
 
   const handleAnswer = (value: string) => {
     // If immediate feedback is on and already answered/checked, prevent changing answer
@@ -386,7 +400,7 @@ export function ExamInterface({
             </div>
           )}
           <MathRenderer 
-            text={currentQ.question_text.replace(/^(\(?\d+[\)\.\-\s]\s*)/, '').trim()} 
+            text={(currentQ.question_text ?? '').replace(/^(\(?\d+[\)\.\-\s]\s*)/, '').trim()} 
             className="text-xl font-medium leading-relaxed" 
           />
           {currentQ.question_image_url && (
@@ -525,7 +539,8 @@ export function ExamInterface({
             
             {currentQ.explanation && (
               <div className="mt-3 pt-3 border-t border-current/10 text-sm">
-                <strong>التفسير:</strong> <div dangerouslySetInnerHTML={{ __html: currentQ.explanation }} />
+                <strong className="block mb-1">التفسير:</strong>
+                <MathRenderer text={currentQ.explanation} className="leading-relaxed" />
               </div>
             )}
 
