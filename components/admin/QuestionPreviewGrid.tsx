@@ -116,6 +116,14 @@ export function QuestionPreviewGrid({
         .eq('id', documentId)
         .single()
 
+      const sanitizeDifficulty = (diff?: string) => {
+        if (!diff) return 'medium'
+        const d = diff.toLowerCase().trim()
+        if (d.includes('easy') || d.includes('سهل')) return 'easy'
+        if (d.includes('hard') || d.includes('صعب')) return 'hard'
+        return 'medium'
+      }
+
       const inserts = toSave.map(q => ({
         admin_id: user.id,
         document_id: documentId,
@@ -124,7 +132,7 @@ export function QuestionPreviewGrid({
         options: q.options,
         correct_answer: q.correct_answer,
         explanation: q.source_paragraph ? `${q.explanation}\n\n**المرجع:** ${q.source_paragraph}` : q.explanation,
-        difficulty_level: q.difficulty,
+        difficulty_level: sanitizeDifficulty(q.difficulty),
         bloom_level: q.bloom_level || 'remember',
         status: q.status || 'draft',
         points: q.points,
