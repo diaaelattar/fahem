@@ -1,10 +1,15 @@
-import { requireStudent } from '@/lib/auth/permissions'
+import { getCurrentProfile } from '@/lib/auth/permissions'
 import { StudentSidebar } from '@/components/student/StudentSidebar'
 import { StudentTopbar } from '@/components/student/StudentTopbar'
 import { StudentBottomNav } from '@/components/student/StudentBottomNav'
 
 export default async function StudentLayout({ children }: { children: React.ReactNode }) {
-  const profile = await requireStudent()
+  const profile = await getCurrentProfile()
+
+  // If no profile, user is in onboarding (enforced by middleware)
+  if (!profile) {
+    return <div className="min-h-screen bg-slate-50" dir="rtl">{children}</div>
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 flex" dir="rtl">
