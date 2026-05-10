@@ -130,7 +130,7 @@ export function QuestionPreviewGrid({
         question_type: q.type,
         question_text: q.question_text,
         options: q.options,
-        correct_answer: q.correct_answer,
+        correct_answer: q.correct_answer || 'غير محدد',
         explanation: q.source_paragraph ? `${q.explanation}\n\n**المرجع:** ${q.source_paragraph}` : q.explanation,
         difficulty_level: sanitizeDifficulty(q.difficulty),
         bloom_level: q.bloom_level || 'remember',
