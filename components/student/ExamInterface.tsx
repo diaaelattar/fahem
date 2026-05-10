@@ -91,7 +91,15 @@ export function ExamInterface({
   const extractNumbers = (text: string): number[] => {
     const clean = normalizeMath(text)
     const matches = clean.match(/\d+(\.\d+)?/g) || []
-    return [...new Set(matches.map(Number))]
+    return Array.from(new Set(matches.map(Number)))
+  }
+
+  // Extract the final result of an equation (the part after last '=')
+  const extractEquationResult = (text: string): string | null => {
+    const clean = normalizeMath(text)
+    const parts = clean.split('=')
+    if (parts.length >= 2) return parts[parts.length - 1].trim()
+    return null
   }
 
   const normalizeArabic = (text: string) => {
@@ -105,37 +113,44 @@ export function ExamInterface({
       .replace(/\s+/g, ' ')
   }
 
-  const checkAnswer = (studentAns: string, correctAns: string, type: string) => {
-    if (!studentAns || !correctAns) return false;
-    
+  const checkAnswer = (studentAns: string, correctAns: string, type: string): boolean => {
+    if (!studentAns || !correctAns) return false
+
+    // True/False comparison
     if (type === 'true_false') {
-      const isStudentTrue = studentAns === 'صح' || studentAns.toLowerCase() === 'true';
-      const isCorrectTrue = correctAns === 'صح' || correctAns.toLowerCase() === 'true';
-      const isStudentFalse = studentAns === 'خطأ' || studentAns.toLowerCase() === 'false';
-      const isCorrectFalse = correctAns === 'خطأ' || correctAns.toLowerCase() === 'false';
-      return (isStudentTrue && isCorrectTrue) || (isStudentFalse && isCorrectFalse);
+      const isSTrue  = studentAns === '\u0635\u062d'  || studentAns.toLowerCase() === 'true'
+      const isCTrue  = correctAns  === '\u0635\u062d'  || correctAns.toLowerCase()  === 'true'
+      const isSFalse = studentAns === '\u062e\u0637\u0623' || studentAns.toLowerCase() === 'false'
+      const isCFalse = correctAns  === '\u062e\u0637\u0623' || correctAns.toLowerCase()  === 'false'
+      return (isSTrue && isCTrue) || (isSFalse && isCFalse)
     }
 
     // ── Math-aware comparison ──
     const ms = normalizeMath(studentAns)
     const mc = normalizeMath(correctAns)
 
+    // Exact match after normalization
     if (ms === mc) return true
+    // Ignore all spaces: "7+60+400" == "7 + 60 + 400"
     if (ms.replace(/\s/g, '') === mc.replace(/\s/g, '')) return true
 
-    // Key-numbers set matching:
-    // Student writes "9,81" or "9 and 81", correct has numbers {9, 81} → match!
+    // Equation result: student writes "\frac{35}{5}=7", correct is "7"
+    const studentResult = extractEquationResult(studentAns)
+    if (studentResult && studentResult === mc) return true
+    const srNum = Number(studentResult)
+    const crNum = Number(mc.replace(/[^\d.]/g, ''))
+    if (studentResult && !isNaN(srNum) && !isNaN(crNum) && srNum > 0 && Math.abs(srNum - crNum) < 1e-9) return true
+
+    // Key-numbers set: "9,81" vs "$9$ cm area=$81$" → both have {9,81}
     const correctNums = extractNumbers(correctAns)
     if (correctNums.length >= 2) {
-      // All correct key numbers must appear in student's answer
       const studentNums = extractNumbers(studentAns)
-      const allFound = correctNums.every(n => studentNums.includes(n))
-      if (allFound) return true
+      if (correctNums.every(n => studentNums.includes(n))) return true
     }
 
-    // Numeric-core: student writes "10", correct is "10 trees"
-    const numCoreS = ms.match(/^[\d./+\-\s×÷*]+/)?.[0]?.trim()
-    const numCoreC = mc.match(/^[\d./+\-\s×÷*]+/)?.[0]?.trim()
+    // Numeric-core: "10" matches "10 trees"
+    const numCoreS = ms.match(/^[\d./+\-\s\u00d7\u00f7*]+/)?.[0]?.trim()
+    const numCoreC = mc.match(/^[\d./+\-\s\u00d7\u00f7*]+/)?.[0]?.trim()
     if (numCoreS && numCoreC && numCoreS.replace(/\s/g,'') === numCoreC.replace(/\s/g,'')) return true
 
     // Numeric equivalence: 1/2 == 0.5
@@ -143,27 +158,25 @@ export function ExamInterface({
     const numC = Number(mc.replace(/[^\d.]/g, ''))
     if (!isNaN(numS) && !isNaN(numC) && numS > 0 && Math.abs(numS - numC) < 1e-9) return true
 
-    const normStudent = normalizeArabic(studentAns);
-    const normCorrect = normalizeArabic(correctAns);
+    // Arabic text comparison
+    const normStudent = normalizeArabic(studentAns)
+    const normCorrect = normalizeArabic(correctAns)
 
-    if (type === 'mcq') return normStudent === normCorrect;
+    if (type === 'mcq') return normStudent === normCorrect
 
-    if (normStudent === normCorrect) return true;
-    if (normStudent.length >= 3 && normCorrect.includes(normStudent)) return true;
-    if (normCorrect.length >= 3 && normStudent.includes(normCorrect)) return true;
+    if (normStudent === normCorrect) return true
+    if (normStudent.length >= 3 && normCorrect.includes(normStudent)) return true
+    if (normCorrect.length >= 3 && normStudent.includes(normCorrect)) return true
 
-    const studentWords = normStudent.split(/\s+/).filter(w => w.length >= 2);
-    const correctWords = normCorrect.split(/\s+/).filter(w => w.length >= 2);
-    
-    if (studentWords.length > 0 && correctWords.length > 0) {
-      const intersection = correctWords.filter(w => studentWords.includes(w));
-      if (studentWords.length <= 2 && intersection.length === studentWords.length) return true;
-      const matchRatioCorrect = intersection.length / correctWords.length;
-      const matchRatioStudent = intersection.length / studentWords.length;
-      if (matchRatioCorrect >= 0.4 || matchRatioStudent >= 0.5) return true;
+    const sw = normStudent.split(/\s+/).filter(w => w.length >= 2)
+    const cw = normCorrect.split(/\s+/).filter(w => w.length >= 2)
+    if (sw.length > 0 && cw.length > 0) {
+      const common = cw.filter(w => sw.includes(w))
+      if (sw.length <= 2 && common.length === sw.length) return true
+      if (common.length / cw.length >= 0.4 || common.length / sw.length >= 0.5) return true
     }
-    
-    return false;
+
+    return false
   }
 
   const getDisplayCorrectAnswer = (correctAns: string, type: string) => {
@@ -509,7 +522,7 @@ export function ExamInterface({
                 disabled={exam.show_results_immediately && immediateFeedback[currentQ.id]}
                 placeholder="اكتب إجابتك هنا..."
                 className="w-full px-4 py-3 border-2 border-border rounded-xl focus:border-primary focus:outline-none transition-colors"
-                dir="auto"
+                dir="ltr"
               />
             ) : (
               <textarea

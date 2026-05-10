@@ -39,7 +39,7 @@ const normalizeMath = (text: string): string => {
 const extractNumbers = (text: string): number[] => {
   const clean = normalizeMath(text)
   const matches = clean.match(/\d+(\.\d+)?/g) || []
-  return [...new Set(matches.map(Number))]
+  return Array.from(new Set(matches.map(Number)))
 }
 
 const normalizeArabic = (text: string) => {

@@ -36,7 +36,7 @@ export function LessonSummaryClient({ summary }: Props) {
       {isOpen && (
         <div className="p-6 pt-0 border-t border-indigo-100 mt-2">
           <div className="bg-white/60 rounded-xl p-5 text-sm leading-loose prose prose-sm prose-indigo rtl prose-p:my-2 prose-ul:my-2 max-w-none">
-            <MathRenderer content={summary} />
+            <MathRenderer text={summary} />
           </div>
         </div>
       )}

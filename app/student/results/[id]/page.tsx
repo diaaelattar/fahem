@@ -22,6 +22,10 @@ export default async function ResultDetailPage({ params }: Props) {
   const profile = await requireStudent()
   const supabase = createClient()
 
+  // Get auth user ID directly for reliable comparison
+  const { data: { user: authUser } } = await supabase.auth.getUser()
+  const userId = authUser?.id || (profile as any).id
+
   let attempt = await supabase
     .from('exam_attempts')
     .select(`
@@ -35,19 +39,15 @@ export default async function ResultDetailPage({ params }: Props) {
       )
     `)
     .eq('id', params.id)
-    .eq('student_id', (profile as any).id)
     .single() as any
 
-  console.log("Attempt Fetch Result:", attempt)
-
-  // 🔄 إذا لم يتم العثور على محاولة بهذا المعرف، قد يكون المعرف هو معرف اختبار (Exam ID)
-  // سنحاول العثور على آخر محاولة مكتملة لهذا الطالب في هذا الاختبار
+  // If not found by attempt id, try as exam_id (fallback)
   if (!attempt.data) {
     const { data: fallbackAttempt } = await (supabase
       .from('exam_attempts') as any)
       .select('id')
       .eq('exam_id', params.id)
-      .eq('student_id', (profile as any).id)
+      .eq('student_id', userId)
       .not('completed_at', 'is', null)
       .order('completed_at', { ascending: false })
       .limit(1)
@@ -60,6 +60,12 @@ export default async function ResultDetailPage({ params }: Props) {
   }
 
   attempt = attempt.data
+
+  // Security: ensure the attempt belongs to this student
+  const attemptStudentId = (attempt as any).student_id
+  if (attemptStudentId && attemptStudentId !== userId) {
+    notFound()
+  }
 
   // إذا لم تكتمل المحاولة، عد للاختبار
   if (!(attempt as any).completed_at) {
@@ -126,7 +132,8 @@ export default async function ResultDetailPage({ params }: Props) {
   }
 
   let questionsWithAnswers: any[] = []
-  if (exam?.show_results_immediately) {
+  // Always load questions for the results detail page
+  {
     const { data: examQuestions } = await supabase
       .from('exam_questions')
       .select(`
@@ -142,24 +149,19 @@ export default async function ResultDetailPage({ params }: Props) {
       .map((eq: any) => {
         const q = eq.questions
         const studentAnswer = answers[q.id]
-        
-        // الأولوية 1: سجلات student_answers (التي تم تقييمها من API)
         const sa = answerDetailsMap.get(q.id)
-        
-        let isCorrect = false;
+        let isCorrect = false
         if (sa && sa.is_correct !== undefined) {
-          isCorrect = sa.is_correct;
+          isCorrect = sa.is_correct
         } else {
-          // الأولوية 2: التقييم المحلي للطوارئ (باستخدام دالة checkAnswer المرنة)
           isCorrect = checkAnswer(studentAnswer, q.correct_answer, q.question_type)
         }
-
         return {
           ...q,
-          points: eq.points_override || q.points || 1, // استخدام النقاط المخصصة إن وجدت
+          points: eq.points_override || q.points || 1,
           studentAnswer,
           isCorrect,
-          explanation: sa?.teacher_feedback || q.explanation, // الأولوية للتفسير من الموديل
+          explanation: sa?.teacher_feedback || q.explanation,
           isAnswered: studentAnswer !== undefined && studentAnswer !== '',
         }
       })

@@ -179,7 +179,7 @@ export default async function StudentDashboardPage() {
         </div>
 
         {/* Smart Recommendations Banner */}
-        {wrongAnswersCount > 0 && (
+        {(wrongAnswersCount ?? 0) > 0 && (
           <div className="bg-rose-500/20 backdrop-blur-md border-t border-rose-500/30 p-4 md:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
              <div className="flex items-center gap-4 text-center sm:text-right w-full sm:w-auto">
                 <div className="hidden sm:flex bg-rose-500/20 p-2.5 rounded-2xl border border-rose-500/30">

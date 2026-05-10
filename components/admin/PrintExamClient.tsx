@@ -94,7 +94,7 @@ export function PrintExamClient({ exam, questions }: { exam: any, questions: any
                   {groupTitle}
                 </h3>
                 <div className="space-y-8">
-                  {groupQ.map((q, idx) => (
+                  {groupQ.map((q: any, idx: number) => (
                     <div key={q.id} className="space-y-3 break-inside-avoid">
               <div className="flex items-start gap-2">
                 <span className="font-bold shrink-0">{idx + 1}.</span>
