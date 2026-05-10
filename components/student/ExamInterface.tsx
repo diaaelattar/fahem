@@ -76,15 +76,22 @@ export function ExamInterface({
     setShowMath(false)
   }, [currentIdx])
 
-  // Strip LaTeX, commas inside numbers, extra spaces
+  // Strip LaTeX, commas inside numbers (thousands only), extra spaces
   const normalizeMath = (text: string): string => {
     if (!text) return ''
     return text
       .replace(/\$+/g, '')                        // remove $ delimiters
       .replace(/\\text\{([^}]*)\}/g, '$1')        // \text{x} → x
       .replace(/\\[a-zA-Z]+\s*/g, '')             // remove LaTeX commands
-      .replace(/(\d),(\d)/g, '$1$2')              // 5,000 → 5000
+      .replace(/(\d),(\d{3})(?=[^\d]|$)/g, '$1$2') // thousands ONLY: 5,000 → 5000  (NOT 9,81)
       .replace(/\s+/g, ' ').trim().toLowerCase()
+  }
+
+  // Extract all distinct numbers from a string (e.g. "side=9 cm area=81" → [9, 81])
+  const extractNumbers = (text: string): number[] => {
+    const clean = normalizeMath(text)
+    const matches = clean.match(/\d+(\.\d+)?/g) || []
+    return [...new Set(matches.map(Number))]
   }
 
   const normalizeArabic = (text: string) => {
@@ -114,19 +121,27 @@ export function ExamInterface({
     const mc = normalizeMath(correctAns)
 
     if (ms === mc) return true
-    // No-space comparison: "7+60" == "7 + 60"
     if (ms.replace(/\s/g, '') === mc.replace(/\s/g, '')) return true
 
-    // Numeric-core: student writes "10", correct is "10 trees" or "10 cm"
-    // Extract the leading numeric part from each side
+    // Key-numbers set matching:
+    // Student writes "9,81" or "9 and 81", correct has numbers {9, 81} → match!
+    const correctNums = extractNumbers(correctAns)
+    if (correctNums.length >= 2) {
+      // All correct key numbers must appear in student's answer
+      const studentNums = extractNumbers(studentAns)
+      const allFound = correctNums.every(n => studentNums.includes(n))
+      if (allFound) return true
+    }
+
+    // Numeric-core: student writes "10", correct is "10 trees"
     const numCoreS = ms.match(/^[\d./+\-\s×÷*]+/)?.[0]?.trim()
     const numCoreC = mc.match(/^[\d./+\-\s×÷*]+/)?.[0]?.trim()
     if (numCoreS && numCoreC && numCoreS.replace(/\s/g,'') === numCoreC.replace(/\s/g,'')) return true
 
     // Numeric equivalence: 1/2 == 0.5
-    const numS = Number(ms.replace(/\s/g, ''))
-    const numC = Number(mc.replace(/\s/g, ''))
-    if (!isNaN(numS) && !isNaN(numC) && Math.abs(numS - numC) < 1e-9) return true
+    const numS = Number(ms.replace(/[^\d.]/g, ''))
+    const numC = Number(mc.replace(/[^\d.]/g, ''))
+    if (!isNaN(numS) && !isNaN(numC) && numS > 0 && Math.abs(numS - numC) < 1e-9) return true
 
     const normStudent = normalizeArabic(studentAns);
     const normCorrect = normalizeArabic(correctAns);

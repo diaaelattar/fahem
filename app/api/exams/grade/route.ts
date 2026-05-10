@@ -29,10 +29,17 @@ const normalizeMath = (text: string): string => {
     .replace(/\$+/g, '')           // strip LaTeX $ delimiters
     .replace(/\\text\{([^}]*)\}/g, '$1') // \text{x} → x
     .replace(/\\[a-zA-Z]+\s*/g, '') // strip other LaTeX commands
-    .replace(/(\d),(\d)/g, '$1$2')  // 5,000 → 5000  (commas inside numbers)
+    .replace(/(\d),(\d{3})(?=[^\d]|$)/g, '$1$2')  // thousands ONLY: 5,000 → 5000 (NOT 9,81)
     .replace(/\s+/g, ' ')
     .trim()
     .toLowerCase()
+}
+
+// Extract all distinct numbers from a string
+const extractNumbers = (text: string): number[] => {
+  const clean = normalizeMath(text)
+  const matches = clean.match(/\d+(\.\d+)?/g) || []
+  return [...new Set(matches.map(Number))]
 }
 
 const normalizeArabic = (text: string) => {
@@ -64,12 +71,23 @@ const checkAnswer = (studentAns: string, correctAns: string, type: string): bool
   const ms = normalizeMath(studentAns)
   const mc = normalizeMath(correctAns)
   if (ms === mc) return true
-  // Remove ALL spaces and compare (7+60+400 == 7 + 60 + 400)
   if (ms.replace(/\s/g, '') === mc.replace(/\s/g, '')) return true
+
+  // Key-numbers set matching: student writes "9,81" → [9,81], correct has [9,81] → match!
+  const correctNums = extractNumbers(correctAns)
+  if (correctNums.length >= 2) {
+    const studentNums = extractNumbers(studentAns)
+    if (correctNums.every(n => studentNums.includes(n))) return true
+  }
+
+  // Numeric-core: student writes "10", correct is "10 trees"
+  const numCoreS = ms.match(/^[\d./+\-\s×÷*]+/)?.[0]?.trim()
+  const numCoreC = mc.match(/^[\d./+\-\s×÷*]+/)?.[0]?.trim()
+  if (numCoreS && numCoreC && numCoreS.replace(/\s/g,'') === numCoreC.replace(/\s/g,'')) return true
   // Numeric equivalence: 1/2 == 0.5
-  const numS = Number(ms.replace(/\s/g, ''))
-  const numC = Number(mc.replace(/\s/g, ''))
-  if (!isNaN(numS) && !isNaN(numC) && Math.abs(numS - numC) < 1e-9) return true
+  const numS = Number(ms.replace(/[^\d.]/g, ''))
+  const numC = Number(mc.replace(/[^\d.]/g, ''))
+  if (!isNaN(numS) && !isNaN(numC) && numS > 0 && Math.abs(numS - numC) < 1e-9) return true
 
   const ns = normalizeArabic(studentAns)
   const nc = normalizeArabic(correctAns)
