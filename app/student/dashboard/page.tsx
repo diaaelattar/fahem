@@ -93,59 +93,124 @@ export default async function StudentDashboardPage() {
   return (
     <div className="space-y-6 pb-24 md:pb-12 animate-fade-in">
 
-      {/* ── Hero Welcome ─────────────────────────────────────────── */}
-      <section className="relative rounded-3xl bg-gradient-to-br from-primary via-blue-700 to-indigo-800 overflow-hidden shadow-2xl shadow-primary/30 p-6 text-white">
-        <div className="absolute inset-0 opacity-10 bg-[url('/grid.svg')]" />
-        <div className="relative flex items-start justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 text-blue-200 text-xs font-bold mb-2 uppercase tracking-widest">
-              <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
-              أهلاً بك في منصتك
+      {/* ── 🌟 NEW HERO LANDSCAPE ─────────────────────────────────────────── */}
+      <section className="relative rounded-[2.5rem] bg-slate-900 overflow-hidden shadow-2xl shadow-indigo-900/20 mb-8 group">
+        {/* Animated Background Gradients & Glassmorphism */}
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 via-purple-700 to-slate-900 opacity-90" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-fuchsia-500 rounded-full mix-blend-multiply filter blur-[128px] opacity-40 animate-pulse" style={{ animationDuration: '4s' }} />
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-500 rounded-full mix-blend-multiply filter blur-[128px] opacity-40 animate-pulse" style={{ animationDuration: '6s' }} />
+        <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-20" />
+
+        <div className="relative p-8 md:p-12 flex flex-col lg:flex-row items-center gap-8 lg:gap-12 backdrop-blur-sm">
+          
+          {/* Avatar & Welcome */}
+          <div className="flex-1 flex flex-col md:flex-row items-center md:items-start text-center md:text-right gap-6 w-full">
+            <div className="relative shrink-0 mt-4 md:mt-0">
+              <div className="absolute inset-0 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full blur-xl opacity-60 animate-pulse" />
+              <img
+                src={profile.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${profile.full_name}`}
+                alt={profile.full_name}
+                className="relative w-28 h-28 md:w-36 md:h-36 rounded-full border-4 border-white/20 object-cover shadow-2xl z-10"
+              />
+              <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-yellow-500 to-amber-600 text-white text-[11px] font-black px-5 py-1.5 rounded-full shadow-lg shadow-amber-900/50 border border-yellow-300/30 whitespace-nowrap z-20">
+                مستوى {level}
+              </div>
             </div>
-            <h1 className="text-3xl md:text-4xl font-display font-bold mb-1">
-              مرحباً، {profile.full_name.split(' ')[0]}!
-            </h1>
-            <p className="text-blue-200 text-sm">
-              {(student?.grades as any)?.name_ar || 'الصف الدراسي'}
-            </p>
+
+            <div className="text-white space-y-3 pt-2">
+              <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 px-4 py-1.5 rounded-full text-xs font-bold text-blue-100 backdrop-blur-md shadow-sm">
+                <Sparkles className="w-4 h-4 text-yellow-300" />
+                {LEVEL_NAMES[level] || 'بطل'} • {(student?.grades as any)?.name_ar || 'الصف الدراسي'}
+              </div>
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-black tracking-tight drop-shadow-xl text-transparent bg-clip-text bg-gradient-to-b from-white to-white/80">
+                مرحباً، {profile.full_name.split(' ')[0]}!
+              </h1>
+              <p className="text-blue-100/90 text-sm md:text-base font-medium max-w-md leading-relaxed">
+                مستقبلك يبدأ من هنا. استمر في التدريب يومياً لتحطيم أرقامك القياسية والوصول إلى القمة!
+              </p>
+            </div>
           </div>
-          {/* Avatar */}
-          <img
-            src={profile.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${profile.full_name}`}
-            alt={profile.full_name}
-            className="w-16 h-16 rounded-2xl border-2 border-white/30 object-cover shrink-0"
-          />
+
+          {/* Core Stats & CTA Panel */}
+          <div className="w-full lg:w-96 shrink-0 bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-7 shadow-2xl flex flex-col gap-6 relative z-10 hover:bg-white/[0.12] transition-colors">
+            {/* XP & Streak Row */}
+            <div className="flex justify-between items-center gap-6">
+               {/* XP Progress */}
+               <div className="flex-1">
+                 <div className="flex justify-between items-end mb-2">
+                   <span className="text-xs font-bold text-blue-200">نقاطك (XP)</span>
+                   <span className="text-2xl font-black text-yellow-400 drop-shadow-sm">{xp}</span>
+                 </div>
+                 <div className="h-3 bg-black/40 rounded-full overflow-hidden border border-white/10 shadow-inner">
+                   <div 
+                     className="h-full bg-gradient-to-r from-yellow-400 via-orange-500 to-rose-500 rounded-full relative transition-all duration-1000" 
+                     style={{ width: `${Math.max(5, xpProgress)}%` }}
+                   >
+                     <div className="absolute top-0 right-0 bottom-0 w-12 bg-gradient-to-l from-white/40 to-transparent" />
+                   </div>
+                 </div>
+                 <div className="flex justify-between text-[10px] text-blue-200/70 mt-2 font-mono font-bold">
+                   <span>مستوى {level}</span>
+                   <span>يتبقى {100 - xpInCurrentLevel}</span>
+                 </div>
+               </div>
+
+               {/* Streak */}
+               <div className="shrink-0 flex flex-col items-center justify-center bg-black/20 rounded-[1.25rem] p-3 border border-white/10 w-24 h-24 shadow-inner relative overflow-hidden">
+                 {streak >= 3 && <div className="absolute inset-0 bg-orange-500/20 animate-pulse" />}
+                 <Flame className={`w-8 h-8 relative z-10 ${streak > 0 ? 'text-orange-500' : 'text-slate-500'}`} />
+                 <span className="font-black text-2xl text-white mt-0.5 leading-none relative z-10">{streak}</span>
+                 <span className="text-[10px] font-bold text-orange-200/80 uppercase relative z-10">يوم متتالي</span>
+               </div>
+            </div>
+
+            {/* Quick CTA */}
+            <Link 
+              href="/student/practice" 
+              className="group/btn relative flex items-center justify-center w-full py-4 rounded-2xl bg-white text-indigo-900 font-black text-base transition-all hover:scale-[1.03] active:scale-95 shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)] hover:shadow-[0_0_60px_-10px_rgba(255,255,255,0.5)] overflow-hidden"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-indigo-100/50 to-transparent -translate-x-full group-hover/btn:animate-[shimmer_1.5s_infinite]" />
+              <span className="relative flex items-center gap-2">
+                <Dumbbell className="w-5 h-5 text-indigo-600" />
+                ابدأ التدريب الآن
+              </span>
+            </Link>
+          </div>
         </div>
 
-        {/* Stats row */}
-        <div className="relative mt-5 grid grid-cols-3 gap-3">
-          {[
-            { v: totalAttempts, l: 'اختبارات' },
-            { v: `${avgScore}%`, l: 'متوسط' },
-            { v: passedCount, l: 'ناجح' },
-          ].map(s => (
-            <div key={s.l} className="bg-white/10 backdrop-blur rounded-2xl p-3 text-center border border-white/20">
-              <div className="text-2xl font-black text-yellow-300">{s.v}</div>
-              <div className="text-[10px] text-blue-200">{s.l}</div>
-            </div>
-          ))}
-        </div>
+        {/* Smart Recommendations Banner */}
+        {wrongAnswersCount > 0 && (
+          <div className="bg-rose-500/20 backdrop-blur-md border-t border-rose-500/30 p-4 md:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+             <div className="flex items-center gap-4 text-center sm:text-right w-full sm:w-auto">
+                <div className="hidden sm:flex bg-rose-500/20 p-2.5 rounded-2xl border border-rose-500/30">
+                  <AlertCircle className="w-5 h-5 text-rose-300" />
+                </div>
+                <div>
+                  <h4 className="text-rose-100 font-bold text-sm">💡 توصية ذكية من النظام</h4>
+                  <p className="text-rose-200/80 text-xs mt-0.5">لديك <strong className="text-white">{wrongAnswersCount} أسئلة</strong> أخطأت فيها مسبقاً. مراجعتها الآن سيضاعف نقاطك!</p>
+                </div>
+             </div>
+             <Link href="/student/practice?mode=mistakes" className="w-full sm:w-auto text-center shrink-0 bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold px-6 py-3 rounded-xl transition-all shadow-lg shadow-rose-500/20 hover:shadow-rose-500/40 hover:-translate-y-0.5">
+               راجع أخطاءك واكسب XP
+             </Link>
+          </div>
+        )}
       </section>
 
       {/* ── VIP Promotional Banner ──────────────────────────────────────── */}
       {!profile.is_premium && (
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-amber-500 to-orange-500 p-6 text-white shadow-lg shadow-orange-500/20 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="absolute right-0 top-0 opacity-10">
-            <Star className="w-48 h-48 -mr-12 -mt-12" />
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 p-6 text-white shadow-xl shadow-orange-500/20 flex flex-col md:flex-row items-center justify-between gap-6 mb-8 hover:shadow-orange-500/30 transition-shadow">
+          <div className="absolute right-0 top-0 opacity-10 mix-blend-overlay">
+            <Star className="w-64 h-64 -mr-16 -mt-16 animate-pulse" style={{ animationDuration: '3s' }} />
           </div>
           <div className="relative z-10 flex-1 text-center md:text-right">
-            <div className="inline-flex items-center gap-2 bg-white/20 rounded-full px-3 py-1 text-xs font-bold mb-3">
-              <Star className="w-3.5 h-3.5 fill-white" />
+            <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm border border-white/30 rounded-full px-4 py-1.5 text-xs font-bold mb-3 shadow-sm">
+              <Star className="w-4 h-4 fill-yellow-300 text-yellow-300" />
               باقة VIP المميزة
             </div>
-            <h3 className="text-xl md:text-2xl font-bold mb-2">افتح جميع الاختبارات بلا حدود!</h3>
-            <p className="text-orange-50 text-sm opacity-90 max-w-md">
-              اشترك الآن واستمتع باختبارات لا نهائية، تصحيح ذكي بالذكاء الاصطناعي، وتقارير أداء مفصلة لضمان تفوقك.
+            <h3 className="text-2xl md:text-3xl font-black mb-2 tracking-tight">افتح جميع قدرات المنصة!</h3>
+            <p className="text-orange-50 text-sm opacity-95 max-w-lg leading-relaxed font-medium">
+              اشترك الآن واستمتع باختبارات لا نهائية، تصحيح ذكي، وتقارير أداء مفصلة تضمن لك التفوق المطلق.
             </p>
           </div>
           <div className="relative z-10 shrink-0 w-full md:w-auto">
@@ -153,62 +218,14 @@ export default async function StudentDashboardPage() {
               href={`https://wa.me/201118209309?text=${encodeURIComponent(`السلام عليكم، أنا الطالب/ة ${profile.full_name}. أرغب في الاشتراك في باقة VIP لمنصة استباق التعليمية لتفعيل جميع الميزات.`)}`}
               target="_blank" 
               rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 w-full bg-white text-orange-600 px-8 py-3.5 rounded-2xl font-black text-sm hover:bg-orange-50 transition-all shadow-xl shadow-orange-900/10 hover:scale-105 active:scale-95"
+              className="flex items-center justify-center gap-2 w-full bg-white text-orange-600 px-8 py-4 rounded-2xl font-black text-sm hover:bg-orange-50 transition-all shadow-2xl hover:shadow-white/30 hover:scale-105 active:scale-95"
             >
-              <Zap className="w-4 h-4" />
+              <Zap className="w-5 h-5 fill-orange-600" />
               اشترك وافتح المنصة
             </a>
           </div>
         </div>
       )}
-
-      {/* ── XP & Level Card ─────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {/* XP Progress */}
-        <div className="sm:col-span-2 bg-white rounded-3xl border border-border p-5 shadow-sm">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-yellow-400 to-amber-500 rounded-2xl flex items-center justify-center shadow-md shadow-yellow-200">
-                <Star className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <p className="font-black text-base">المستوى {level}</p>
-                <p className="text-xs text-muted-foreground">{LEVEL_NAMES[level] || 'بطل'}</p>
-              </div>
-            </div>
-            <div className="text-right">
-              <p className="font-black text-xl text-primary">{xp} XP</p>
-              <p className="text-xs text-muted-foreground">{100 - xpInCurrentLevel} للمستوى القادم</p>
-            </div>
-          </div>
-          <div className="w-full bg-muted rounded-full h-3 overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-yellow-400 to-amber-500 rounded-full transition-all duration-700"
-              style={{ width: `${xpProgress}%` }}
-            />
-          </div>
-          <div className="flex justify-between text-[10px] text-muted-foreground mt-1.5 font-bold">
-            <span>المستوى {level}</span>
-            <span>{xpInCurrentLevel}/100</span>
-            <span>المستوى {level + 1}</span>
-          </div>
-        </div>
-
-        {/* Streak */}
-        <div className={`bg-white rounded-3xl border p-5 shadow-sm flex flex-col items-center justify-center gap-2 text-center
-          ${streak >= 3 ? 'border-amber-300 bg-gradient-to-br from-amber-50 to-orange-50' : 'border-border'}`}>
-          <div className={`text-4xl ${streak >= 3 ? 'animate-bounce' : ''}`}>
-            {streak >= 7 ? '🔥' : streak >= 3 ? '⚡' : '📅'}
-          </div>
-          <div className="font-black text-3xl text-amber-600">{streak}</div>
-          <div className="text-xs text-muted-foreground font-medium">يوم متتالي</div>
-          {streak >= 3 && (
-            <div className="text-[10px] bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full">
-              استمر! 🎯
-            </div>
-          )}
-        </div>
-      </div>
 
       {/* ── Quick Actions ────────────────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -219,8 +236,9 @@ export default async function StudentDashboardPage() {
           { href: '/student/exams',       icon: Target,   label: 'اختباراتي',    color: 'from-emerald-500 to-teal-600',   shadow: 'shadow-emerald-200' },
         ].map(({ href, icon: Icon, label, color, shadow }) => (
           <Link key={href} href={href}
-            className={`bg-gradient-to-br ${color} rounded-2xl p-4 text-white flex flex-col items-center gap-2 shadow-lg ${shadow} hover:scale-105 transition-transform active:scale-95`}>
-            <Icon className="w-6 h-6" />
+            className={`relative overflow-hidden bg-gradient-to-br ${color} rounded-2xl p-4 text-white flex flex-col items-center gap-2 shadow-lg ${shadow} hover:-translate-y-1.5 hover:shadow-2xl hover:scale-105 transition-all duration-300 active:scale-95 group/action`}>
+            <div className="absolute inset-0 bg-white/20 opacity-0 group-hover/action:opacity-100 transition-opacity" />
+            <Icon className="w-7 h-7 mb-1" />
             <span className="text-xs font-bold">{label}</span>
           </Link>
         ))}
@@ -254,7 +272,7 @@ export default async function StudentDashboardPage() {
                       const config = bloomLabels[stat.bloom_level] || { label: stat.bloom_level, icon: Target, color: 'bg-slate-500' }
                       const Icon = config.icon
                       return (
-                        <div key={stat.bloom_level} className="bg-slate-50 rounded-2xl p-4 border border-border/50 relative group hover:border-primary/30 transition-colors">
+                        <div key={stat.bloom_level} className="bg-white rounded-2xl p-4 border border-slate-100 relative group hover:border-primary/30 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
                           <div className="flex items-center gap-3 mb-3">
                             <div className={`w-8 h-8 rounded-lg ${config.color} flex items-center justify-center shadow-sm`}>
                               <Icon className="w-4 h-4 text-white" />
@@ -301,8 +319,9 @@ export default async function StudentDashboardPage() {
           {/* Practice + Errors nudge */}
           <div className="grid sm:grid-cols-2 gap-4">
             <Link href="/student/practice"
-              className="group rounded-3xl border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 to-violet-50 p-5 hover:border-indigo-400 hover:shadow-md transition-all">
-              <div className="flex items-center gap-4">
+              className="group relative overflow-hidden rounded-3xl border-2 border-indigo-100 bg-white p-5 hover:border-indigo-400 hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+              <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/50 to-violet-50/50 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="relative flex items-center gap-4">
                 <div className="w-12 h-12 rounded-2xl bg-indigo-100 flex items-center justify-center shrink-0">
                   <Dumbbell className="w-6 h-6 text-indigo-600" />
                 </div>
@@ -315,8 +334,9 @@ export default async function StudentDashboardPage() {
             </Link>
 
             <Link href="/student/practice/wrong-answers"
-              className="group rounded-3xl border-2 border-rose-200 bg-gradient-to-br from-rose-50 to-orange-50 p-5 hover:border-rose-400 hover:shadow-md transition-all">
-              <div className="flex items-center gap-4">
+              className="group relative overflow-hidden rounded-3xl border-2 border-rose-100 bg-white p-5 hover:border-rose-400 hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+              <div className="absolute inset-0 bg-gradient-to-br from-rose-50/50 to-orange-50/50 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="relative flex items-center gap-4">
                 <div className="relative w-12 h-12 rounded-2xl bg-rose-100 flex items-center justify-center shrink-0">
                   <AlertCircle className="w-6 h-6 text-rose-600" />
                   {(wrongAnswersCount || 0) > 0 && (
