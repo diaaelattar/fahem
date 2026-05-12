@@ -31,18 +31,18 @@ export default async function QuestionAuditPage({ searchParams }: { searchParams
     .select(`
       id, question_type, question_text, options, correct_answer, explanation,
       difficulty_level, bloom_level, is_approved, status, tags, created_at,
-      ai_audit_results,
       subjects(id, name_ar, icon),
       grades(id, name_ar),
       units(name_ar),
       lessons(name_ar)
     `)
     .order('created_at', { ascending: false })
-    .limit(100)
+    .limit(150)
 
-  if (tab === 'pending')    query = query.eq('is_approved', false).is('ai_audit_results', null)
-  if (tab === 'audited')    query = query.not('ai_audit_results', 'is', null).eq('is_approved', false)
+  if (tab === 'pending')    query = query.eq('is_approved', false)
   if (tab === 'approved')   query = query.eq('is_approved', true)
+  if (tab === 'review')     query = query.eq('status', 'review')
+
 
   if (searchParams.subject) query = query.eq('subject_id', searchParams.subject)
   if (searchParams.grade)   query = query.eq('grade_id', searchParams.grade)
@@ -53,19 +53,19 @@ export default async function QuestionAuditPage({ searchParams }: { searchParams
   const [
     { count: totalCount },
     { count: pendingCount },
-    { count: auditedCount },
+    { count: reviewCount },
     { count: approvedCount },
   ] = await Promise.all([
     supabase.from('questions').select('*', { count: 'exact', head: true }),
-    supabase.from('questions').select('*', { count: 'exact', head: true }).eq('is_approved', false).is('ai_audit_results', null),
-    supabase.from('questions').select('*', { count: 'exact', head: true }).not('ai_audit_results', 'is', null).eq('is_approved', false),
+    supabase.from('questions').select('*', { count: 'exact', head: true }).eq('is_approved', false),
+    supabase.from('questions').select('*', { count: 'exact', head: true }).eq('status', 'review'),
     supabase.from('questions').select('*', { count: 'exact', head: true }).eq('is_approved', true),
   ])
 
   const stats = {
-    total: totalCount || 0,
-    pending: pendingCount || 0,
-    audited: auditedCount || 0,
+    total:    totalCount || 0,
+    pending:  pendingCount || 0,
+    review:   reviewCount || 0,
     approved: approvedCount || 0,
   }
 
@@ -97,10 +97,10 @@ export default async function QuestionAuditPage({ searchParams }: { searchParams
       {/* ─── Stats Cards ─────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: 'إجمالي الأسئلة', value: stats.total, icon: HelpCircle, color: 'text-slate-600', bg: 'bg-slate-50', border: 'border-slate-200' },
-          { label: 'بانتظار التدقيق', value: stats.pending, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200' },
-          { label: 'تم تدقيقها (تنتظر القبول)', value: stats.audited, icon: Sparkles, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200' },
-          { label: 'معتمدة ومحققة', value: stats.approved, icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-200' },
+          { label: 'إجمالي الأسئلة',    value: stats.total,    icon: HelpCircle,    color: 'text-slate-600', bg: 'bg-slate-50', border: 'border-slate-200' },
+          { label: 'غير معتمد',          value: stats.pending,  icon: Clock,         color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200' },
+          { label: 'قيد المراجعة',       value: stats.review,   icon: Sparkles,      color: 'text-blue-600',  bg: 'bg-blue-50',  border: 'border-blue-200' },
+          { label: 'معتمد ومحقق',        value: stats.approved, icon: CheckCircle2,  color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-200' },
         ].map(({ label, value, icon: Icon, color, bg, border }) => (
           <div key={label} className={`${bg} border ${border} rounded-2xl p-4 flex items-center gap-4`}>
             <div className={`w-10 h-10 rounded-xl ${bg} border ${border} flex items-center justify-center shrink-0`}>

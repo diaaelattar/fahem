@@ -23,7 +23,7 @@ interface Props {
   subjects: any[]
   grades: any[]
   activeTab: string
-  stats: { total: number; pending: number; audited: number; approved: number }
+  stats: { total: number; pending: number; review: number; approved: number }
 }
 
 export function QuestionAuditCenter({ initialQuestions, subjects, grades, activeTab, stats }: Props) {
@@ -112,10 +112,10 @@ export function QuestionAuditCenter({ initialQuestions, subjects, grades, active
 
   // ── Tabs ─────────────────────────────────────────────────────────────────
   const tabs = [
-    { key: 'all',      label: 'جميع الأسئلة',         count: stats.total },
-    { key: 'pending',  label: 'بانتظار التدقيق',       count: stats.pending },
-    { key: 'audited',  label: 'مدقق (بانتظار القبول)', count: stats.audited },
-    { key: 'approved', label: 'معتمد',                 count: stats.approved },
+    { key: 'all',      label: 'جميع الأسئلة',     count: stats.total },
+    { key: 'pending',  label: 'غير معتمد',          count: stats.pending },
+    { key: 'review',   label: 'قيد المراجعة',       count: stats.review },
+    { key: 'approved', label: 'معتمد',              count: stats.approved },
   ]
 
   return (
