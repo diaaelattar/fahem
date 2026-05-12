@@ -23,33 +23,57 @@ const stripMathContent = (text: string): string => {
     .trim()
 }
 
+/** Check if text contains any Arabic character — used for short strings like subject names */
+const hasArabic = (text: string): boolean => /[\u0600-\u06FF]/.test(text)
+
 /**
- * Detect language direction from text by counting Arabic vs Latin characters.
- * Returns true (RTL) if Arabic chars make up ≥30% of all letter characters.
+ * Detect RTL from question text using ratio approach (for mixed-language math content).
+ * Strips math function names (sin, cos, log…) before counting characters.
+ * Returns true if Arabic chars ≥ 20% of remaining letter characters.
  */
-const detectIsRTL = (text: string): boolean | null => {
-  const cleaned = stripMathContent(text)
+const detectRTLFromQuestionText = (text: string): boolean | null => {
+  let cleaned = stripMathContent(text)
+  // Also strip common math English words that are NOT language indicators
+  cleaned = cleaned.replace(/\b(sin|cos|tan|log|ln|lim|max|min|mod|det|sec|csc|cot|exp|sqrt|deg|var|let|if|in|at|of|to|cm|mm|km|kg|mg)\b/gi, ' ')
   const arabicChars = (cleaned.match(/[\u0600-\u06FF]/g) || []).length
   const latinChars = (cleaned.match(/[a-zA-Z]/g) || []).length
   const total = arabicChars + latinChars
-  if (total < 3) return null // not enough data
-  return arabicChars / total >= 0.30
+  if (total < 5) return null // not enough meaningful data
+  return arabicChars / total >= 0.20
 }
 
 export function PrintExamClient({ exam, questions }: { exam: any, questions: any[] }) {
   const [showAnswers, setShowAnswers] = useState(false)
 
   // --- Determine text direction ---
-  // 1. Try subject name first
-  let isRTL = detectIsRTL(exam.subjects?.name_ar || '')
-  // 2. Fallback: try exam title
-  if (isRTL === null) isRTL = detectIsRTL(exam.title || '')
-  // 3. Fallback: sample first 3 questions' text (handles Math with Arabic sentences)
-  if (isRTL === null && questions.length > 0) {
-    const sampleText = questions.slice(0, 3).map((q: any) => q.question_text || '').join(' ')
-    isRTL = detectIsRTL(sampleText)
+  // 1. Subject name: any Arabic character = definitively RTL
+  const subjectName = exam.subjects?.name_ar || ''
+  const examTitle = exam.title || ''
+
+  let isRTL: boolean | null = null
+
+  if (hasArabic(subjectName)) {
+    isRTL = true   // e.g. "الرياضيات" → RTL ✓
+  } else if (subjectName.length > 1) {
+    isRTL = false  // e.g. "Mathematics" → LTR ✓
   }
-  // 4. Final fallback: default to RTL (Arabic-first platform)
+
+  // 2. Fallback to exam title (same logic)
+  if (isRTL === null) {
+    if (hasArabic(examTitle)) {
+      isRTL = true
+    } else if (examTitle.length > 1) {
+      isRTL = false
+    }
+  }
+
+  // 3. Fallback: sample first 5 questions' text with ratio check
+  if (isRTL === null && questions.length > 0) {
+    const sampleText = questions.slice(0, 5).map((q: any) => q.question_text || '').join(' ')
+    isRTL = detectRTLFromQuestionText(sampleText)
+  }
+
+  // 4. Final fallback: RTL (Arabic-first platform)
   if (isRTL === null) isRTL = true
 
   const dir = isRTL ? 'rtl' : 'ltr'
