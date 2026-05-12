@@ -4,8 +4,56 @@ import { useState } from 'react'
 import { Printer, Eye, EyeOff } from 'lucide-react'
 import { MathRenderer } from '@/components/ui/MathRenderer'
 
+/**
+ * Strip LaTeX blocks, math expressions, numbers, and operators from text
+ * so that only meaningful language characters remain for direction detection.
+ */
+const stripMathContent = (text: string): string => {
+  return text
+    // Remove LaTeX inline: \( ... \) and \[ ... \]
+    .replace(/\\[\[\(][\s\S]*?\\[\]\)]/g, ' ')
+    // Remove dollar-sign math: $...$ and $$...$$
+    .replace(/\$\$[\s\S]*?\$\$/g, ' ')
+    .replace(/\$[^$]*?\$/g, ' ')
+    // Remove common LaTeX commands
+    .replace(/\\[a-zA-Z]+\{[^}]*\}/g, ' ')
+    .replace(/\\[a-zA-Z]+/g, ' ')
+    // Remove digits, math operators, parentheses
+    .replace(/[0-9+\-*/=<>()\[\]{}^_.,%;:]/g, ' ')
+    .trim()
+}
+
+/**
+ * Detect language direction from text by counting Arabic vs Latin characters.
+ * Returns true (RTL) if Arabic chars make up ≥30% of all letter characters.
+ */
+const detectIsRTL = (text: string): boolean | null => {
+  const cleaned = stripMathContent(text)
+  const arabicChars = (cleaned.match(/[\u0600-\u06FF]/g) || []).length
+  const latinChars = (cleaned.match(/[a-zA-Z]/g) || []).length
+  const total = arabicChars + latinChars
+  if (total < 3) return null // not enough data
+  return arabicChars / total >= 0.30
+}
+
 export function PrintExamClient({ exam, questions }: { exam: any, questions: any[] }) {
   const [showAnswers, setShowAnswers] = useState(false)
+
+  // --- Determine text direction ---
+  // 1. Try subject name first
+  let isRTL = detectIsRTL(exam.subjects?.name_ar || '')
+  // 2. Fallback: try exam title
+  if (isRTL === null) isRTL = detectIsRTL(exam.title || '')
+  // 3. Fallback: sample first 3 questions' text (handles Math with Arabic sentences)
+  if (isRTL === null && questions.length > 0) {
+    const sampleText = questions.slice(0, 3).map((q: any) => q.question_text || '').join(' ')
+    isRTL = detectIsRTL(sampleText)
+  }
+  // 4. Final fallback: default to RTL (Arabic-first platform)
+  if (isRTL === null) isRTL = true
+
+  const dir = isRTL ? 'rtl' : 'ltr'
+  const textAlign = isRTL ? 'text-right' : 'text-left'
 
   const handlePrint = () => {
     window.print()
@@ -21,20 +69,30 @@ export function PrintExamClient({ exam, questions }: { exam: any, questions: any
     return acc
   }, {} as Record<string, any[]>)
 
-  const questionTypeTitles: Record<string, string> = {
-    mcq: 'اختر الإجابة الصحيحة (Choose the correct answer)',
-    true_false: 'ضع علامة (✓) أو (✗) (Put True or False)',
-    fill_blank: 'أكمل الفراغات الآتية (Fill in the blanks)',
-    correction: 'صوّب ما تحته خط (Correct the underlined)',
-    essay: 'أجب عن الأسئلة الآتية (Answer the following)',
+  const questionTypeTitlesAR: Record<string, string> = {
+    mcq: 'اختر الإجابة الصحيحة',
+    true_false: 'ضع علامة (✓) أو (✗)',
+    fill_blank: 'أكمل الفراغات الآتية',
+    correction: 'صوّب ما تحته خط',
+    essay: 'أجب عن الأسئلة الآتية',
   }
+
+  const questionTypeTitlesEN: Record<string, string> = {
+    mcq: 'Choose the Correct Answer',
+    true_false: 'Put True (✓) or False (✗)',
+    fill_blank: 'Fill in the Blanks',
+    correction: 'Correct the Underlined',
+    essay: 'Answer the Following Questions',
+  }
+
+  const questionTypeTitles = isRTL ? questionTypeTitlesAR : questionTypeTitlesEN
   
   // Ordered types
   const typeOrder = ['mcq', 'true_false', 'fill_blank', 'correction', 'essay']
   const activeGroups = typeOrder.filter(t => groupedQuestions[t] && groupedQuestions[t].length > 0)
 
   return (
-    <div className="min-h-screen bg-slate-100 p-8 print:p-0 print:bg-white" dir="rtl">
+    <div className="min-h-screen bg-slate-100 p-8 print:p-0 print:bg-white" dir={dir}>
       {/* Control Bar (Hidden in Print) */}
       <div className="max-w-4xl mx-auto bg-white p-4 rounded-xl shadow-sm mb-8 flex items-center justify-between print:hidden">
         <h2 className="font-bold text-slate-800">إعدادات الطباعة</h2>
@@ -85,12 +143,15 @@ export function PrintExamClient({ exam, questions }: { exam: any, questions: any
         <div className="p-8 space-y-12">
           {activeGroups.map((type, groupIdx) => {
             const groupQ = groupedQuestions[type]
-            const questionNumbers = ['السؤال الأول', 'السؤال الثاني', 'السؤال الثالث', 'السؤال الرابع', 'السؤال الخامس']
-            const groupTitle = `${questionNumbers[groupIdx] || `السؤال ${groupIdx + 1}`}: ${questionTypeTitles[type]}`
+            const questionNumbersAR = ['السؤال الأول', 'السؤال الثاني', 'السؤال الثالث', 'السؤال الرابع', 'السؤال الخامس']
+            const questionNumbersEN = ['Question One', 'Question Two', 'Question Three', 'Question Four', 'Question Five']
+            const questionNumbers = isRTL ? questionNumbersAR : questionNumbersEN
+            const fallbackLabel = isRTL ? `السؤال ${groupIdx + 1}` : `Question ${groupIdx + 1}`
+            const groupTitle = `${questionNumbers[groupIdx] || fallbackLabel}: ${questionTypeTitles[type]}`
 
             return (
               <div key={type} className="space-y-6">
-                <h3 className="font-bold text-xl text-slate-800 border-b-2 border-slate-800 pb-2 mb-6" dir="auto">
+                <h3 className={`font-bold text-xl text-slate-800 border-b-2 border-slate-800 pb-2 mb-6 ${textAlign}`} dir={dir}>
                   {groupTitle}
                 </h3>
                 <div className="space-y-8">
@@ -124,7 +185,7 @@ export function PrintExamClient({ exam, questions }: { exam: any, questions: any
 
               {/* Options for MCQ */}
               {q.question_type === 'mcq' && q.options && (
-                <div className="grid grid-cols-2 gap-y-3 gap-x-6 pr-6">
+                <div className={`grid grid-cols-2 gap-y-3 gap-x-6 ${isRTL ? 'pr-6' : 'pl-6'}`}>
                   {q.options.map((opt: string, oIdx: number) => {
                     const isCorrect = showAnswers && opt === q.correct_answer;
                     return (
@@ -141,7 +202,7 @@ export function PrintExamClient({ exam, questions }: { exam: any, questions: any
 
               {/* Text answer areas for non-MCQ */}
               {!showAnswers && q.question_type !== 'mcq' && (
-                <div className="mt-4 space-y-6 pr-6">
+                <div className={`mt-4 space-y-6 ${isRTL ? 'pr-6' : 'pl-6'}`}>
                   <div className="border-b border-slate-300 border-dotted w-full" />
                   <div className="border-b border-slate-300 border-dotted w-full" />
                 </div>
@@ -149,7 +210,7 @@ export function PrintExamClient({ exam, questions }: { exam: any, questions: any
 
               {/* Show Model Answer */}
               {showAnswers && (
-                <div className="mt-3 pr-6">
+                <div className={`mt-3 ${isRTL ? 'pr-6' : 'pl-6'}`}>
                   {q.question_type !== 'mcq' && (
                     <div className="bg-green-50 p-3 rounded border border-green-200 mb-2">
                       <span className="font-bold text-green-800 text-sm block mb-1">الإجابة الصحيحة:</span>
