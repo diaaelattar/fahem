@@ -10,7 +10,16 @@ export default async function AdminExamPreviewPage({ params }: { params: { id: s
   // جلب بيانات الاختبار
   const { data: exam } = await supabase
     .from('exams')
-    .select('id, title, duration_minutes, total_points, passing_score, show_results_immediately, instructions')
+    .select(`
+      id, 
+      title, 
+      duration_minutes, 
+      total_points, 
+      passing_score, 
+      show_results_immediately, 
+      instructions,
+      subjects (name_ar)
+    `)
     .eq('id', params.id)
     .single()
 

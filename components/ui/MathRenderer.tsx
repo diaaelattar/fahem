@@ -10,6 +10,7 @@ declare module 'react-katex';
 interface MathRendererProps {
   text: string
   className?: string
+  dir?: 'rtl' | 'ltr' | 'auto'
 }
 
 /**
@@ -20,7 +21,7 @@ interface MathRendererProps {
  * - \( ... \) for inline math
  * - Checks for common LaTeX patterns in case delimiters are missing (fallback)
  */
-export const MathRenderer: React.FC<MathRendererProps> = ({ text, className = '' }) => {
+export const MathRenderer: React.FC<MathRendererProps> = ({ text, className = '', dir }) => {
   if (!text) return null
 
   // دالة مساعدة لتقديم النصوص المنسقة (غامق، مائل، تحته خط) بأمان
@@ -50,7 +51,7 @@ export const MathRenderer: React.FC<MathRendererProps> = ({ text, className = ''
   const parts = text.split(regex).filter(part => part !== undefined)
 
   return (
-    <div className={`math-container text-start leading-relaxed ${className}`} dir="auto">
+    <div className={`math-container text-start leading-relaxed ${className}`} dir={dir ?? 'auto'}>
       {/* Fallback to hide MathML if global CSS has conflicts */}
       <style dangerouslySetInnerHTML={{ __html: `.katex-mathml { display: none !important; }` }} />
       {parts.map((part, index) => {

@@ -30,6 +30,45 @@ interface ExamData {
   passing_score: number | null
   show_results_immediately: boolean
   instructions: string | null
+  subjects?: { name_ar: string } | null
+}
+
+/**
+ * Strip LaTeX blocks, math expressions, numbers, and operators from text
+ * so that only meaningful language characters remain for direction detection.
+ */
+const stripMathContent = (text: string): string => {
+  return text
+    // Remove LaTeX inline: \( ... \) and \[ ... \]
+    .replace(/\\[\[\(][\s\S]*?\\[\]\)]/g, ' ')
+    // Remove dollar-sign math: $...$ and $$...$$
+    .replace(/\$\$[\s\S]*?\$\$/g, ' ')
+    .replace(/\$[^$]*?\$/g, ' ')
+    // Remove common LaTeX commands
+    .replace(/\\[a-zA-Z]+\{[^}]*\}/g, ' ')
+    .replace(/\\[a-zA-Z]+/g, ' ')
+    // Remove digits, math operators, parentheses
+    .replace(/[0-9+\-*/=<>()\[\]{}^_.,%;:]/g, ' ')
+    .trim()
+}
+
+/** Check if text contains any Arabic character — used for short strings like subject names */
+const hasArabic = (text: string): boolean => /[\u0600-\u06FF]/.test(text)
+
+/**
+ * Detect RTL from question text using ratio approach (for mixed-language math content).
+ * Strips math function names (sin, cos, log…) before counting characters.
+ * Returns true if Arabic chars ≥ 20% of remaining letter characters.
+ */
+const detectRTLFromQuestionText = (text: string): boolean | null => {
+  let cleaned = stripMathContent(text)
+  // Also strip common math English words that are NOT language indicators
+  cleaned = cleaned.replace(/\b(sin|cos|tan|log|ln|lim|max|min|mod|det|sec|csc|cot|exp|sqrt|deg|var|let|if|in|at|of|to|cm|mm|km|kg|mg)\b/gi, ' ')
+  const arabicChars = (cleaned.match(/[\u0600-\u06FF]/g) || []).length
+  const latinChars = (cleaned.match(/[a-zA-Z]/g) || []).length
+  const total = arabicChars + latinChars
+  if (total < 5) return null // not enough meaningful data
+  return arabicChars / total >= 0.20
 }
 
 export function ExamInterface({
@@ -57,6 +96,34 @@ export function ExamInterface({
     isSubmitting: storeSubmitting,
     clearSession 
   } = useExamStore()
+
+  // --- Determine text direction ---
+  const subjectName = exam.subjects?.name_ar || ''
+  const examTitle = exam.title || ''
+  let isRTL: boolean | null = null
+
+  if (hasArabic(subjectName)) {
+    isRTL = true   
+  } else if (subjectName.length > 1) {
+    isRTL = false  
+  }
+
+  if (isRTL === null) {
+    if (hasArabic(examTitle)) {
+      isRTL = true
+    } else if (examTitle.length > 1) {
+      isRTL = false
+    }
+  }
+
+  if (isRTL === null && questions.length > 0) {
+    const sampleText = questions.slice(0, 5).map((q: any) => q.question_text || '').join(' ')
+    isRTL = detectRTLFromQuestionText(sampleText)
+  }
+
+  if (isRTL === null) isRTL = true
+  const dir = isRTL ? 'rtl' : 'ltr'
+  const textAlign = isRTL ? 'text-right' : 'text-left'
 
   // Initialize store if empty
   useEffect(() => {
@@ -358,7 +425,7 @@ export function ExamInterface({
   }
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="max-w-3xl mx-auto" dir={dir}>
       {/* Confirmation Dialog */}
       {showConfirm && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
@@ -424,12 +491,13 @@ export function ExamInterface({
           {currentQ.context_passage && (
             <div className="mb-6 bg-indigo-50 border border-indigo-100 rounded-xl p-5 text-indigo-900 italic relative">
               <div className="absolute top-0 right-5 -translate-y-1/2 bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded-full shadow-sm">اقرأ القطعة التالية:</div>
-              <MathRenderer text={currentQ.context_passage} className="text-base" />
+              <MathRenderer text={currentQ.context_passage} className="text-base" dir={dir} />
             </div>
           )}
           <MathRenderer 
             text={(currentQ.question_text ?? '').replace(/^(\(?\d+[\)\.\-\s]\s*)/, '').trim()} 
-            className="text-xl font-medium leading-relaxed" 
+            className={`text-xl font-medium leading-relaxed ${textAlign}`}
+            dir={dir}
           />
           {currentQ.question_image_url && (
             <div className="mt-4 rounded-xl overflow-hidden border border-border bg-muted/30">
@@ -461,7 +529,7 @@ export function ExamInterface({
                   <span className="w-8 h-8 rounded-lg border-2 border-current flex items-center justify-center text-sm font-bold shrink-0">
                     {['أ', 'ب', 'ج', 'د'][i]}
                   </span>
-                  <MathRenderer text={opt} className="text-base" />
+                    <MathRenderer text={opt} className="text-base" dir={dir} />
                 </button>
               )
             })}
@@ -568,7 +636,7 @@ export function ExamInterface({
             {currentQ.explanation && (
               <div className="mt-3 pt-3 border-t border-current/10 text-sm">
                 <strong className="block mb-1">التفسير:</strong>
-                <MathRenderer text={currentQ.explanation} className="leading-relaxed" />
+                <MathRenderer text={currentQ.explanation} className="leading-relaxed" dir={dir} />
               </div>
             )}
 

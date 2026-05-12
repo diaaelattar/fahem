@@ -181,16 +181,16 @@ export function PrintExamClient({ exam, questions }: { exam: any, questions: any
                 <div className="space-y-8">
                   {groupQ.map((q: any, idx: number) => (
                     <div key={q.id} className="space-y-3 break-inside-avoid">
-              <div className="flex items-start gap-2">
+              <div className="flex items-start gap-2" dir={dir}>
                 <span className="font-bold shrink-0">{idx + 1}.</span>
-                <div className="flex-1">
+                <div className={`flex-1 ${textAlign}`}>
                   {q.context_passage && (
                     <div className="bg-slate-50 p-3 rounded mb-3 text-sm italic border border-slate-200">
-                      <MathRenderer text={q.context_passage} />
+                      <MathRenderer text={q.context_passage} dir={dir} />
                     </div>
                   )}
                   <div className="font-medium text-lg leading-relaxed">
-                    <MathRenderer text={q.question_text.replace(/^(\(?\d+[\)\.\-\s]\s*)/, '').trim()} />
+                    <MathRenderer text={q.question_text.replace(/^(\(?\d+[[\)\.\-\s]\s*)/, '').trim()} dir={dir} />
                   </div>
                   {q.question_image_url && (
                     <div className="mt-4 text-center">
@@ -217,7 +217,7 @@ export function PrintExamClient({ exam, questions }: { exam: any, questions: any
                         <div className={`w-4 h-4 rounded-full border border-slate-400 flex items-center justify-center shrink-0 ${isCorrect ? 'bg-green-100 border-green-600' : ''}`}>
                            {isCorrect && <div className="w-2 h-2 rounded-full bg-green-600" />}
                         </div>
-                        <MathRenderer text={opt} />
+                        <MathRenderer text={opt} dir={dir} />
                       </div>
                     )
                   })}
@@ -239,7 +239,7 @@ export function PrintExamClient({ exam, questions }: { exam: any, questions: any
                     <div className="bg-green-50 p-3 rounded border border-green-200 mb-2">
                       <span className="font-bold text-green-800 text-sm block mb-1">الإجابة الصحيحة:</span>
                       <div className="text-green-700 font-medium">
-                        <MathRenderer text={q.correct_answer} />
+                        <MathRenderer text={q.correct_answer} dir={dir} />
                       </div>
                     </div>
                   )}
@@ -247,7 +247,7 @@ export function PrintExamClient({ exam, questions }: { exam: any, questions: any
                     <div className="bg-blue-50 p-3 rounded border border-blue-200">
                       <span className="font-bold text-blue-800 text-sm block mb-1">التفسير:</span>
                       <div className="text-blue-700 text-sm">
-                        <MathRenderer text={q.explanation} />
+                        <MathRenderer text={q.explanation} dir={dir} />
                       </div>
                     </div>
                   )}
