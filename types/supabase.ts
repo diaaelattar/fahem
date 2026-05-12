@@ -151,6 +151,7 @@ export interface Database {
           lesson_id: number | null
           is_approved: boolean
           usage_count: number
+          ai_audit_results: Json | null
           created_at: string
           updated_at: string
         }

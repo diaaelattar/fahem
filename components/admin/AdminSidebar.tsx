@@ -4,15 +4,16 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useSidebar } from './SidebarContext'
 import {
-  Brain, LayoutDashboard, Upload, HelpCircle,
+  Brain, LayoutDashboard, Upload, HelpCircle, ShieldCheck,
   ClipboardList, BarChart3, Users, Settings, BookOpen, X
 } from 'lucide-react'
 
 const navItems = [
   { href: '/admin/dashboard', icon: LayoutDashboard, label: 'لوحة التحكم' },
   { href: '/admin/content',   icon: Upload,          label: 'رفع المحتوى' },
-  { href: '/admin/questions', icon: HelpCircle,       label: 'بنك الأسئلة' },
-  { href: '/admin/exams',     icon: ClipboardList,    label: 'الاختبارات' },
+  { href: '/admin/questions',       icon: HelpCircle,       label: 'بنك الأسئلة' },
+  { href: '/admin/questions/audit', icon: ShieldCheck,       label: 'مركز التدقيق' },
+  { href: '/admin/exams',           icon: ClipboardList,    label: 'الاختبارات' },
   { href: '/admin/students',  icon: Users,            label: 'الطلاب' },
   { href: '/admin/reports',   icon: BarChart3,        label: 'التقارير' },
 ]

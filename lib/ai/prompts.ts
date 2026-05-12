@@ -384,3 +384,59 @@ ${transcript.slice(0, 6000)}
   "recommended_question_types": ["mcq", "essay"]
 }
 `
+
+export const QUESTION_AUDIT_PROMPT = (q: {
+  question_type: string
+  question_text: string
+  options?: any
+  correct_answer: string
+  explanation?: string | null
+  difficulty_level?: string
+  bloom_level?: string
+  subject_name?: string
+  grade_name?: string
+}): string => {
+  const optText = q.options ? JSON.stringify(q.options, null, 2) : 'null'
+  const lines = [
+    '# دورك: خبير تدقيق أسئلة المناهج المصرية',
+    'أنت محكّم أكاديمي متخصص في المناهج المصرية. افحص السؤال التالي وأصدر تقريراً دقيقاً.',
+    '',
+    '## بيانات السؤال',
+    `- المادة: ${q.subject_name || 'غير محدد'}`,
+    `- الصف: ${q.grade_name || 'غير محدد'}`,
+    `- نوع السؤال: ${q.question_type}`,
+    `- نص السؤال: ${q.question_text}`,
+    `- الخيارات: ${optText}`,
+    `- الإجابة الصحيحة: ${q.correct_answer}`,
+    `- التفسير: ${q.explanation || 'لا يوجد'}`,
+    `- الصعوبة: ${q.difficulty_level || 'غير محدد'}`,
+    `- مستوى بلوم: ${q.bloom_level || 'غير محدد'}`,
+    '',
+    '## معايير التدقيق الإلزامية',
+    '1. الصحة العلمية: هل الإجابة صحيحة علمياً؟ في MCQ هل هناك إجابة واحدة فقط؟',
+    '2. جودة الصياغة: هل اللغة فصيحة وخالية من الأخطاء الإملائية والنحوية؟',
+    '3. تدقيق LaTeX: كل رمز رياضي يجب داخل $...$. الشرطة المائلة تكتب مضاعفة في JSON.',
+    '   - صحيح: $x^{2}$، $\\\\frac{a}{b}$، $\\\\sqrt{9}$',
+    '   - خاطئ: x2، a/b، √9 (بدون دولار)',
+    '4. التصنيف: حدد مستوى بلوم والصعوبة الفعليين، واقترح 3-5 أوسمة عربية.',
+    '',
+    '## المخرجات: كائن JSON صارم فقط، لا تكتب أي نص خارجه:',
+    '{',
+    '  "audit_status": "perfect",',
+    '  "issues_found": [],',
+    '  "suggestions": {',
+    '    "question_text": "النص المحسّن أو نفس النص إذا كان سليماً",',
+    '    "options": ["خيار1","خيار2","خيار3","خيار4"],',
+    '    "correct_answer": "الإجابة الصحيحة",',
+    '    "explanation": "شرح تفصيلي للإجابة",',
+    '    "difficulty_level": "easy",',
+    '    "bloom_level": "remember",',
+    '    "tags": ["وسم1","وسم2","وسم3"]',
+    '  },',
+    '  "scientific_accuracy_score": 95,',
+    '  "latex_compliance_score": 90',
+    '}',
+    'قواعد: audit_status = perfect/needs_fix/critical_error. options = null لغير MCQ.',
+  ]
+  return lines.join('\n')
+}
