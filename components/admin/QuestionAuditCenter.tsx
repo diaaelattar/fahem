@@ -4,7 +4,8 @@ import { useState, useMemo } from 'react'
 import { Wand2, CheckCircle2, AlertTriangle, Search, Loader2, RefreshCcw, Sparkles, ChevronDown, ChevronUp, XCircle, Filter } from 'lucide-react'
 import { MathRenderer } from '@/components/ui/MathRenderer'
 import { toast } from 'sonner'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useEffect } from 'react'
 
 const TYPE_AR: Record<string, string> = {
   mcq: 'اختيار متعدد', true_false: 'صح/خطأ', fill_blank: 'ملء فراغ', essay: 'مقالي', correction: 'تصحيح'
@@ -28,7 +29,13 @@ interface Props {
 
 export function QuestionAuditCenter({ initialQuestions, subjects, grades, activeTab, stats }: Props) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [questions, setQuestions] = useState(initialQuestions)
+
+  useEffect(() => {
+    setQuestions(initialQuestions)
+  }, [initialQuestions])
+
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [auditingIds, setAuditingIds] = useState<string[]>([])
   const [applyingIds, setApplyingIds] = useState<string[]>([])
@@ -36,8 +43,16 @@ export function QuestionAuditCenter({ initialQuestions, subjects, grades, active
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [bulkRunning, setBulkRunning] = useState(false)
   const [search, setSearch] = useState('')
-  const [filterSubject, setFilterSubject] = useState('')
-  const [filterGrade, setFilterGrade] = useState('')
+  
+  const filterSubject = searchParams.get('subject') || ''
+  const filterGrade = searchParams.get('grade') || ''
+
+  const handleFilterChange = (key: string, val: string) => {
+    const params = new URLSearchParams(searchParams.toString())
+    if (val) params.set(key, val)
+    else params.delete(key)
+    router.push(`/admin/questions/audit?${params.toString()}`)
+  }
 
   const filtered = useMemo(() => questions.filter(q => {
     if (search && !q.question_text.toLowerCase().includes(search.toLowerCase())) return false
@@ -154,7 +169,7 @@ export function QuestionAuditCenter({ initialQuestions, subjects, grades, active
         </div>
         <select
           value={filterSubject}
-          onChange={e => setFilterSubject(e.target.value)}
+          onChange={e => handleFilterChange('subject', e.target.value)}
           className="px-3 py-2 text-sm bg-slate-50 rounded-xl border-none focus:ring-2 focus:ring-violet-200 outline-none"
         >
           <option value="">جميع المواد</option>
@@ -162,7 +177,7 @@ export function QuestionAuditCenter({ initialQuestions, subjects, grades, active
         </select>
         <select
           value={filterGrade}
-          onChange={e => setFilterGrade(e.target.value)}
+          onChange={e => handleFilterChange('grade', e.target.value)}
           className="px-3 py-2 text-sm bg-slate-50 rounded-xl border-none focus:ring-2 focus:ring-violet-200 outline-none"
         >
           <option value="">جميع الصفوف</option>
@@ -300,7 +315,9 @@ export function QuestionAuditCenter({ initialQuestions, subjects, grades, active
                         {q.explanation && (
                           <div>
                             <p className="text-[10px] font-bold text-slate-400 mb-1 uppercase">التفسير</p>
-                            <p className="text-xs text-slate-600 italic leading-relaxed">{q.explanation}</p>
+                            <div className="text-xs text-slate-600 italic leading-relaxed">
+                              <MathRenderer text={q.explanation} />
+                            </div>
                           </div>
                         )}
                       </div>
@@ -388,9 +405,9 @@ export function QuestionAuditCenter({ initialQuestions, subjects, grades, active
 
                               <div>
                                 <p className="text-[10px] font-bold text-violet-500 mb-1 uppercase">التفسير المقترح</p>
-                                <p className="text-xs text-slate-700 bg-blue-50 p-3 rounded-lg border border-blue-100 leading-relaxed">
-                                  {result.suggestions.explanation}
-                                </p>
+                                <div className="text-xs text-slate-700 bg-blue-50 p-3 rounded-lg border border-blue-100 leading-relaxed">
+                                  <MathRenderer text={result.suggestions.explanation} />
+                                </div>
                               </div>
 
                               <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-100">
