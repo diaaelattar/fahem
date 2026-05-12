@@ -139,29 +139,49 @@ export function PrintExamClient({ exam, questions }: { exam: any, questions: any
       </div>
 
       {/* Print A4 Container */}
-      <div className="max-w-[210mm] mx-auto bg-white shadow-xl rounded-sm print:shadow-none print:rounded-none min-h-[297mm]">
-        {/* Exam Header */}
-        <div className="p-8 border-b-2 border-slate-800">
-          <div className="text-center space-y-2 mb-6">
-            <h1 className="text-2xl font-bold font-display">{exam.title}</h1>
-            <p className="text-slate-600 font-medium">
-              المادة: {exam.subjects?.name_ar} | الصف: {exam.grades?.name_ar}
-            </p>
-            <div className="flex items-center justify-center gap-6 text-sm font-bold text-slate-700 mt-2">
-              <span>الزمن: {exam.duration_minutes} دقيقة</span>
-              <span>الدرجة الكلية: {exam.total_points}</span>
-              <span>عدد الأسئلة: {exam.questions_count}</span>
+      <div className="max-w-[210mm] mx-auto bg-white shadow-xl min-h-[297mm] print:shadow-none print:w-full print:max-w-none print:m-0 relative">
+        {/* Frame for print */}
+        <div className="print:border-[3px] print:border-double print:border-slate-800 min-h-[297mm] m-4 print:m-0 print:p-2">
+          <div className="print:border print:border-slate-800 min-h-full">
+            {/* Exam Header - Official Style */}
+            <div className="p-6 border-b-4 border-double border-slate-800 flex justify-between items-start">
+              {/* Right Side (Arabic) */}
+              <div className="text-sm font-bold leading-relaxed text-slate-800 space-y-1">
+                <p>مديرية التربية والتعليم بـ .......................</p>
+                <p>إدارة ....................... التعليمية</p>
+                <p>مدرسة .......................</p>
+              </div>
+
+              {/* Center - Title */}
+              <div className="text-center space-y-3 flex-1 px-4">
+                <h1 className="text-3xl font-black text-slate-900 border-b-2 border-slate-800 inline-block pb-1 px-4">
+                  {exam.title}
+                </h1>
+                <p className="text-lg font-bold text-slate-800">
+                  المادة: {exam.subjects?.name_ar} | الصف: {exam.grades?.name_ar}
+                </p>
+              </div>
+
+              {/* Left Side (Student info box for print) */}
+              <div className="text-sm font-bold text-slate-800 border-2 border-slate-800 p-2 rounded-lg w-48 text-center space-y-2">
+                <p>الزمن: {exam.duration_minutes} دقيقة</p>
+                <p className="border-t border-slate-800 pt-1">الدرجة الكلية: {exam.total_points}</p>
+              </div>
             </div>
-          </div>
-          
-          {/* Student Name Box */}
-          {!showAnswers && (
-             <div className="flex items-center gap-4 mt-6">
-                <span className="font-bold">اسم الطالب: </span>
-                <div className="flex-1 border-b-2 border-slate-300 border-dotted" />
-             </div>
-          )}
-        </div>
+            
+            {/* Student Details Row */}
+            {!showAnswers && (
+              <div className="px-8 py-4 border-b-2 border-slate-800 flex items-center gap-6 bg-slate-50 print:bg-white text-base font-bold">
+                <div className="flex-1 flex items-center gap-2">
+                  <span>اسم الطالب: </span>
+                  <div className="flex-1 border-b-2 border-slate-400 border-dotted" />
+                </div>
+                <div className="w-48 flex items-center gap-2">
+                  <span>رقم الجلوس: </span>
+                  <div className="flex-1 border-b-2 border-slate-400 border-dotted" />
+                </div>
+              </div>
+            )}
 
         {/* Questions */}
         <div className="p-8 space-y-12">
@@ -226,9 +246,10 @@ export function PrintExamClient({ exam, questions }: { exam: any, questions: any
 
               {/* Text answer areas for non-MCQ */}
               {!showAnswers && q.question_type !== 'mcq' && (
-                <div className={`mt-4 space-y-6 ${isRTL ? 'pr-6' : 'pl-6'}`}>
-                  <div className="border-b border-slate-300 border-dotted w-full" />
-                  <div className="border-b border-slate-300 border-dotted w-full" />
+                <div className={`mt-6 space-y-8 ${isRTL ? 'pr-6' : 'pl-6'} mb-4`}>
+                  {Array.from({ length: q.question_type === 'essay' ? 8 : 2 }).map((_, i) => (
+                    <div key={i} className="border-b-2 border-slate-300 border-dashed w-full" />
+                  ))}
                 </div>
               )}
 
@@ -259,6 +280,8 @@ export function PrintExamClient({ exam, questions }: { exam: any, questions: any
               </div>
             )
           })}
+        </div>
+          </div>
         </div>
       </div>
     </div>
