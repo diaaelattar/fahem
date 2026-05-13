@@ -293,7 +293,27 @@ export function QuestionAuditCenter({ initialQuestions, subjects, grades, active
                       <div className="bg-white rounded-xl border border-slate-100 p-4 space-y-3 shadow-sm">
                         <div>
                           <p className="text-[10px] font-bold text-slate-400 mb-1 uppercase">نص السؤال</p>
-                          <MathRenderer text={q.question_text} className="text-sm leading-relaxed" />
+                          <div className={`flex ${
+                            q.image_position === 'top' ? 'flex-col-reverse' :
+                            q.image_position === 'right' ? 'flex-row-reverse gap-4 items-center' :
+                            q.image_position === 'left' ? 'flex-row gap-4 items-center' :
+                            'flex-col' // bottom (default)
+                          }`}>
+                            <div className="flex-1">
+                              <MathRenderer text={q.question_text} className="text-sm leading-relaxed" />
+                            </div>
+                            {q.question_image_url && (
+                              <div className={`rounded-lg overflow-hidden border border-slate-200 bg-slate-50 shrink-0 ${
+                                q.image_position === 'right' || q.image_position === 'left' ? 'w-1/3' : 'mt-2 w-full max-w-xs'
+                              }`}>
+                                <img
+                                  src={q.question_image_url}
+                                  alt="صورة السؤال"
+                                  className="w-full h-auto object-contain"
+                                />
+                              </div>
+                            )}
+                          </div>
                         </div>
                         {Array.isArray(q.options) && q.options.length > 0 && (
                           <div className="space-y-1.5">

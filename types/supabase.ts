@@ -139,6 +139,7 @@ export interface Database {
           question_type: QuestionType
           question_text: string
           question_image_url: string | null
+          image_position: 'top' | 'bottom' | 'right' | 'left' | null
           options: Json | null
           correct_answer: string
           explanation: string | null

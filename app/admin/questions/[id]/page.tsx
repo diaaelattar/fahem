@@ -41,6 +41,7 @@ export default function EditQuestionPage() {
     points: 1,
     is_approved: false,
     options: ['', '', '', ''] as string[],
+    image_position: 'bottom' as 'top' | 'bottom' | 'right' | 'left',
   })
 
   const [imageUrl, setImageUrl] = useState<string | null>(null)
@@ -72,6 +73,7 @@ export default function EditQuestionPage() {
           points: question.points || 1,
           is_approved: question.is_approved,
           options: question.options?.length ? question.options : ['', '', '', ''],
+          image_position: question.image_position || 'bottom',
         })
         setImageUrl(question.question_image_url || null)
       }
@@ -103,6 +105,7 @@ export default function EditQuestionPage() {
         points: formData.points,
         is_approved: formData.is_approved,
         options: formData.question_type === 'mcq' ? formData.options : null,
+        image_position: formData.image_position,
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)
@@ -376,6 +379,31 @@ export default function EditQuestionPage() {
                 </div>
               )}
             </div>
+            
+            <div className="mt-4 bg-muted/20 p-4 rounded-xl border border-border">
+               <label className="text-sm font-medium block mb-3">مكان الصورة بالنسبة للسؤال:</label>
+               <div className="flex flex-wrap gap-3">
+                 {[
+                   { value: 'bottom', label: 'أسفل النص (افتراضي)' },
+                   { value: 'top', label: 'أعلى النص' },
+                   { value: 'right', label: 'يمين النص' },
+                   { value: 'left', label: 'يسار النص' }
+                 ].map(pos => (
+                   <label key={pos.value} className="flex items-center gap-2 cursor-pointer bg-white px-3 py-2 rounded-lg border border-border hover:border-primary/40 transition-colors">
+                     <input
+                       type="radio"
+                       name="image_position"
+                       value={pos.value}
+                       checked={formData.image_position === pos.value}
+                       onChange={e => setFormData({ ...formData, image_position: e.target.value as any })}
+                       className="accent-primary"
+                     />
+                     <span className="text-sm">{pos.label}</span>
+                   </label>
+                 ))}
+               </div>
+            </div>
+          </>
           ) : (
             <button
               type="button"

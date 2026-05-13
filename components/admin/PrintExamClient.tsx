@@ -209,18 +209,27 @@ export function PrintExamClient({ exam, questions }: { exam: any, questions: any
                       <MathRenderer text={q.context_passage} dir={dir} />
                     </div>
                   )}
-                  <div className="font-medium text-lg leading-relaxed">
-                    <MathRenderer text={q.question_text.replace(/^(\(?\d+[[\)\.\-\s]\s*)/, '').trim()} dir={dir} />
-                  </div>
-                  {q.question_image_url && (
-                    <div className="mt-4 text-center">
-                      <img
-                        src={q.question_image_url}
-                        alt="صورة السؤال"
-                        className="max-h-48 object-contain inline-block border border-slate-200 rounded-lg shadow-sm"
-                      />
+                  <div className={`flex ${
+                    q.image_position === 'top' ? 'flex-col-reverse' :
+                    q.image_position === 'right' ? 'flex-row-reverse gap-6 items-start' :
+                    q.image_position === 'left' ? 'flex-row gap-6 items-start' :
+                    'flex-col' // bottom (default)
+                  }`}>
+                    <div className="flex-1 font-medium text-lg leading-relaxed">
+                      <MathRenderer text={q.question_text.replace(/^(\(?\d+[[\)\.\-\s]\s*)/, '').trim()} dir={dir} />
                     </div>
-                  )}
+                    {q.question_image_url && (
+                      <div className={`text-center shrink-0 ${
+                        q.image_position === 'right' || q.image_position === 'left' ? 'w-1/3' : 'mt-4 w-full'
+                      }`}>
+                        <img
+                          src={q.question_image_url}
+                          alt="صورة السؤال"
+                          className="max-h-48 object-contain inline-block border border-slate-200 rounded-lg shadow-sm"
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="shrink-0 text-sm font-bold text-slate-500 bg-slate-50 px-2 py-1 rounded">
                   ({q.points_override ?? q.points} درجات)

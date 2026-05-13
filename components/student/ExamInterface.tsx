@@ -15,6 +15,7 @@ interface Question {
   question_type: 'mcq' | 'true_false' | 'fill_blank' | 'essay' | 'correction'
   question_text: string
   question_image_url?: string | null
+  image_position?: 'top' | 'bottom' | 'right' | 'left' | null
   options: string[] | null
   correct_answer?: string
   explanation?: string
@@ -494,20 +495,33 @@ export function ExamInterface({
               <MathRenderer text={currentQ.context_passage} className="text-base" dir={dir} />
             </div>
           )}
-          <MathRenderer 
-            text={(currentQ.question_text ?? '').replace(/^(\(?\d+[\)\.\-\s]\s*)/, '').trim()} 
-            className={`text-xl font-medium leading-relaxed ${textAlign}`}
-            dir={dir}
-          />
-          {currentQ.question_image_url && (
-            <div className="mt-4 rounded-xl overflow-hidden border border-border bg-muted/30">
-              <img
-                src={currentQ.question_image_url}
-                alt="صورة السؤال"
-                className="w-full max-h-72 object-contain"
+          
+          <div className={`flex ${
+            currentQ.image_position === 'top' ? 'flex-col-reverse' :
+            currentQ.image_position === 'right' ? 'flex-row-reverse gap-6 items-center' :
+            currentQ.image_position === 'left' ? 'flex-row gap-6 items-center' :
+            'flex-col' // bottom (default)
+          }`}>
+            <div className="flex-1">
+              <MathRenderer 
+                text={(currentQ.question_text ?? '').replace(/^(\(?\d+[\)\.\-\s]\s*)/, '').trim()} 
+                className={`text-xl font-medium leading-relaxed ${textAlign}`}
+                dir={dir}
               />
             </div>
-          )}
+            
+            {currentQ.question_image_url && (
+              <div className={`rounded-xl overflow-hidden border border-border bg-muted/30 shrink-0 ${
+                currentQ.image_position === 'right' || currentQ.image_position === 'left' ? 'w-1/3' : 'mt-4 w-full'
+              }`}>
+                <img
+                  src={currentQ.question_image_url}
+                  alt="صورة السؤال"
+                  className="w-full max-h-72 object-contain"
+                />
+              </div>
+            )}
+          </div>
         </div>
 
         {/* MCQ Options */}
