@@ -122,7 +122,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'غير مصرح' }, { status: 401 })
     }
 
-    const { attemptId } = await req.json()
+    const body = await req.json()
+    const { attemptId, imageAnswers: clientImageAnswers } = body
     if (!attemptId) return NextResponse.json({ error: 'Missing attemptId' }, { status: 400 })
 
     // 1. Fetch Attempt
@@ -136,7 +137,27 @@ export async function POST(req: NextRequest) {
     if (attempt.completed_at) return NextResponse.json({ error: 'Already graded' }, { status: 400 })
 
     const examData = attempt.exams as any
-    const answers = attempt.answers as Record<string, string> || {}
+    const answers = (attempt.answers as Record<string, string>) || {}
+    // Image answers: either from client payload or from saved attempt
+    const imageAnswers: Record<string, string> = clientImageAnswers || (attempt as any).answer_images || {}
+
+    // Pre-load already-graded image answers from student_answers table
+    const { data: existingImageGrades } = await supabase
+      .from('student_answers')
+      .select('question_id, score_awarded, is_correct, teacher_feedback, grading_method')
+      .eq('attempt_id', attemptId)
+      .eq('grading_method', 'image')
+
+    const imageGradeMap: Record<string, { score_awarded: number; is_correct: boolean; teacher_feedback: string | null }> = {}
+    if (existingImageGrades) {
+      for (const row of existingImageGrades) {
+        imageGradeMap[row.question_id] = {
+          score_awarded: row.score_awarded || 0,
+          is_correct: row.is_correct || false,
+          teacher_feedback: row.teacher_feedback,
+        }
+      }
+    }
 
     // 2. Fetch Questions
     const { data: examQuestions } = await supabase
@@ -161,8 +182,20 @@ export async function POST(req: NextRequest) {
       let scoreAwarded = 0
       let aiFeedback = null
 
-      if (!studentAns) {
+      // Check if this question was answered via image upload
+      const hasImageAnswer = imageAnswers[q.id] || imageGradeMap[q.id]
+
+      if (!studentAns && !hasImageAnswer) {
         // Unanswered
+      } else if ((q.question_type === 'essay' || q.question_type === 'correction') && hasImageAnswer && imageGradeMap[q.id]) {
+        // ── Image-graded: use pre-saved vision AI result ──
+        const preGraded = imageGradeMap[q.id]
+        isCorrect = preGraded.is_correct
+        scoreAwarded = Math.min(qPoints, Math.max(0, preGraded.score_awarded))
+        aiFeedback = preGraded.teacher_feedback
+        // Skip adding to studentAnswersPayload (already saved by /api/ai/grade-image)
+        totalScore += scoreAwarded
+        continue
       } else if (q.question_type === 'mcq' || q.question_type === 'true_false') {
         // Exact Match
         if (studentAns.trim() === q.correct_answer?.trim()) {

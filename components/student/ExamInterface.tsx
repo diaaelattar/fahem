@@ -3,12 +3,13 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Clock, ChevronRight, ChevronLeft, CheckCircle, XCircle, Send, AlertTriangle } from 'lucide-react'
+import { Clock, ChevronRight, ChevronLeft, CheckCircle, XCircle, Send, AlertTriangle, Camera, Keyboard, Loader2, Eye } from 'lucide-react'
 import { MathRenderer } from '@/components/ui/MathRenderer'
 import { useExamStore } from '@/lib/store/exam-store'
 import { AIExplainButton } from '@/components/student/AIExplainButton'
 import { MathLiveInput } from '@/components/ui/MathLiveInput'
 import { Calculator } from 'lucide-react'
+import { HandwritingUploader } from '@/components/shared/HandwritingUploader'
 
 interface Question {
   id: string
@@ -139,10 +140,69 @@ export function ExamInterface({
   const [immediateFeedback, setImmediateFeedback] = useState<Record<string, boolean>>({})
   const [showMath, setShowMath] = useState(false)
 
+  // ── Image Answer State ──────────────────────────────
+  // 'text' = كتابة نصية، 'image' = رفع صورة
+  const [answerMode, setAnswerMode] = useState<Record<string, 'text' | 'image'>>({})
+  // imageAnswers: questionId → uploaded image URL
+  const [imageAnswers, setImageAnswers] = useState<Record<string, string>>({})
+  // AI vision grading state
+  const [visionGrading, setVisionGrading] = useState<Record<string, {
+    loading: boolean
+    result: { earned_score: number; feedback: string; extracted_text: string; is_correct: boolean } | null
+    error: string | null
+  }>>({})
+
   // Reset math mode when changing questions
   useEffect(() => {
     setShowMath(false)
   }, [currentIdx])
+
+  // Helper: get current answer mode for a question
+  const getMode = (qId: string) => answerMode[qId] || 'text'
+
+  // Handle image uploaded for a question
+  const handleImageUploaded = useCallback((qId: string, imageUrl: string, q: Question) => {
+    setImageAnswers(prev => ({ ...prev, [qId]: imageUrl }))
+    // Store a marker in answers so the question is counted as "answered"
+    setAnswer(qId, `[image:${imageUrl}]`)
+
+    // If practice mode: immediately run AI vision grading
+    if (exam.show_results_immediately && q.correct_answer) {
+      setVisionGrading(prev => ({ ...prev, [qId]: { loading: true, result: null, error: null } }))
+      fetch('/api/ai/grade-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          questionText: q.question_text,
+          idealAnswer: q.correct_answer,
+          imageUrl,
+          maxScore: q.points,
+          attemptId,
+          questionId: qId,
+        }),
+      })
+        .then(r => r.json())
+        .then(data => {
+          if (data.success) {
+            setVisionGrading(prev => ({ ...prev, [qId]: { loading: false, result: data, error: null } }))
+            setImmediateFeedback(prev => ({ ...prev, [qId]: true }))
+          } else {
+            setVisionGrading(prev => ({ ...prev, [qId]: { loading: false, result: null, error: data.error || 'فشل التقييم' } }))
+          }
+        })
+        .catch(err => {
+          setVisionGrading(prev => ({ ...prev, [qId]: { loading: false, result: null, error: err.message } }))
+        })
+    }
+  }, [exam.show_results_immediately, setAnswer, attemptId])
+
+  // Handle image removed
+  const handleImageRemoved = useCallback((qId: string) => {
+    setImageAnswers(prev => { const n = { ...prev }; delete n[qId]; return n })
+    setAnswer(qId, '')
+    setVisionGrading(prev => { const n = { ...prev }; delete n[qId]; return n })
+    setImmediateFeedback(prev => { const n = { ...prev }; delete n[qId]; return n })
+  }, [setAnswer])
 
   // Strip LaTeX, commas inside numbers (thousands only), extra spaces
   const normalizeMath = (text: string): string => {
@@ -281,14 +341,20 @@ export function ExamInterface({
     }
 
     try {
-      // 1. Save answers JSON for RPC grading
-      await supabase.from('exam_attempts').update({ answers }).eq('id', attemptId)
+      // 1. Save answers + image answer URLs together
+      const answersWithImages = { ...answers }
+      // Also save image URLs as a separate metadata key
+      const answersPayload = {
+        answers: answersWithImages,
+        answer_images: imageAnswers, // { questionId: imageUrl }
+      }
+      await supabase.from('exam_attempts').update(answersPayload).eq('id', attemptId)
 
       // 2. Grade Exam using AI Semantic Endpoint
       const res = await fetch('/api/exams/grade', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ attemptId })
+        body: JSON.stringify({ attemptId, imageAnswers })
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'فشل التقييم')
@@ -300,7 +366,7 @@ export function ExamInterface({
       alert('حدث خطأ أثناء تسليم الاختبار: ' + err.message)
       // We can't revert storeSubmitting easily without a custom action, but page refresh will reset if needed
     }
-  }, [answers, attemptId, exam.id, exam.passing_score, storeSubmitting, submitted, supabase, submitExam, clearSession, isPreview, questions, checkAnswer])
+  }, [answers, imageAnswers, attemptId, exam.id, exam.passing_score, storeSubmitting, submitted, supabase, submitExam, clearSession, isPreview, questions, checkAnswer])
 
   // Countdown timer
   useEffect(() => {
@@ -574,52 +640,166 @@ export function ExamInterface({
           </div>
         )}
 
-        {/* Fill Blank / Essay / Correction */}
-        {(currentQ.question_type === 'fill_blank' || currentQ.question_type === 'essay' || currentQ.question_type === 'correction') && (
+        {/* Fill Blank */}
+        {currentQ.question_type === 'fill_blank' && (
+          <div className="mt-4">
+            <input
+              type="text"
+              value={answers[currentQ.id] || ''}
+              onChange={e => handleAnswer(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && submitTextAnswer()}
+              disabled={exam.show_results_immediately && immediateFeedback[currentQ.id]}
+              placeholder="اكتب إجابتك هنا..."
+              className="w-full px-4 py-3 border-2 border-border rounded-xl focus:border-primary focus:outline-none transition-colors"
+              dir="ltr"
+            />
+            {exam.show_results_immediately && !immediateFeedback[currentQ.id] && answers[currentQ.id] && (
+              <button onClick={submitTextAnswer} className="mt-3 bg-primary text-white px-4 py-2 rounded-xl font-bold text-sm w-full sm:w-auto hover:bg-primary/90 transition-colors">
+                تحقق من الإجابة
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Essay / Correction — with handwriting image upload option */}
+        {(currentQ.question_type === 'essay' || currentQ.question_type === 'correction') && (
           <div className="mt-4 flex flex-col gap-3">
-            <div className="flex justify-end">
+
+            {/* Mode toggle: نص / صورة */}
+            <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-xl w-fit">
               <button
-                onClick={() => setShowMath(!showMath)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-colors border ${
-                  showMath ? 'bg-primary text-white border-primary' : 'bg-slate-50 text-slate-600 border-border hover:bg-slate-100'
+                onClick={() => setAnswerMode(prev => ({ ...prev, [currentQ.id]: 'text' }))}
+                disabled={exam.show_results_immediately && immediateFeedback[currentQ.id]}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  getMode(currentQ.id) === 'text'
+                    ? 'bg-white text-primary shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700'
                 }`}
               >
-                <Calculator className="w-4 h-4" />
-                {showMath ? 'إغلاق لوحة الرياضيات' : 'كتابة رموز رياضية'}
+                <Keyboard className="w-3.5 h-3.5" />
+                كتابة نصية
+              </button>
+              <button
+                onClick={() => setAnswerMode(prev => ({ ...prev, [currentQ.id]: 'image' }))}
+                disabled={exam.show_results_immediately && immediateFeedback[currentQ.id]}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  getMode(currentQ.id) === 'image'
+                    ? 'bg-white text-primary shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                <Camera className="w-3.5 h-3.5" />
+                صورة بخط اليد
               </button>
             </div>
 
-            {showMath ? (
-              <MathLiveInput
-                value={answers[currentQ.id] || ''}
-                onChange={val => handleAnswer(val)}
-                className="w-full text-left font-mono"
-              />
-            ) : currentQ.question_type === 'fill_blank' ? (
-              <input
-                type="text"
-                value={answers[currentQ.id] || ''}
-                onChange={e => handleAnswer(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && submitTextAnswer()}
-                disabled={exam.show_results_immediately && immediateFeedback[currentQ.id]}
-                placeholder="اكتب إجابتك هنا..."
-                className="w-full px-4 py-3 border-2 border-border rounded-xl focus:border-primary focus:outline-none transition-colors"
-                dir="ltr"
-              />
-            ) : (
-              <textarea
-                value={answers[currentQ.id] || ''}
-                onChange={e => handleAnswer(e.target.value)}
-                disabled={exam.show_results_immediately && immediateFeedback[currentQ.id]}
-                placeholder="اكتب إجابتك هنا بوضوح..."
-                className="w-full px-4 py-3 border-2 border-border rounded-xl focus:border-primary focus:outline-none transition-colors h-32 resize-none"
-                dir="auto"
-              />
+            {/* ─── Text mode ─── */}
+            {getMode(currentQ.id) === 'text' && (
+              <>
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => setShowMath(!showMath)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-colors border ${
+                      showMath ? 'bg-primary text-white border-primary' : 'bg-slate-50 text-slate-600 border-border hover:bg-slate-100'
+                    }`}
+                  >
+                    <Calculator className="w-4 h-4" />
+                    {showMath ? 'إغلاق لوحة الرياضيات' : 'كتابة رموز رياضية'}
+                  </button>
+                </div>
+
+                {showMath ? (
+                  <MathLiveInput
+                    value={(answers[currentQ.id] as string) || ''}
+                    onChange={val => handleAnswer(val)}
+                    className="w-full text-left font-mono"
+                  />
+                ) : (
+                  <textarea
+                    value={(answers[currentQ.id] as string)?.startsWith('[image:') ? '' : ((answers[currentQ.id] as string) || '')}
+                    onChange={e => handleAnswer(e.target.value)}
+                    disabled={exam.show_results_immediately && immediateFeedback[currentQ.id]}
+                    placeholder="اكتب إجابتك هنا بوضوح..."
+                    className="w-full px-4 py-3 border-2 border-border rounded-xl focus:border-primary focus:outline-none transition-colors h-36 resize-none"
+                    dir="auto"
+                  />
+                )}
+
+                {exam.show_results_immediately && !immediateFeedback[currentQ.id] && answers[currentQ.id] && (
+                  <button onClick={submitTextAnswer} className="bg-primary text-white px-4 py-2 rounded-xl font-bold text-sm w-full sm:w-auto hover:bg-primary/90 transition-colors">
+                    تحقق من الإجابة
+                  </button>
+                )}
+              </>
             )}
-            {exam.show_results_immediately && !immediateFeedback[currentQ.id] && answers[currentQ.id] && (
-               <button onClick={submitTextAnswer} className="mt-3 bg-primary text-white px-4 py-2 rounded-xl font-bold text-sm w-full sm:w-auto hover:bg-primary/90 transition-colors">
-                 تحقق من الإجابة
-               </button>
+
+            {/* ─── Image mode ─── */}
+            {getMode(currentQ.id) === 'image' && (
+              <>
+                <div className="text-xs text-muted-foreground bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-start gap-2">
+                  <span className="text-amber-500 text-base leading-none mt-0.5">💡</span>
+                  <span>اكتب الإجابة على ورقة بيضاء بخط واضح، ثم صوّرها بكاميرا هاتفك أو ارفعها من جهازك. سيقوم الذكاء الاصطناعي بقراءتها وتقييمها.</span>
+                </div>
+
+                <HandwritingUploader
+                  questionId={currentQ.id}
+                  attemptId={attemptId}
+                  existingImageUrl={imageAnswers[currentQ.id] || null}
+                  onImageUploaded={(url) => handleImageUploaded(currentQ.id, url, currentQ)}
+                  onImageRemoved={() => handleImageRemoved(currentQ.id)}
+                  disabled={exam.show_results_immediately && immediateFeedback[currentQ.id]}
+                />
+
+                {/* Vision grading loading */}
+                {visionGrading[currentQ.id]?.loading && (
+                  <div className="flex items-center gap-3 bg-primary/5 border border-primary/20 rounded-xl px-4 py-3">
+                    <Loader2 className="w-5 h-5 text-primary animate-spin shrink-0" />
+                    <div>
+                      <p className="text-sm font-bold text-primary">الذكاء الاصطناعي يقرأ إجابتك...</p>
+                      <p className="text-xs text-muted-foreground">يتم تحليل خط يدك وتقييم الحل</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Vision grading error */}
+                {visionGrading[currentQ.id]?.error && (
+                  <div className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                    ⚠️ {visionGrading[currentQ.id]?.error}
+                  </div>
+                )}
+
+                {/* Vision grading result (practice mode) */}
+                {visionGrading[currentQ.id]?.result && exam.show_results_immediately && (
+                  <div className={`p-4 rounded-xl border-2 ${
+                    visionGrading[currentQ.id]!.result!.is_correct
+                      ? 'bg-green-50 border-green-200'
+                      : 'bg-orange-50 border-orange-200'
+                  }`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className={`font-bold flex items-center gap-2 ${
+                        visionGrading[currentQ.id]!.result!.is_correct ? 'text-green-700' : 'text-orange-700'
+                      }`}>
+                        {visionGrading[currentQ.id]!.result!.is_correct
+                          ? <><CheckCircle className="w-5 h-5" /> ممتاز!</>
+                          : <><Eye className="w-5 h-5" /> راجع إجابتك</>
+                        }
+                      </h4>
+                      <span className={`text-lg font-black ${
+                        visionGrading[currentQ.id]!.result!.is_correct ? 'text-green-600' : 'text-orange-600'
+                      }`}>
+                        {visionGrading[currentQ.id]!.result!.earned_score}/{currentQ.points}
+                      </span>
+                    </div>
+                    {visionGrading[currentQ.id]!.result!.extracted_text && (
+                      <div className="text-xs text-slate-600 bg-white/60 rounded-lg px-3 py-2 mb-2">
+                        <span className="font-bold block mb-1">ما قرأه الذكاء الاصطناعي:</span>
+                        {visionGrading[currentQ.id]!.result!.extracted_text}
+                      </div>
+                    )}
+                    <p className="text-sm text-slate-700">{visionGrading[currentQ.id]!.result!.feedback}</p>
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}

@@ -6,6 +6,7 @@ import { requireAdmin } from '@/lib/auth/permissions'
 import { notFound } from 'next/navigation'
 import { ArrowRight, Users, TrendingUp, CheckCircle, XCircle, Clock, Award, BarChart3 } from 'lucide-react'
 import Link from 'next/link'
+import { HandwrittenGradingPanel } from '@/components/admin/HandwrittenGradingPanel'
 
 interface Props {
   params: { id: string }
@@ -248,6 +249,10 @@ export default async function ExamReportPage({ params }: Props) {
           <p className="text-muted-foreground text-sm">ستظهر نتائج الطلاب هنا بعد حل الاختبار</p>
         </div>
       )}
+      {/* صفحة تصحيح الإجابات المصوّرة */}
+      <div className="bg-white rounded-2xl border border-border p-6">
+        <HandwrittenGradingPanel examId={params.id} />
+      </div>
     </div>
   )
 }
