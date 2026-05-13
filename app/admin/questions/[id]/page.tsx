@@ -350,8 +350,9 @@ export default function EditQuestionPage() {
           </label>
 
           {imageUrl ? (
-            <div className="relative group rounded-xl overflow-hidden border border-border bg-muted/30">
-              <img
+            <>
+              <div className="relative group rounded-xl overflow-hidden border border-border bg-muted/30">
+                <img
                 src={imageUrl}
                 alt="صورة السؤال"
                 className="w-full max-h-64 object-contain p-2"
