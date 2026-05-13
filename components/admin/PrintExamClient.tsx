@@ -42,8 +42,10 @@ const detectRTLFromQuestionText = (text: string): boolean | null => {
   return arabicChars / total >= 0.20
 }
 
+export type AnswerMode = 'none' | 'short' | 'full';
+
 export function PrintExamClient({ exam, questions }: { exam: any, questions: any[] }) {
-  const [showAnswers, setShowAnswers] = useState(false)
+  const [answerMode, setAnswerMode] = useState<AnswerMode>('none')
 
   // --- Determine text direction ---
   // 1. Subject name: any Arabic character = definitively RTL
@@ -120,14 +122,27 @@ export function PrintExamClient({ exam, questions }: { exam: any, questions: any
       {/* Control Bar (Hidden in Print) */}
       <div className="max-w-4xl mx-auto bg-white p-4 rounded-xl shadow-sm mb-8 flex items-center justify-between print:hidden">
         <h2 className="font-bold text-slate-800">إعدادات الطباعة</h2>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-lg">
           <button 
-            onClick={() => setShowAnswers(!showAnswers)}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-lg text-sm font-bold transition-colors"
+            onClick={() => setAnswerMode('none')}
+            className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${answerMode === 'none' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
           >
-            {showAnswers ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            {showAnswers ? 'إخفاء نموذج الإجابة' : 'إظهار نموذج الإجابة'}
+            إخفاء الإجابات
           </button>
+          <button 
+            onClick={() => setAnswerMode('short')}
+            className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${answerMode === 'short' ? 'bg-indigo-100 text-indigo-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+          >
+            الحل المختصر
+          </button>
+          <button 
+            onClick={() => setAnswerMode('full')}
+            className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${answerMode === 'full' ? 'bg-green-100 text-green-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+          >
+            الحل الكامل
+          </button>
+        </div>
+        <div className="flex items-center gap-3">
           <button 
             onClick={handlePrint}
             className="flex items-center gap-2 px-6 py-2 bg-primary text-white hover:bg-primary/90 rounded-lg text-sm font-bold transition-colors shadow-sm"
@@ -170,7 +185,7 @@ export function PrintExamClient({ exam, questions }: { exam: any, questions: any
             </div>
             
             {/* Student Details Row */}
-            {!showAnswers && (
+            {answerMode === 'none' && (
               <div className="px-8 py-4 border-b-2 border-slate-800 flex items-center gap-6 bg-slate-50 print:bg-white text-base font-bold">
                 <div className="flex-1 flex items-center gap-2">
                   <span>اسم الطالب: </span>
@@ -237,24 +252,32 @@ export function PrintExamClient({ exam, questions }: { exam: any, questions: any
               </div>
 
               {/* Options for MCQ */}
-              {q.question_type === 'mcq' && q.options && (
-                <div className={`grid grid-cols-2 gap-y-3 gap-x-6 ${isRTL ? 'pr-6' : 'pl-6'}`}>
-                  {q.options.map((opt: string, oIdx: number) => {
-                    const isCorrect = showAnswers && opt === q.correct_answer;
-                    return (
-                      <div key={oIdx} className={`flex items-center gap-2 text-base ${isCorrect ? 'font-bold text-green-700' : ''}`}>
-                        <div className={`w-4 h-4 rounded-full border border-slate-400 flex items-center justify-center shrink-0 ${isCorrect ? 'bg-green-100 border-green-600' : ''}`}>
-                           {isCorrect && <div className="w-2 h-2 rounded-full bg-green-600" />}
+              {q.question_type === 'mcq' && q.options && (() => {
+                // Determine layout based on length
+                const maxLength = Math.max(...q.options.map((o: string) => o.length));
+                const gridCols = maxLength > 40 ? 'grid-cols-1' : maxLength > 15 ? 'grid-cols-2' : 'grid-cols-4';
+                
+                return (
+                  <div className={`grid ${gridCols} gap-y-3 gap-x-6 ${isRTL ? 'pr-6' : 'pl-6'}`}>
+                    {q.options.map((opt: string, oIdx: number) => {
+                      const isCorrect = answerMode !== 'none' && opt === q.correct_answer;
+                      return (
+                        <div key={oIdx} className={`flex items-start gap-2 text-base ${isCorrect ? 'font-bold text-green-700' : ''}`}>
+                          <div className={`mt-1 w-4 h-4 rounded-full border border-slate-400 flex items-center justify-center shrink-0 ${isCorrect ? 'bg-green-100 border-green-600' : ''}`}>
+                             {isCorrect && <div className="w-2 h-2 rounded-full bg-green-600" />}
+                          </div>
+                          <div className="flex-1">
+                            <MathRenderer text={opt} dir={dir} />
+                          </div>
                         </div>
-                        <MathRenderer text={opt} dir={dir} />
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
+                      )
+                    })}
+                  </div>
+                )
+              })()}
 
               {/* Text answer areas for non-MCQ */}
-              {!showAnswers && q.question_type !== 'mcq' && (
+              {answerMode === 'none' && q.question_type !== 'mcq' && (
                 <div className={`mt-6 space-y-8 ${isRTL ? 'pr-6' : 'pl-6'} mb-4`}>
                   {Array.from({ length: q.question_type === 'essay' ? 8 : 2 }).map((_, i) => (
                     <div key={i} className="border-b-2 border-slate-300 border-dashed w-full" />
@@ -263,17 +286,17 @@ export function PrintExamClient({ exam, questions }: { exam: any, questions: any
               )}
 
               {/* Show Model Answer */}
-              {showAnswers && (
-                <div className={`mt-3 ${isRTL ? 'pr-6' : 'pl-6'}`}>
+              {answerMode !== 'none' && (
+                <div className={`mt-3 space-y-2 ${isRTL ? 'pr-6' : 'pl-6'}`}>
                   {q.question_type !== 'mcq' && (
-                    <div className="bg-green-50 p-3 rounded border border-green-200 mb-2">
+                    <div className="bg-green-50 p-3 rounded border border-green-200">
                       <span className="font-bold text-green-800 text-sm block mb-1">الإجابة الصحيحة:</span>
                       <div className="text-green-700 font-medium">
                         <MathRenderer text={q.correct_answer} dir={dir} />
                       </div>
                     </div>
                   )}
-                  {q.explanation && (
+                  {answerMode === 'full' && q.explanation && (
                     <div className="bg-blue-50 p-3 rounded border border-blue-200">
                       <span className="font-bold text-blue-800 text-sm block mb-1">التفسير:</span>
                       <div className="text-blue-700 text-sm">
