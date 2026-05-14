@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Wand2, CheckCircle2, AlertTriangle, Search, Loader2, RefreshCcw, Sparkles, ChevronDown, ChevronUp, XCircle, Filter } from 'lucide-react'
+import { Wand2, CheckCircle2, AlertTriangle, Search, Loader2, RefreshCcw, Sparkles, ChevronDown, ChevronUp, XCircle, Filter, Pencil } from 'lucide-react'
 import { MathRenderer } from '@/components/ui/MathRenderer'
 import { toast } from 'sonner'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -43,6 +43,17 @@ export function QuestionAuditCenter({ initialQuestions, subjects, grades, active
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [bulkRunning, setBulkRunning] = useState(false)
   const [search, setSearch] = useState('')
+  const [editMode, setEditMode] = useState<Record<string, boolean>>({})
+
+  const updateSuggestion = (id: string, field: string, value: any) => {
+    setAuditResults(p => ({
+      ...p,
+      [id]: {
+        ...p[id],
+        suggestions: { ...p[id].suggestions, [field]: value }
+      }
+    }))
+  }
   
   const filterSubject = searchParams.get('subject') || ''
   const filterGrade = searchParams.get('grade') || ''
@@ -65,8 +76,18 @@ export function QuestionAuditCenter({ initialQuestions, subjects, grades, active
     setSelectedIds(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id])
 
   // ── Run single audit ───────────────────────────────────────────────────────
-  const runAudit = async (id: string): Promise<void> => {
+  const runAudit = async (id: string, force = false): Promise<void> => {
     if (auditingIds.includes(id)) return
+
+    if (!force) {
+      const q = questions.find(x => x.id === id)
+      if (q?.is_approved) {
+        if (!window.confirm('هذا السؤال معتمد وموثق مسبقاً. هل أنت متأكد أنك تريد إعادة تدقيقه واستهلاك رصيد الذكاء الاصطناعي؟')) {
+          return
+        }
+      }
+    }
+
     setAuditingIds(p => [...p, id])
     try {
       const res = await fetch('/api/admin/questions/audit', {
@@ -90,10 +111,18 @@ export function QuestionAuditCenter({ initialQuestions, subjects, grades, active
   // ── Bulk audit (sequential with 1s gap) ──────────────────────────────────
   const runBulkAudit = async () => {
     if (!selectedIds.length) return
+
+    const hasApproved = selectedIds.some(id => questions.find(q => q.id === id)?.is_approved)
+    if (hasApproved) {
+      if (!window.confirm('بعض الأسئلة المحددة معتمدة مسبقاً. هل تريد حقاً إعادة تدقيقها؟')) {
+        return
+      }
+    }
+
     setBulkRunning(true)
     let done = 0
     for (const id of selectedIds) {
-      await runAudit(id)
+      await runAudit(id, true) // pass force=true to bypass individual confirm
       done++
       toast.info(`التدقيق: ${done} / ${selectedIds.length}`)
       await new Promise(r => setTimeout(r, 1000))
@@ -404,31 +433,92 @@ export function QuestionAuditCenter({ initialQuestions, subjects, grades, active
 
                           {result.suggestions && (
                             <>
-                              <div>
-                                <p className="text-[10px] font-bold text-violet-500 mb-1 uppercase">النص المقترح</p>
-                                <div className="text-sm leading-relaxed bg-violet-50/50 p-3 rounded-lg border border-violet-100">
-                                  <MathRenderer text={result.suggestions.question_text} />
-                                </div>
-                              </div>
-
-                              {Array.isArray(result.suggestions.options) && (
-                                <div className="space-y-1.5">
-                                  <p className="text-[10px] font-bold text-violet-500 uppercase">الخيارات المقترحة</p>
-                                  {result.suggestions.options.map((opt: string, i: number) => (
-                                    <div key={i} className={`text-xs p-2 rounded-lg flex items-center gap-2 border ${opt === result.suggestions.correct_answer ? 'bg-green-100 border-green-300 font-bold text-green-900' : 'bg-slate-50 border-slate-100 text-slate-600'}`}>
-                                      <span className="w-5 h-5 bg-white border rounded flex items-center justify-center text-[10px] shrink-0">{['أ','ب','ج','د'][i]}</span>
-                                      <MathRenderer text={opt} />
+                              {editMode[q.id] ? (
+                                <div className="space-y-4 bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+                                  <div>
+                                    <label className="text-[10px] font-bold text-blue-600 mb-1 uppercase block">تعديل النص المقترح</label>
+                                    <textarea
+                                      value={result.suggestions.question_text}
+                                      onChange={e => updateSuggestion(q.id, 'question_text', e.target.value)}
+                                      className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-200 outline-none resize-y"
+                                      rows={3}
+                                    />
+                                    <div className="mt-1.5 p-2 bg-white rounded border border-slate-100 text-sm">
+                                      <MathRenderer text={result.suggestions.question_text} />
                                     </div>
-                                  ))}
-                                </div>
-                              )}
+                                  </div>
+                                  
+                                  {Array.isArray(result.suggestions.options) && (
+                                    <div className="space-y-2">
+                                      <label className="text-[10px] font-bold text-blue-600 uppercase block">تعديل الخيارات المقترحة</label>
+                                      {result.suggestions.options.map((opt: string, i: number) => (
+                                        <div key={i} className="flex gap-2">
+                                          <span className="w-8 h-8 bg-slate-100 border border-slate-200 rounded-lg flex items-center justify-center text-xs font-bold shrink-0">{['أ','ب','ج','د'][i]}</span>
+                                          <input
+                                            type="text"
+                                            value={opt}
+                                            onChange={e => {
+                                              const newOpts = [...result.suggestions.options];
+                                              newOpts[i] = e.target.value;
+                                              updateSuggestion(q.id, 'options', newOpts);
+                                            }}
+                                            className="flex-1 px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-200 outline-none font-mono"
+                                            dir="ltr"
+                                          />
+                                        </div>
+                                      ))}
+                                      <div className="pt-2">
+                                        <label className="text-[10px] font-bold text-green-600 mb-1 uppercase block">الإجابة الصحيحة المقترحة</label>
+                                        <input
+                                          type="text"
+                                          value={result.suggestions.correct_answer}
+                                          onChange={e => updateSuggestion(q.id, 'correct_answer', e.target.value)}
+                                          className="w-full px-3 py-1.5 text-sm border border-green-200 bg-green-50 rounded-lg focus:ring-2 focus:ring-green-400 outline-none font-mono text-green-800"
+                                          dir="ltr"
+                                        />
+                                      </div>
+                                    </div>
+                                  )}
 
-                              <div>
-                                <p className="text-[10px] font-bold text-violet-500 mb-1 uppercase">التفسير المقترح</p>
-                                <div className="text-xs text-slate-700 bg-blue-50 p-3 rounded-lg border border-blue-100 leading-relaxed">
-                                  <MathRenderer text={result.suggestions.explanation} />
+                                  <div>
+                                    <label className="text-[10px] font-bold text-blue-600 mb-1 uppercase block">تعديل التفسير المقترح</label>
+                                    <textarea
+                                      value={result.suggestions.explanation || ''}
+                                      onChange={e => updateSuggestion(q.id, 'explanation', e.target.value)}
+                                      className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-200 outline-none resize-y"
+                                      rows={3}
+                                    />
+                                  </div>
                                 </div>
-                              </div>
+                              ) : (
+                                <>
+                                  <div>
+                                    <p className="text-[10px] font-bold text-violet-500 mb-1 uppercase">النص المقترح</p>
+                                    <div className="text-sm leading-relaxed bg-violet-50/50 p-3 rounded-lg border border-violet-100">
+                                      <MathRenderer text={result.suggestions.question_text} />
+                                    </div>
+                                  </div>
+
+                                  {Array.isArray(result.suggestions.options) && (
+                                    <div className="space-y-1.5">
+                                      <p className="text-[10px] font-bold text-violet-500 uppercase">الخيارات المقترحة</p>
+                                      {result.suggestions.options.map((opt: string, i: number) => (
+                                        <div key={i} className={`text-xs p-2 rounded-lg flex items-center gap-2 border ${opt === result.suggestions.correct_answer ? 'bg-green-100 border-green-300 font-bold text-green-900' : 'bg-slate-50 border-slate-100 text-slate-600'}`}>
+                                          <span className="w-5 h-5 bg-white border rounded flex items-center justify-center text-[10px] shrink-0">{['أ','ب','ج','د'][i]}</span>
+                                          <MathRenderer text={opt} />
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+
+                                  <div>
+                                    <p className="text-[10px] font-bold text-violet-500 mb-1 uppercase">التفسير المقترح</p>
+                                    <div className="text-xs text-slate-700 bg-blue-50 p-3 rounded-lg border border-blue-100 leading-relaxed">
+                                      <MathRenderer text={result.suggestions.explanation} />
+                                    </div>
+                                  </div>
+                                </>
+                              )}
 
                               <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-100">
                                 <span className="text-[10px] px-2 py-1 rounded-full bg-purple-50 text-purple-700 font-bold">
@@ -453,6 +543,15 @@ export function QuestionAuditCenter({ initialQuestions, subjects, grades, active
                             >
                               {isApplying ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
                               اعتماد وتوثيق
+                            </button>
+                            <button
+                              onClick={() => setEditMode(p => ({ ...p, [q.id]: !p[q.id] }))}
+                              className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
+                                editMode[q.id] ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100'
+                              }`}
+                            >
+                              <Pencil className="w-4 h-4" />
+                              {editMode[q.id] ? 'إنهاء التعديل' : 'تعديل الاقتراح'}
                             </button>
                             <button
                               onClick={() => { setAuditResults(p => { const n = {...p}; delete n[q.id]; return n }); }}

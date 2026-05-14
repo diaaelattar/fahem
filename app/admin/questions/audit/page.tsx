@@ -24,7 +24,7 @@ export default async function QuestionAuditPage({ searchParams }: { searchParams
   ])
 
   // ── Fetch questions based on active tab ──────────────────────────────────
-  const tab = searchParams.tab || 'all'
+  const tab = searchParams.tab || 'pending'
 
   let query = supabase
     .from('questions')

@@ -59,10 +59,16 @@ export const MathRenderer: React.FC<MathRendererProps> = ({ text, className = ''
     });
   };
 
-  // Regex لتحديد كل أنواع محددات LaTeX الممكنة في مجموعة التقاط واحدة لتجنب تكرار الأجزاء
-  // استخدمنا [\s\S] بدلاً من . لدعم الأسطر الجديدة داخل المعادلات
-  // تم استبعاد $ من التقاط الأقواس العادية لمنعها من التهام المعادلات المعرفة بـ $
-  const regex = /(\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\]|\$[\s\S]*?\$|\\\([\s\S]*?\\\)|\(\s*[^$\)]*?[\=\>\<:\^\_\\][^$\)]*?\)|\(\s*[^$\)]*?\.\.\.[^$\)]*?\))/g
+  // Regex لتحديد كل أنواع محددات LaTeX الممكنة بالإضافة إلى الأنماط الرياضية غير المحاطة بمحددات
+  // 1. $$...$$
+  // 2. \[...\]
+  // 3. $...$
+  // 4. \(...\)
+  // 5. (...) تحتوي على رموز رياضية مثل =, >, <, ^, _
+  // 6. (...) تحتوي على ...
+  // 7. (...) تحتوي على أرقام وحروف إنجليزية وعلامات فقط (مثل الأزواج المرتبة (2, 5) أو الكسور (2.5))
+  // 8. الحروف الإنجليزية الفردية المستقلة (مثل X أو Y)
+  const regex = /(\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\]|\$[\s\S]*?\$|\\\([\s\S]*?\\\)|\(\s*[^$\)]*?[\=\>\<:\^\_\\][^$\)]*?\)|\(\s*[^$\)]*?\.\.\.[^$\)]*?\)|\(\s*[-+]?[a-zA-Z0-9\s\.\,\+\-\*\/]+\s*\)|\b[a-zA-Z]\b)/g
   const parts = text.split(regex).filter(part => part !== undefined)
 
   return (
@@ -81,17 +87,19 @@ export const MathRenderer: React.FC<MathRendererProps> = ({ text, className = ''
           if (math.startsWith('$$') && math.endsWith('$$')) {
              return <div key={index} className="my-2 overflow-x-auto" dir="ltr"><BlockMath math={math.slice(2, -2).trim()} /></div>
           }
-          if (math.startsWith('\\[') && math.endsWith('\\]')) {
+          else if (math.startsWith('\\[') && math.endsWith('\\]')) {
              return <div key={index} className="my-2 overflow-x-auto" dir="ltr"><BlockMath math={math.slice(2, -2).trim()} /></div>
           }
-          if (math.startsWith('\\(') && math.endsWith('\\)')) {
+          else if (math.startsWith('\\(') && math.endsWith('\\)')) {
              return <span key={index} className="inline-block px-1 align-middle" dir="ltr"><InlineMath math={math.slice(2, -2).trim()} /></span>
           }
-          if (math.startsWith('$') && math.endsWith('$')) {
+          else if (math.startsWith('$') && math.endsWith('$')) {
              return <span key={index} className="inline-block px-1 align-middle" dir="ltr"><InlineMath math={math.slice(1, -1).trim()} /></span>
           }
-          if (math.startsWith('(') && math.endsWith(')')) {
-             return <span key={index} className="inline-block px-1 align-middle" dir="ltr"><InlineMath math={math.slice(1, -1).trim()} /></span>
+          else {
+             // الأنماط الأخرى المكتشفة تلقائياً (مثل الأقواس التي تحتوي أرقام أو الحروف الفردية)
+             // نمررها مباشرة لـ KaTeX مع الاحتفاظ بالأقواس لضمان عدم انعكاسها في الـ RTL
+             return <span key={index} className="inline-block px-1 align-middle" dir="ltr"><InlineMath math={math.trim()} /></span>
           }
         }
 
