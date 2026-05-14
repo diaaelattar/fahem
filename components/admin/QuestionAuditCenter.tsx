@@ -375,38 +375,71 @@ export function QuestionAuditCenter({ initialQuestions, subjects, grades, active
                     {/* Right: AI Suggestion */}
                     <div className="space-y-3">
                       <h4 className="text-xs font-black uppercase tracking-widest text-violet-500 flex items-center gap-2">
-                        <Sparkles className="w-3.5 h-3.5" /> اقتراح Gemini
+                        {result?.audit_status === 'manual_edit' ? (
+                          <><Pencil className="w-3.5 h-3.5" /> تعديل يدوي</>
+                        ) : (
+                          <><Sparkles className="w-3.5 h-3.5" /> اقتراح Gemini</>
+                        )}
                       </h4>
 
                       {!result ? (
                         <div className="bg-white border-2 border-dashed border-violet-200 rounded-xl p-8 text-center flex flex-col items-center">
                           <Wand2 className="w-12 h-12 text-violet-200 mb-3" />
                           <p className="text-sm text-slate-400 mb-4">اضغط «تدقيق ذكي» لتحليل هذا السؤال</p>
-                          <button
-                            onClick={() => runAudit(q.id)}
-                            disabled={isAuditing}
-                            className="bg-violet-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-violet-700 transition-all disabled:opacity-50"
-                          >
-                            {isAuditing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
-                            تشغيل التدقيق الذكي
-                          </button>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => runAudit(q.id)}
+                              disabled={isAuditing}
+                              className="bg-violet-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-violet-700 transition-all disabled:opacity-50"
+                            >
+                              {isAuditing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
+                              تشغيل التدقيق الذكي
+                            </button>
+                            <button
+                              onClick={() => {
+                                setAuditResults(p => ({
+                                  ...p,
+                                  [q.id]: {
+                                    audit_status: 'manual_edit',
+                                    issues_found: [],
+                                    suggestions: {
+                                      question_text: q.question_text,
+                                      options: Array.isArray(q.options) ? [...q.options] : [],
+                                      correct_answer: q.correct_answer,
+                                      explanation: q.explanation || '',
+                                      difficulty_level: q.difficulty_level || 'medium',
+                                      bloom_level: q.bloom_level || 'understand'
+                                    }
+                                  }
+                                }));
+                                setEditMode(p => ({ ...p, [q.id]: true }));
+                              }}
+                              disabled={isAuditing}
+                              className="bg-slate-100 text-slate-700 border border-slate-200 px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-slate-200 transition-all"
+                            >
+                              <Pencil className="w-4 h-4" />
+                              تعديل يدوي مباشر
+                            </button>
+                          </div>
                         </div>
                       ) : (
                         <div className="bg-white rounded-xl border-2 border-violet-200 p-4 space-y-4 shadow-md">
                           {/* Scores */}
-                          <div className="flex gap-3">
-                            {[
-                              { label: 'دقة علمية', val: result.scientific_accuracy_score },
-                              { label: 'LaTeX', val: result.latex_compliance_score }
-                            ].map(({ label, val }) => (
-                              <div key={label} className="flex-1 bg-slate-50 rounded-xl p-3 text-center border border-slate-100">
-                                <p className={`text-2xl font-black ${(val ?? 0) >= 80 ? 'text-green-600' : (val ?? 0) >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
-                                  {val ?? '—'}
-                                </p>
-                                <p className="text-[10px] text-slate-500 mt-0.5">{label}</p>
-                              </div>
-                            ))}
-                          </div>
+                          {result.audit_status !== 'manual_edit' && (
+                            <div className="flex gap-3">
+                              {[
+                                { label: 'دقة علمية', val: result.scientific_accuracy_score },
+                                { label: 'LaTeX', val: result.latex_compliance_score }
+                              ].map(({ label, val }) => (
+                                <div key={label} className="flex-1 bg-slate-50 rounded-xl p-3 text-center border border-slate-100">
+                                  <p className={`text-2xl font-black ${(val ?? 0) >= 80 ? 'text-green-600' : (val ?? 0) >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
+                                    {val ?? '—'}
+                                  </p>
+                                  <p className="text-[10px] text-slate-500 mt-0.5">{label}</p>
+                                </div>
+                              ))}
+                            </div>
+                          )}
 
                           {/* Issues */}
                           {result.issues_found?.length > 0 && (
