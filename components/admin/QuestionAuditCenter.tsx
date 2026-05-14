@@ -578,7 +578,26 @@ export function QuestionAuditCenter({ initialQuestions, subjects, grades, active
                               اعتماد وتوثيق
                             </button>
                             <button
-                              onClick={() => setEditMode(p => ({ ...p, [q.id]: !p[q.id] }))}
+                              onClick={() => {
+                                if (!result.suggestions) {
+                                  // Fallback to original question data if AI didn't provide suggestions
+                                  setAuditResults(p => ({
+                                    ...p,
+                                    [q.id]: {
+                                      ...p[q.id],
+                                      suggestions: {
+                                        question_text: q.question_text,
+                                        options: Array.isArray(q.options) ? [...q.options] : [],
+                                        correct_answer: q.correct_answer,
+                                        explanation: q.explanation || '',
+                                        difficulty_level: q.difficulty_level || 'medium',
+                                        bloom_level: q.bloom_level || 'understand'
+                                      }
+                                    }
+                                  }));
+                                }
+                                setEditMode(p => ({ ...p, [q.id]: !p[q.id] }))
+                              }}
                               className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
                                 editMode[q.id] ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100'
                               }`}
