@@ -76,10 +76,10 @@ export function QuestionAuditCenter({ initialQuestions, subjects, grades, active
     setSelectedIds(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id])
 
   // ── Run single audit ───────────────────────────────────────────────────────
-  const runAudit = async (id: string, force = false): Promise<void> => {
+  const runAudit = async (id: string, force = false, overrideText?: string): Promise<void> => {
     if (auditingIds.includes(id)) return
 
-    if (!force) {
+    if (!force && !overrideText) {
       const q = questions.find(x => x.id === id)
       if (q?.is_approved) {
         if (!window.confirm('هذا السؤال معتمد وموثق مسبقاً. هل أنت متأكد أنك تريد إعادة تدقيقه واستهلاك رصيد الذكاء الاصطناعي؟')) {
@@ -93,7 +93,7 @@ export function QuestionAuditCenter({ initialQuestions, subjects, grades, active
       const res = await fetch('/api/admin/questions/audit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ questionId: id }),
+        body: JSON.stringify({ questionId: id, overrideText }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'فشل التدقيق')
@@ -476,8 +476,19 @@ export function QuestionAuditCenter({ initialQuestions, subjects, grades, active
                                       className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-200 outline-none resize-y"
                                       rows={3}
                                     />
-                                    <div className="mt-1.5 p-2 bg-white rounded border border-slate-100 text-sm">
-                                      <MathRenderer text={result.suggestions.question_text} />
+                                    <div className="flex items-center justify-between gap-2 mt-1.5">
+                                      <div className="flex-1 p-2 bg-white rounded border border-slate-100 text-sm overflow-x-auto">
+                                        <MathRenderer text={result.suggestions.question_text} />
+                                      </div>
+                                      <button
+                                        onClick={() => runAudit(q.id, true, result.suggestions.question_text)}
+                                        disabled={isAuditing}
+                                        className="shrink-0 bg-violet-100 text-violet-700 px-3 py-2 rounded-lg text-xs font-bold hover:bg-violet-200 transition-all flex items-center gap-1 disabled:opacity-50"
+                                        title="إعادة التقييم وتوليد الخيارات والإجابة الصحيحة بناءً على هذا النص الجديد"
+                                      >
+                                        {isAuditing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                                        توليد الإجابة للنص الجديد
+                                      </button>
                                     </div>
                                   </div>
                                   

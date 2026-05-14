@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     if (profile?.role !== 'admin')
       return NextResponse.json({ error: 'للمديرين فقط' }, { status: 403 })
 
-    const { questionId } = await request.json()
+    const { questionId, overrideText } = await request.json()
     if (!questionId)
       return NextResponse.json({ error: 'رقم السؤال مطلوب' }, { status: 400 })
 
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
 
     const prompt = QUESTION_AUDIT_PROMPT({
       question_type:   q.question_type,
-      question_text:   q.question_text,
+      question_text:   overrideText && overrideText.trim() ? overrideText.trim() : q.question_text,
       options:         q.options,
       correct_answer:  q.correct_answer,
       explanation:     q.explanation,
