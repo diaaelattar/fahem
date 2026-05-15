@@ -72,7 +72,7 @@ export const MathRenderer: React.FC<MathRendererProps> = ({ text, className = ''
   const parts = text.split(regex).filter(part => part !== undefined)
 
   return (
-    <div className={`math-container text-start leading-relaxed ${className}`} dir={dir ?? 'auto'}>
+    <div className={`math-container text-start leading-relaxed whitespace-pre-wrap ${className}`} dir={dir ?? 'auto'}>
       {/* Fallback to hide MathML if global CSS has conflicts */}
       <style dangerouslySetInnerHTML={{ __html: `.katex-mathml { display: none !important; }` }} />
       {parts.map((part, index) => {

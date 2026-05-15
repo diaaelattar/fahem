@@ -214,16 +214,22 @@ export function PrintExamClient({ exam, questions }: { exam: any, questions: any
                   {groupTitle}
                 </h3>
                 <div className="space-y-8">
-                  {groupQ.map((q: any, idx: number) => (
-                    <div key={q.id} className="space-y-3 break-inside-avoid">
-              <div className="flex items-start gap-2" dir={dir}>
-                <span className="font-bold shrink-0">{idx + 1}.</span>
-                <div className={`flex-1 ${textAlign}`}>
-                  {q.context_passage && (
-                    <div className="bg-slate-50 p-3 rounded mb-3 text-sm italic border border-slate-200">
-                      <MathRenderer text={q.context_passage} dir={dir} />
-                    </div>
-                  )}
+                  {groupQ.map((q: any, idx: number) => {
+                    const isSameContext = idx > 0 && q.context_passage && q.context_passage === groupQ[idx - 1].context_passage;
+
+                    return (
+                      <div key={q.id} className="space-y-3 break-inside-avoid">
+                        {/* Print Passage only once for the group */}
+                        {q.context_passage && !isSameContext && (
+                          <div className="bg-slate-50 p-4 rounded-xl mb-6 text-base font-medium leading-loose border-2 border-slate-300 w-full" dir={dir}>
+                            <h4 className="font-bold text-slate-800 mb-2 border-b border-slate-200 pb-1 w-max">اقرأ الفقرة التالية ثم أجب عن الأسئلة:</h4>
+                            <MathRenderer text={q.context_passage} dir={dir} />
+                          </div>
+                        )}
+
+                        <div className="flex items-start gap-2" dir={dir}>
+                          <span className="font-bold shrink-0">{idx + 1}.</span>
+                          <div className={`flex-1 ${textAlign}`}>
                   <div className={`flex ${
                     q.image_position === 'top' ? 'flex-col-reverse' :
                     q.image_position === 'right' ? 'flex-row-reverse gap-6 items-start' :
