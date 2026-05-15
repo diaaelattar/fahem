@@ -88,13 +88,6 @@ export function PrintExamClient({ exam, questions }: { exam: any, questions: any
   // To fix LaTeX math rendering, we rely on the global MathJax script loaded in layout
   // and the dangerouslySetInnerHTML works with it.
 
-  // Group questions by type
-  const groupedQuestions = questions.reduce((acc, q) => {
-    if (!acc[q.question_type]) acc[q.question_type] = []
-    acc[q.question_type].push(q)
-    return acc
-  }, {} as Record<string, any[]>)
-
   const questionTypeTitlesAR: Record<string, string> = {
     mcq: 'اختر الإجابة الصحيحة',
     true_false: 'ضع علامة (✓) أو (✗)',
@@ -112,10 +105,42 @@ export function PrintExamClient({ exam, questions }: { exam: any, questions: any
   }
 
   const questionTypeTitles = isRTL ? questionTypeTitlesAR : questionTypeTitlesEN
-  
-  // Ordered types
+
+  // ── Group by type, then within each type group by context_passage ──────────
+  // This produces "passage blocks" inside each type section.
+  interface PassageBlock {
+    passage: string | null
+    questions: any[]
+  }
+
   const typeOrder = ['mcq', 'true_false', 'fill_blank', 'correction', 'essay']
-  const activeGroups = typeOrder.filter(t => groupedQuestions[t] && groupedQuestions[t].length > 0)
+
+  // Build type → PassageBlock[] map
+  const groupedByType: Record<string, PassageBlock[]> = {}
+
+  for (const q of questions) {
+    const t = q.question_type
+    if (!groupedByType[t]) groupedByType[t] = []
+
+    const blocks = groupedByType[t]
+    const lastBlock = blocks[blocks.length - 1]
+    const passage = q.context_passage || null
+
+    // Append to last block if same passage, otherwise start a new block
+    if (lastBlock && lastBlock.passage === passage) {
+      lastBlock.questions.push(q)
+    } else {
+      // Check if a block with this passage already exists (non-adjacent)
+      const existing = blocks.find(b => b.passage === passage)
+      if (existing) {
+        existing.questions.push(q)
+      } else {
+        blocks.push({ passage, questions: [q] })
+      }
+    }
+  }
+
+  const activeGroups = typeOrder.filter(t => groupedByType[t] && groupedByType[t].length > 0)
 
   return (
     <div className="min-h-screen bg-slate-100 p-8 print:p-0 print:bg-white" dir={dir}>
@@ -201,117 +226,116 @@ export function PrintExamClient({ exam, questions }: { exam: any, questions: any
         {/* Questions */}
         <div className="p-8 space-y-12">
           {activeGroups.map((type, groupIdx) => {
-            const groupQ = groupedQuestions[type]
+            const blocks = groupedByType[type]
             const questionNumbersAR = ['السؤال الأول', 'السؤال الثاني', 'السؤال الثالث', 'السؤال الرابع', 'السؤال الخامس']
             const questionNumbersEN = ['Question One', 'Question Two', 'Question Three', 'Question Four', 'Question Five']
             const questionNumbers = isRTL ? questionNumbersAR : questionNumbersEN
             const fallbackLabel = isRTL ? `السؤال ${groupIdx + 1}` : `Question ${groupIdx + 1}`
             const groupTitle = `${questionNumbers[groupIdx] || fallbackLabel}: ${questionTypeTitles[type]}`
 
+            // Flat sequential numbering across all blocks in this type
+            let qCounter = 0
+
             return (
               <div key={type} className="space-y-6">
                 <h3 className={`font-bold text-xl text-slate-800 border-b-2 border-slate-800 pb-2 mb-6 ${textAlign}`} dir={dir}>
                   {groupTitle}
                 </h3>
+
                 <div className="space-y-8">
-                  {groupQ.map((q: any, idx: number) => {
-                    const isSameContext = idx > 0 && q.context_passage && q.context_passage === groupQ[idx - 1].context_passage;
+                  {blocks.map((block, blockIdx) => (
+                    <div key={blockIdx} className="space-y-4">
 
-                    return (
-                      <div key={q.id} className="space-y-3 break-inside-avoid">
-                        {/* Print Passage only once for the group */}
-                        {q.context_passage && !isSameContext && (
-                          <div className="bg-slate-50 p-4 rounded-xl mb-6 text-base font-medium leading-loose border-2 border-slate-300 w-full" dir={dir}>
-                            <h4 className="font-bold text-slate-800 mb-2 border-b border-slate-200 pb-1 w-max">اقرأ الفقرة التالية ثم أجب عن الأسئلة:</h4>
-                            <MathRenderer text={q.context_passage} dir={dir} />
-                          </div>
-                        )}
-
-                        <div className="flex items-start gap-2" dir={dir}>
-                          <span className="font-bold shrink-0">{idx + 1}.</span>
-                          <div className={`flex-1 ${textAlign}`}>
-                  <div className={`flex ${
-                    q.image_position === 'top' ? 'flex-col-reverse' :
-                    q.image_position === 'right' ? 'flex-row-reverse gap-6 items-start' :
-                    q.image_position === 'left' ? 'flex-row gap-6 items-start' :
-                    'flex-col' // bottom (default)
-                  }`}>
-                    <div className="flex-1 font-medium text-lg leading-relaxed">
-                      <MathRenderer text={q.question_text.replace(/^(\(?\d+[[\)\.\-\s]\s*)/, '').trim()} dir={dir} />
-                    </div>
-                    {q.question_image_url && (
-                      <div className={`text-center shrink-0 ${
-                        q.image_position === 'right' || q.image_position === 'left' ? 'w-1/3' : 'mt-4 w-full'
-                      }`}>
-                        <img
-                          src={q.question_image_url}
-                          alt="صورة السؤال"
-                          className="max-h-48 object-contain inline-block border border-slate-200 rounded-lg shadow-sm"
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div className="shrink-0 text-sm font-bold text-slate-500 bg-slate-50 px-2 py-1 rounded">
-                  ({q.points_override ?? q.points} درجات)
-                </div>
-              </div>
-
-              {/* Options for MCQ */}
-              {q.question_type === 'mcq' && q.options && (() => {
-                // Determine layout based on length
-                const maxLength = Math.max(...q.options.map((o: string) => o.length));
-                const gridCols = maxLength > 40 ? 'grid-cols-1' : maxLength > 15 ? 'grid-cols-2' : 'grid-cols-4';
-                
-                return (
-                  <div className={`grid ${gridCols} gap-y-3 gap-x-6 ${isRTL ? 'pr-6' : 'pl-6'}`}>
-                    {q.options.map((opt: string, oIdx: number) => {
-                      const isCorrect = answerMode !== 'none' && opt === q.correct_answer;
-                      return (
-                        <div key={oIdx} className={`flex items-start gap-2 text-base ${isCorrect ? 'font-bold text-green-700' : ''}`}>
-                          <div className={`mt-1 w-4 h-4 rounded-full border border-slate-400 flex items-center justify-center shrink-0 ${isCorrect ? 'bg-green-100 border-green-600' : ''}`}>
-                             {isCorrect && <div className="w-2 h-2 rounded-full bg-green-600" />}
-                          </div>
-                          <div className="flex-1">
-                            <MathRenderer text={opt} dir={dir} />
-                          </div>
+                      {/* ── Passage Block: shown ONCE per unique passage ── */}
+                      {block.passage && (
+                        <div className="bg-amber-50 border-2 border-amber-300 rounded-xl p-5 mb-4 break-inside-avoid" dir={dir}>
+                          <p className="font-bold text-amber-900 text-sm mb-3 border-b border-amber-300 pb-2">
+                            {isRTL ? 'اقرأ النص التالي ثم أجب عن الأسئلة:' : 'Read the following passage then answer the questions:'}
+                          </p>
+                          <MathRenderer text={block.passage} dir={dir} />
                         </div>
-                      )
-                    })}
-                  </div>
-                )
-              })()}
+                      )}
 
-              {/* Text answer areas for non-MCQ */}
-              {answerMode === 'none' && q.question_type !== 'mcq' && (
-                <div className={`mt-6 space-y-8 ${isRTL ? 'pr-6' : 'pl-6'} mb-4`}>
-                  {Array.from({ length: q.question_type === 'essay' ? 8 : 2 }).map((_, i) => (
-                    <div key={i} className="border-b-2 border-slate-300 border-dashed w-full" />
-                  ))}
-                </div>
-              )}
+                      {/* ── Questions under this passage ── */}
+                      {block.questions.map((q: any) => {
+                        qCounter++
+                        const num = qCounter
+                        return (
+                          <div key={q.id} className={`space-y-3 break-inside-avoid ${block.passage ? 'pr-4 border-r-2 border-amber-200' : ''}`}>
+                            <div className="flex items-start gap-2" dir={dir}>
+                              <span className="font-bold shrink-0 text-lg">{num}.</span>
+                              <div className={`flex-1 ${textAlign}`}>
+                                <div className={`flex ${
+                                  q.image_position === 'top' ? 'flex-col-reverse' :
+                                  q.image_position === 'right' ? 'flex-row-reverse gap-6 items-start' :
+                                  q.image_position === 'left' ? 'flex-row gap-6 items-start' :
+                                  'flex-col'
+                                }`}>
+                                  <div className="flex-1 font-medium text-lg leading-relaxed">
+                                    <MathRenderer text={q.question_text.replace(/^(\(?\d+[[\)\.\-\s]\s*)/, '').trim()} dir={dir} />
+                                  </div>
+                                  {q.question_image_url && (
+                                    <div className={`text-center shrink-0 ${q.image_position === 'right' || q.image_position === 'left' ? 'w-1/3' : 'mt-4 w-full'}`}>
+                                      <img src={q.question_image_url} alt="صورة السؤال" className="max-h-48 object-contain inline-block border border-slate-200 rounded-lg shadow-sm" />
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="shrink-0 text-sm font-bold text-slate-500 bg-slate-50 px-2 py-1 rounded">
+                                ({q.points_override ?? q.points} درجات)
+                              </div>
+                            </div>
 
-              {/* Show Model Answer */}
-              {answerMode !== 'none' && (
-                <div className={`mt-3 space-y-2 ${isRTL ? 'pr-6' : 'pl-6'}`}>
-                  {q.question_type !== 'mcq' && (
-                    <div className="bg-green-50 p-3 rounded border border-green-200">
-                      <span className="font-bold text-green-800 text-sm block mb-1">الإجابة الصحيحة:</span>
-                      <div className="text-green-700 font-medium">
-                        <MathRenderer text={q.correct_answer} dir={dir} />
-                      </div>
-                    </div>
-                  )}
-                  {answerMode === 'full' && q.explanation && (
-                    <div className="bg-blue-50 p-3 rounded border border-blue-200">
-                      <span className="font-bold text-blue-800 text-sm block mb-1">التفسير:</span>
-                      <div className="text-blue-700 text-sm">
-                        <MathRenderer text={q.explanation} dir={dir} />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
+                            {/* MCQ Options */}
+                            {q.question_type === 'mcq' && q.options && (() => {
+                              const maxLength = Math.max(...q.options.map((o: string) => o.length))
+                              const gridCols = maxLength > 40 ? 'grid-cols-1' : maxLength > 15 ? 'grid-cols-2' : 'grid-cols-4'
+                              return (
+                                <div className={`grid ${gridCols} gap-y-3 gap-x-6 ${isRTL ? 'pr-6' : 'pl-6'}`}>
+                                  {q.options.map((opt: string, oIdx: number) => {
+                                    const isCorrect = answerMode !== 'none' && opt === q.correct_answer
+                                    return (
+                                      <div key={oIdx} className={`flex items-start gap-2 text-base ${isCorrect ? 'font-bold text-green-700' : ''}`}>
+                                        <div className={`mt-1 w-4 h-4 rounded-full border border-slate-400 flex items-center justify-center shrink-0 ${isCorrect ? 'bg-green-100 border-green-600' : ''}`}>
+                                          {isCorrect && <div className="w-2 h-2 rounded-full bg-green-600" />}
+                                        </div>
+                                        <div className="flex-1"><MathRenderer text={opt} dir={dir} /></div>
+                                      </div>
+                                    )
+                                  })}
+                                </div>
+                              )
+                            })()}
+
+                            {/* Answer lines */}
+                            {answerMode === 'none' && q.question_type !== 'mcq' && (
+                              <div className={`mt-6 space-y-8 ${isRTL ? 'pr-6' : 'pl-6'} mb-4`}>
+                                {Array.from({ length: q.question_type === 'essay' ? 8 : 2 }).map((_, i) => (
+                                  <div key={i} className="border-b-2 border-slate-300 border-dashed w-full" />
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Model Answer */}
+                            {answerMode !== 'none' && (
+                              <div className={`mt-3 space-y-2 ${isRTL ? 'pr-6' : 'pl-6'}`}>
+                                {q.question_type !== 'mcq' && (
+                                  <div className="bg-green-50 p-3 rounded border border-green-200">
+                                    <span className="font-bold text-green-800 text-sm block mb-1">الإجابة الصحيحة:</span>
+                                    <div className="text-green-700 font-medium"><MathRenderer text={q.correct_answer} dir={dir} /></div>
+                                  </div>
+                                )}
+                                {answerMode === 'full' && q.explanation && (
+                                  <div className="bg-blue-50 p-3 rounded border border-blue-200">
+                                    <span className="font-bold text-blue-800 text-sm block mb-1">التفسير:</span>
+                                    <div className="text-blue-700 text-sm"><MathRenderer text={q.explanation} dir={dir} /></div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
                     </div>
                   ))}
                 </div>
