@@ -166,7 +166,12 @@ export default function LoginPage() {
               </div>
               
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1.5">كلمة المرور</label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-sm font-bold text-slate-700">كلمة المرور</label>
+                  <Link href="/auth/forgot-password" className="text-xs font-bold text-primary hover:underline">
+                    نسيت كلمة المرور؟
+                  </Link>
+                </div>
                 <div className="relative">
                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                     <Lock className="h-5 w-5 text-slate-400" />
