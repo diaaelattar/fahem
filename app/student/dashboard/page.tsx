@@ -3,7 +3,7 @@ import { requireStudent } from '@/lib/auth/permissions'
 import {
   ClipboardList, TrendingUp, Clock, Award, ArrowLeft,
   Zap, Sparkles, Dumbbell, AlertCircle, Swords, Trophy,
-  Flame, Star, Target, Layers, Lightbulb, PenTool, Search, Gauge, BrainCircuit
+  Flame, Star, Target, Layers, Lightbulb, PenTool, Search, Gauge, BrainCircuit, Crown
 } from 'lucide-react'
 import PerformanceChart from '@/components/student/PerformanceChart'
 import Link from 'next/link'
@@ -59,6 +59,17 @@ export default async function StudentDashboardPage() {
     .eq('status', 'completed')
     .order('completed_at', { ascending: false })
     .limit(3)
+
+  // Fetch active subscription
+  const { data: subscription } = await supabase
+    .from('student_subscriptions')
+    .select('*, subscription_plans(name_ar)')
+    .eq('student_id', profile.id)
+    .eq('status', 'active')
+    .gte('end_date', new Date().toISOString())
+    .order('end_date', { ascending: false })
+    .limit(1)
+    .single()
 
   // Fetch Bloom's Taxonomy Stats
   const { data: bloomStats } = await (supabase.rpc as any)('get_student_bloom_stats', { p_student_id: profile.id })
@@ -197,8 +208,24 @@ export default async function StudentDashboardPage() {
         )}
       </section>
 
-      {/* ── VIP Promotional Banner ──────────────────────────────────────── */}
-      {!profile.is_premium && (
+      {/* ── VIP Promotional Banner & Subscription Status ────────────────── */}
+      {subscription ? (
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-emerald-500 to-teal-600 p-6 text-white shadow-xl shadow-emerald-500/20 flex flex-col md:flex-row items-center justify-between gap-6 mb-8 hover:shadow-emerald-500/30 transition-shadow">
+          <div className="absolute right-0 top-0 opacity-10 mix-blend-overlay">
+            <Sparkles className="w-64 h-64 -mr-16 -mt-16 animate-pulse" style={{ animationDuration: '4s' }} />
+          </div>
+          <div className="relative z-10 flex-1 text-center md:text-right">
+            <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm border border-white/30 rounded-full px-4 py-1.5 text-xs font-bold mb-3 shadow-sm">
+              <Crown className="w-4 h-4 text-yellow-300" />
+              أنت مشترك VIP
+            </div>
+            <h3 className="text-2xl md:text-3xl font-black mb-2 tracking-tight">باقتك الحالية: {(subscription.subscription_plans as any)?.name_ar}</h3>
+            <p className="text-emerald-50 text-sm opacity-95 max-w-lg leading-relaxed font-medium">
+              صلاحية اشتراكك مستمرة حتى {new Date(subscription.end_date).toLocaleDateString('ar-EG')}. استمر في التفوق واستمتع بجميع مميزات المنصة!
+            </p>
+          </div>
+        </div>
+      ) : (
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 p-6 text-white shadow-xl shadow-orange-500/20 flex flex-col md:flex-row items-center justify-between gap-6 mb-8 hover:shadow-orange-500/30 transition-shadow">
           <div className="absolute right-0 top-0 opacity-10 mix-blend-overlay">
             <Star className="w-64 h-64 -mr-16 -mt-16 animate-pulse" style={{ animationDuration: '3s' }} />
@@ -214,15 +241,13 @@ export default async function StudentDashboardPage() {
             </p>
           </div>
           <div className="relative z-10 shrink-0 w-full md:w-auto">
-            <a 
-              href={`https://wa.me/201118209309?text=${encodeURIComponent(`السلام عليكم، أنا الطالب/ة ${profile.full_name}. أرغب في الاشتراك في باقة VIP لمنصة استباق التعليمية لتفعيل جميع الميزات.`)}`}
-              target="_blank" 
-              rel="noopener noreferrer"
+            <Link 
+              href="/student/premium"
               className="flex items-center justify-center gap-2 w-full bg-white text-orange-600 px-8 py-4 rounded-2xl font-black text-sm hover:bg-orange-50 transition-all shadow-2xl hover:shadow-white/30 hover:scale-105 active:scale-95"
             >
-              <Zap className="w-5 h-5 fill-orange-600" />
+              <Crown className="w-5 h-5 text-orange-600" />
               اشترك وافتح المنصة
-            </a>
+            </Link>
           </div>
         </div>
       )}
