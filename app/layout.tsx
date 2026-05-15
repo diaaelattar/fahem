@@ -21,6 +21,7 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl">
       <head>
+        <meta name="google-site-verification" content="zqZ6-Q1PFmR2Kv8oKfm_-OFt54IiZclnALL2o44lE6o" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
