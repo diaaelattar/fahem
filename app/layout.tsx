@@ -1,7 +1,11 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import 'katex/dist/katex.min.css'
 import { Toaster } from 'sonner'
+
+export const viewport: Viewport = {
+  themeColor: '#1B4F72',
+}
 
 export const metadata: Metadata = {
   title: 'استباق مصر | منصة التدريب والتحديات الذكي',
@@ -10,7 +14,6 @@ export const metadata: Metadata = {
   authors: [{ name: 'Istabaq Egypt' }],
   manifest: '/manifest.json',
   appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'استباق' },
-  themeColor: '#1B4F72',
 }
 
 export default function RootLayout({

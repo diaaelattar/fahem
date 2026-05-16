@@ -28,6 +28,7 @@ export interface Database {
           avatar_url: string | null
           role: Role
           is_active: boolean
+          is_premium: boolean | null
           created_at: string
           updated_at: string
         }
@@ -212,9 +213,63 @@ export interface Database {
           feedback: Json
           attempt_number: number
           ip_address: string | null
+          answers_viewed_at: string | null
         }
         Insert: Omit<Database['public']['Tables']['exam_attempts']['Row'], 'id' | 'started_at'>
         Update: Partial<Database['public']['Tables']['exam_attempts']['Insert']>
+      }
+      system_settings: {
+        Row: {
+          id: number
+          free_exam_limit: number
+          enable_exam_limit: boolean
+          updated_at: string
+        }
+        Insert: Omit<Database['public']['Tables']['system_settings']['Row'], 'id'>
+        Update: Partial<Database['public']['Tables']['system_settings']['Insert']>
+      }
+      subscription_plans: {
+        Row: {
+          id: string
+          name_ar: string
+          description_ar: string | null
+          price: number
+          duration_days: number
+          features: Json
+          is_active: boolean
+          created_at: string
+        }
+        Insert: Omit<Database['public']['Tables']['subscription_plans']['Row'], 'id' | 'created_at'>
+        Update: Partial<Database['public']['Tables']['subscription_plans']['Insert']>
+      }
+      student_subscriptions: {
+        Row: {
+          id: string
+          student_id: string
+          plan_id: string
+          start_date: string
+          end_date: string
+          status: 'active' | 'expired' | 'cancelled'
+          created_at: string
+          updated_at: string
+        }
+        Insert: Omit<Database['public']['Tables']['student_subscriptions']['Row'], 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Database['public']['Tables']['student_subscriptions']['Insert']>
+      }
+      transactions: {
+        Row: {
+          id: string
+          student_id: string
+          plan_id: string | null
+          amount: number
+          payment_method: string
+          status: 'pending' | 'completed' | 'failed' | 'refunded'
+          reference_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: Omit<Database['public']['Tables']['transactions']['Row'], 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Database['public']['Tables']['transactions']['Insert']>
       }
     }
     Functions: {
