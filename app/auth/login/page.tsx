@@ -199,7 +199,7 @@ export default function LoginPage() {
           
           <div className="bg-slate-50 border-t border-border p-6 text-center">
             <p className="text-sm text-slate-600 font-medium">
-              طالب جديد؟ {' '}
+              مستخدم جديد؟ {' '}
               <Link href="/auth/register" className="text-primary font-bold hover:underline flex items-center justify-center gap-1 mt-1">
                 إنشاء حساب مجاني <ArrowRight className="w-4 h-4 rotate-180" />
               </Link>

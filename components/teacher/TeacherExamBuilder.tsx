@@ -20,7 +20,11 @@ const DEFAULT_FORM: ExamFormState = {
   groupId: ''
 }
 
-export function TeacherExamBuilder({ subjects, grades, semesters, units, lessons, groups, examId, initialData }: ExamBuilderProps) {
+export interface TeacherExamBuilderProps extends ExamBuilderProps {
+  teacherSubjectId: string
+}
+
+export function TeacherExamBuilder({ subjects, grades, semesters, units, lessons, groups, examId, initialData, teacherSubjectId }: TeacherExamBuilderProps) {
   const router = useRouter()
   const supabase = createClient()
 
@@ -28,7 +32,7 @@ export function TeacherExamBuilder({ subjects, grades, semesters, units, lessons
     initialData ? {
       title: initialData.title || '',
       description: initialData.description || '',
-      subjectId: initialData.subject_id?.toString() || '',
+      subjectId: initialData.subject_id?.toString() || teacherSubjectId,
       gradeId: initialData.grade_id?.toString() || '',
       semesterId: initialData.semester_id?.toString() || '',
       unitId: initialData.unit_id?.toString() || '',
@@ -45,7 +49,7 @@ export function TeacherExamBuilder({ subjects, grades, semesters, units, lessons
       showResultsImmediately: initialData.show_results_immediately ?? true,
       allowedAttempts: initialData.allowed_attempts?.toString() || '1',
       groupId: initialData.group_id?.toString() || '',
-    } : DEFAULT_FORM
+    } : { ...DEFAULT_FORM, subjectId: teacherSubjectId }
   )
 
   const [filters, setFilters] = useState<QuestionFilters>({
@@ -226,7 +230,8 @@ export function TeacherExamBuilder({ subjects, grades, semesters, units, lessons
       {activeTab === 'settings' && (
         <ExamBuilderSettings
           form={form} onChange={setForm}
-          subjects={subjects} grades={grades} semesters={semesters}
+          subjects={subjects.filter(s => s.id.toString() === teacherSubjectId)}
+          grades={grades} semesters={semesters}
           units={units} lessons={lessons} groups={groups} totalPoints={totalPoints}
         />
       )}

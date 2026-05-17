@@ -3,12 +3,20 @@ import { redirect } from 'next/navigation'
 import { TeacherSidebar } from '@/components/teacher/TeacherSidebar'
 import { TeacherTopbar } from '@/components/teacher/TeacherTopbar'
 import { TeacherBottomNav } from '@/components/teacher/TeacherBottomNav'
+import { createClient } from '@/lib/supabase/server'
 
 export default async function TeacherLayout({ children }: { children: React.ReactNode }) {
   const profile = await getCurrentProfile()
 
   if (!profile || profile.role !== 'teacher') {
     redirect('/auth/login')
+  }
+
+  const supabase = createClient()
+  const { data: teacher } = await supabase.from('teachers').select('subject_id').eq('id', profile.id).single()
+
+  if (!teacher?.subject_id) {
+    redirect('/auth/teacher-onboarding')
   }
 
   return (

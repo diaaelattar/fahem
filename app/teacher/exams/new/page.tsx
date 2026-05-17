@@ -12,6 +12,7 @@ export default async function NewTeacherExamPage() {
   const profile = await getCurrentProfile()
 
   const [
+    { data: teacherData },
     { data: subjects },
     { data: grades },
     { data: semesters },
@@ -19,6 +20,7 @@ export default async function NewTeacherExamPage() {
     { data: lessons },
     { data: groups }
   ] = await Promise.all([
+    supabase.from('teachers').select('subject_id').eq('id', profile?.id).single(),
     supabase.from('subjects').select('id, name_ar, icon').order('name_ar'),
     supabase.from('grades').select('id, name_ar, grade_number').order('grade_number'),
     supabase.from('semesters').select('id, name_ar').order('sort_order'),
@@ -44,6 +46,7 @@ export default async function NewTeacherExamPage() {
 
       {/* Builder */}
       <TeacherExamBuilder
+        teacherSubjectId={teacherData?.subject_id?.toString() || ''}
         subjects={subjects || []}
         grades={grades || []}
         semesters={semesters || []}
