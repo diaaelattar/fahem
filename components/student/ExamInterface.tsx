@@ -871,6 +871,7 @@ export function ExamInterface({
             </div>
           )
         })}
+      </div>
 
       {/* Navigation Footer */}
       <div className="flex items-center justify-between">
