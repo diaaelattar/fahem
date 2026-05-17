@@ -292,7 +292,7 @@ export function QuestionPreviewGrid({
                 <div className="flex-1 min-w-0">
                   {/* Meta */}
                   <div className="flex flex-wrap items-center gap-2 mb-3">
-                    <span className="text-xs text-muted-foreground font-medium">#{idx + 1}</span>
+                    <span className="text-xs text-muted-foreground font-medium">#{q.originalIndex + 1}</span>
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${TYPE_COLORS[q.type]}`}>
                       {TYPE_LABELS[q.type]}
                     </span>

@@ -417,6 +417,18 @@ export function ExamInterface({
   }
   
   const progress = (answeredCount / questions.length) * 100
+
+  if (questions.length === 0) {
+    return (
+      <div className="max-w-2xl mx-auto text-center py-20 bg-white rounded-3xl border border-border mt-10">
+        <AlertTriangle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
+        <h2 className="text-2xl font-bold mb-2">عفواً، لا توجد أسئلة معتمدة</h2>
+        <p className="text-muted-foreground mb-8">هذا الاختبار لا يحتوي على أسئلة معتمدة من قبل المعلم حالياً.</p>
+        <a href="/student/exams" className="bg-primary text-white px-8 py-3 rounded-xl font-medium">العودة للاختبارات</a>
+      </div>
+    )
+  }
+
   const currentGroup = groups[currentIdx] ?? groups[0]
 
   // Guard: should never happen but prevents blank-screen crashes
@@ -498,16 +510,7 @@ export function ExamInterface({
     )
   }
 
-  if (questions.length === 0) {
-    return (
-      <div className="max-w-2xl mx-auto text-center py-20 bg-white rounded-3xl border border-border mt-10">
-        <AlertTriangle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
-        <h2 className="text-2xl font-bold mb-2">عفواً، لا توجد أسئلة معتمدة</h2>
-        <p className="text-muted-foreground mb-8">هذا الاختبار لا يحتوي على أسئلة معتمدة من قبل المعلم حالياً.</p>
-        <a href="/student/exams" className="bg-primary text-white px-8 py-3 rounded-xl font-medium">العودة للاختبارات</a>
-      </div>
-    )
-  }
+
 
   return (
     <div className="max-w-3xl mx-auto" dir={dir}>
@@ -593,7 +596,7 @@ export function ExamInterface({
                   <div className="flex-1">
                     <MathRenderer 
                       text={(currentQ.question_text ?? '').replace(/^(\(?\d+[\)\.\-\s]\s*)/, '').trim()} 
-                      className={`text-xl font-medium leading-relaxed ${textAlign}`}
+                      className={`text-xl font-medium leading-relaxed`}
                       dir={dir}
                     />
                   </div>
