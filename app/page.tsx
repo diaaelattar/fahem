@@ -13,9 +13,7 @@ export default function HomePage() {
       <nav className="fixed top-0 inset-x-0 z-50 bg-white/90 backdrop-blur-md border-b border-border">
         <div className="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-blue-700 flex items-center justify-center shadow-md shadow-primary/30">
-              <Brain className="w-5 h-5 text-white" />
-            </div>
+            <img src="/logo.png" alt="استباق مصر فاهم" className="w-10 h-10 object-contain" />
             <span className="font-display font-bold text-xl text-primary">استباق مصر</span>
           </div>
           <div className="flex items-center gap-3">
@@ -307,7 +305,7 @@ export default function HomePage() {
       {/* ── Footer ──────────────────────────────────────────────── */}
       <footer className="bg-slate-900 text-slate-400 py-10 px-5 text-center">
         <div className="flex items-center justify-center gap-2 mb-3">
-          <Brain className="w-5 h-5 text-yellow-400" />
+          <img src="/logo.png" alt="استباق مصر فاهم" className="w-8 h-8 object-contain" />
           <span className="font-display font-bold text-white text-lg">استباق مصر</span>
         </div>
         <p className="text-sm mb-4">منصة تعليمية مجانية للمرحلة الإعدادية المصرية</p>

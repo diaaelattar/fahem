@@ -25,9 +25,7 @@ export function TeacherSidebar() {
   return (
     <div className="w-64 h-screen bg-slate-900 text-slate-300 flex flex-col fixed right-0 top-0 border-l border-slate-800">
       <div className="h-16 flex items-center justify-center border-b border-slate-800 shrink-0 px-6 gap-3">
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-          <BrainCircuit className="w-5 h-5 text-white" />
-        </div>
+        <img src="/logo.png" alt="استباق مصر فاهم" className="w-8 h-8 object-contain drop-shadow-md brightness-200" />
         <span className="font-display font-bold text-lg text-white">بوابة المعلم</span>
       </div>
 

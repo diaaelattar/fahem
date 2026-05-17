@@ -81,9 +81,7 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex flex-col items-center gap-2 text-white group">
-            <div className="w-20 h-20 rounded-3xl bg-white/15 backdrop-blur-sm border border-white/30 flex items-center justify-center shadow-2xl group-hover:scale-105 transition-transform">
-              <Brain className="w-11 h-11 text-yellow-300" />
-            </div>
+            <img src="/logo.png" alt="استباق مصر فاهم" className="w-24 h-24 object-contain group-hover:scale-105 transition-transform drop-shadow-2xl" />
             <div className="text-3xl font-display font-bold">استباق مصر</div>
             <div className="text-blue-200 text-sm">منصة التدريب والتحديات للمرحلة الإعدادية</div>
           </Link>
