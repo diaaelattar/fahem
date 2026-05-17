@@ -33,6 +33,7 @@ export interface ExamBuilderProps {
   semesters: FilterOption[]
   units: FilterOption[]
   lessons: FilterOption[]
+  groups?: FilterOption[]
   examId?: string
   initialData?: any
 }
@@ -42,6 +43,7 @@ export interface ExamFormState {
   description: string
   subjectId: string
   gradeId: string
+  groupId?: string
   semesterId: string
   unitId: string
   lessonId: string

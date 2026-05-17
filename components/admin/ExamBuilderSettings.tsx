@@ -12,13 +12,14 @@ interface Props {
   semesters: FilterOption[]
   units: FilterOption[]
   lessons: FilterOption[]
+  groups?: FilterOption[]
   totalPoints: number
 }
 
 const INPUT = 'w-full px-3 py-2.5 border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30'
 const SELECT = INPUT + ' bg-white'
 
-export function ExamBuilderSettings({ form, onChange, subjects, grades, semesters, units, lessons, totalPoints }: Props) {
+export function ExamBuilderSettings({ form, onChange, subjects, grades, semesters, units, lessons, groups, totalPoints }: Props) {
   const set = (key: keyof ExamFormState, val: any) => {
     const next = { ...form, [key]: val }
     if (key === 'gradeId' || key === 'subjectId' || key === 'semesterId') {
@@ -41,6 +42,17 @@ export function ExamBuilderSettings({ form, onChange, subjects, grades, semester
         <h3 className="font-bold text-base flex items-center gap-2">
           <BookOpen className="w-4 h-4 text-primary" /> المعلومات الأساسية
         </h3>
+
+        {/* Group Selection (Only if groups are provided for Teachers) */}
+        {groups && groups.length > 0 && (
+          <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-xl mb-4">
+            <label className="text-sm font-bold text-indigo-900 block mb-1.5">اختر المجموعة الدراسية *</label>
+            <select value={form.groupId || ''} onChange={e => set('groupId', e.target.value)} className={SELECT}>
+              <option value="">-- اختر المجموعة --</option>
+              {groups.map(g => <option key={g.id} value={g.id}>{g.name_ar}</option>)}
+            </select>
+          </div>
+        )}
 
         {/* Exam Type */}
         <div>
