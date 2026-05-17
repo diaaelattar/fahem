@@ -17,6 +17,8 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [googleLoading, setGoogleLoading] = useState(false)
 
+  const [role, setRole] = useState<'student' | 'teacher'>('student')
+
   const handleGoogleLogin = async () => {
     setGoogleLoading(true)
     setError('')
@@ -24,7 +26,7 @@ export default function RegisterPage() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${window.location.origin}/auth/callback?role=${role}`,
           queryParams: { prompt: 'select_account' },
         },
       })
@@ -65,12 +67,13 @@ export default function RegisterPage() {
         options: {
           data: {
             full_name: fullName,
+            role: role // Save role in user metadata
           }
         }
       })
       
       if (authError) {
-        if (authError.message.includes('already registered')) {
+        if (authError.message.includes('already registered') || authError.message.includes('User already registered')) {
           setError('هذا البريد الإلكتروني مسجل بالفعل. يرجى تسجيل الدخول.')
         } else {
           setError('حدث خطأ أثناء إنشاء الحساب: ' + authError.message)
@@ -83,23 +86,30 @@ export default function RegisterPage() {
         return
       }
 
-      // 2. Create Profile and Student records
+      // 2. Create Profile and corresponding record
       await supabase.from('profiles').upsert({
         id: authData.user.id,
         email: email,
         full_name: fullName,
-        role: 'student',
+        role: role,
       })
 
-      await supabase.from('students').upsert({
-        id: authData.user.id,
-        xp_points: 0,
-        level: 1,
-        streak_days: 0,
-      })
+      if (role === 'student') {
+        await supabase.from('students').upsert({
+          id: authData.user.id,
+          xp_points: 0,
+          level: 1,
+          streak_days: 0,
+        })
+        router.push('/student/onboarding')
+      } else if (role === 'teacher') {
+        await supabase.from('teachers').upsert({
+          id: authData.user.id,
+          subscription_status: 'premium' // Free/Premium for now
+        })
+        router.push('/teacher/dashboard')
+      }
 
-      // 3. Redirect to onboarding
-      router.push('/student/onboarding')
     } catch (err: any) {
       setError('حدث خطأ غير متوقع: ' + err.message)
     } finally {
@@ -166,6 +176,33 @@ export default function RegisterPage() {
             </div>
 
             <form onSubmit={handleRegister} className="space-y-4 mb-2">
+              
+              {/* Role Selection Toggle */}
+              <div className="flex bg-slate-100 p-1.5 rounded-2xl mb-6">
+                <button
+                  type="button"
+                  onClick={() => setRole('student')}
+                  className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 ${
+                    role === 'student'
+                      ? 'bg-white text-indigo-600 shadow-sm ring-1 ring-black/5'
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  <User className="w-4 h-4" /> أنا طالب
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRole('teacher')}
+                  className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 ${
+                    role === 'teacher'
+                      ? 'bg-white text-emerald-600 shadow-sm ring-1 ring-black/5'
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  <Brain className="w-4 h-4" /> أنا معلم
+                </button>
+              </div>
+
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-1.5">الاسم الكامل</label>
                 <div className="relative">

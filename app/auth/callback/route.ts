@@ -36,26 +36,34 @@ export async function GET(request: Request) {
           return NextResponse.redirect(`${origin}/student/dashboard`)
         }
 
-        // Brand new Google user — create student profile
-        const fullName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'طالب'
+        // Brand new Google user — create profile
+        const fullName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'مستخدم'
         const avatarUrl = user.user_metadata?.avatar_url || null
+        const requestedRole = searchParams.get('role') === 'teacher' ? 'teacher' : 'student'
 
         await supabase.from('profiles').upsert({
           id: user.id,
           email: user.email!,
           full_name: fullName,
           avatar_url: avatarUrl,
-          role: 'student',
+          role: requestedRole,
         })
 
-        await supabase.from('students').upsert({
-          id: user.id,
-          xp_points: 0,
-          level: 1,
-          streak_days: 0,
-        })
-
-        return NextResponse.redirect(`${origin}/student/onboarding`)
+        if (requestedRole === 'student') {
+          await supabase.from('students').upsert({
+            id: user.id,
+            xp_points: 0,
+            level: 1,
+            streak_days: 0,
+          })
+          return NextResponse.redirect(`${origin}/student/onboarding`)
+        } else {
+          await supabase.from('teachers').upsert({
+            id: user.id,
+            subscription_status: 'premium'
+          })
+          return NextResponse.redirect(`${origin}/teacher/dashboard`)
+        }
       }
     }
   }
