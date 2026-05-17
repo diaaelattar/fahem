@@ -23,6 +23,38 @@ export default async function StudentDashboardPage() {
     .eq('id', profile.id)
     .single()
 
+  // Daily Streak Logic
+  const today = new Date().toLocaleDateString('en-CA') // YYYY-MM-DD
+  const lastActivityDate = student?.last_activity_date
+
+  if (student && lastActivityDate !== today) {
+    const yesterday = new Date(Date.now() - 86400000).toLocaleDateString('en-CA')
+    let newStreak = 1
+    let xpReward = 5
+
+    if (lastActivityDate === yesterday) {
+      newStreak = (student.streak_days || 0) + 1
+      xpReward = 10
+    }
+
+    // Fire and forget updates
+    supabase.from('students').update({
+      streak_days: newStreak,
+      last_activity_date: today,
+      xp_points: (student.xp_points || 0) + xpReward
+    }).eq('id', profile.id).then(() => {
+      supabase.from('xp_transactions').insert({
+        student_id: profile.id,
+        amount: xpReward,
+        reason: 'مكافأة الدخول اليومي 🔥'
+      }).then()
+    })
+
+    // Optimistically update local variables for render
+    student.streak_days = newStreak
+    student.xp_points = (student.xp_points || 0) + xpReward
+  }
+
   const { data: attempts } = await supabase
     .from('exam_attempts')
     .select('*, exams(title, total_points, passing_score, subjects(name_ar, icon))')
@@ -412,9 +444,19 @@ export default async function StudentDashboardPage() {
                 ))}
               </div>
             ) : (
-              <div className="bg-white rounded-2xl border border-dashed border-border p-10 text-center">
-                <ClipboardList className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
-                <p className="text-muted-foreground text-sm font-medium">لا توجد اختبارات متاحة حالياً</p>
+              <div className="bg-white rounded-2xl border border-dashed border-primary/20 p-10 text-center">
+                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <BrainCircuit className="w-8 h-8 text-primary" />
+                </div>
+                <h3 className="font-bold text-slate-800 mb-2">لا توجد اختبارات مدرسية حالياً</h3>
+                <p className="text-muted-foreground text-sm mb-6 max-w-sm mx-auto leading-relaxed">
+                  بإمكانك دائماً إنشاء تدريب مخصص لك بالذكاء الاصطناعي واكتساب نقاط الخبرة (XP) فوراً!
+                </p>
+                <Link href="/student/practice"
+                  className="bg-primary hover:bg-primary/90 text-white font-bold px-6 py-3 rounded-xl inline-flex items-center gap-2 transition-transform hover:scale-105 shadow-md shadow-primary/20">
+                  <Zap className="w-4 h-4 fill-white" />
+                  أنشئ تدريباً ذكياً الآن
+                </Link>
               </div>
             )}
           </div>

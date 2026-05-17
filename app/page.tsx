@@ -1,21 +1,10 @@
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
 import {
   Brain, Swords, Trophy, Zap, BookOpen,
   TrendingUp, Star, Users, CheckCircle, ArrowLeft, Flame
 } from 'lucide-react'
 
-export default async function HomePage() {
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (user) {
-    const { data: profileRaw } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-    const profile = profileRaw as any
-    if (profile?.role === 'admin') redirect('/admin/dashboard')
-    if (profile?.role === 'student') redirect('/student/dashboard')
-  }
+export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-white" dir="rtl">
