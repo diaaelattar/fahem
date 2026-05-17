@@ -25,12 +25,12 @@ export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
 
   // إذا لم يكن مسجلاً وحاول الوصول لمسار محمي
-  if (!user && (pathname.startsWith('/admin') || pathname.startsWith('/student'))) {
+  if (!user && (pathname.startsWith('/admin') || pathname.startsWith('/student') || pathname.startsWith('/teacher'))) {
     return NextResponse.redirect(new URL('/auth/login', request.url))
   }
 
   // إذا كان مسجلاً، تحقق من الدور
-  if (user && (pathname.startsWith('/admin') || pathname.startsWith('/student'))) {
+  if (user && (pathname.startsWith('/admin') || pathname.startsWith('/student') || pathname.startsWith('/teacher'))) {
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
@@ -38,22 +38,25 @@ export async function middleware(request: NextRequest) {
       .single()
 
     if (!profile) {
-      // إذا كان المستخدم مسجلاً ولكن لا يوجد بروفايل، نتركه يمر لصفحة الـ onboarding 
-      // أو نقوم بإنشاء بروفايل افتراضي له في الخطوات التالية.
       if (pathname === '/student/onboarding') {
         return supabaseResponse
       }
       return NextResponse.redirect(new URL('/student/onboarding', request.url))
     }
 
-    // المدير يحاول الوصول لمسار الطالب
-    if (profile.role === 'admin' && pathname.startsWith('/student')) {
+    // المدير يحاول الوصول لمسار الطالب أو المعلم
+    if (profile.role === 'admin' && (pathname.startsWith('/student') || pathname.startsWith('/teacher'))) {
       return NextResponse.redirect(new URL('/admin/dashboard', request.url))
     }
 
-    // الطالب يحاول الوصول لمسار المدير
-    if (profile.role === 'student' && pathname.startsWith('/admin')) {
+    // الطالب يحاول الوصول لمسار المدير أو المعلم
+    if (profile.role === 'student' && (pathname.startsWith('/admin') || pathname.startsWith('/teacher'))) {
       return NextResponse.redirect(new URL('/student/dashboard', request.url))
+    }
+
+    // المعلم يحاول الوصول لمسار المدير أو الطالب
+    if (profile.role === 'teacher' && (pathname.startsWith('/admin') || pathname.startsWith('/student'))) {
+      return NextResponse.redirect(new URL('/teacher/dashboard', request.url))
     }
 
     // Smart Barrier: فحص اختيار الصف للطالب
@@ -89,6 +92,8 @@ export async function middleware(request: NextRequest) {
 
     if (profile?.role === 'admin') {
       return NextResponse.redirect(new URL('/admin/dashboard', request.url))
+    } else if (profile?.role === 'teacher') {
+      return NextResponse.redirect(new URL('/teacher/dashboard', request.url))
     } else if (profile?.role === 'student') {
       return NextResponse.redirect(new URL('/student/dashboard', request.url))
     }

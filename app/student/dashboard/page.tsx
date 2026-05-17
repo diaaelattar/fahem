@@ -3,7 +3,8 @@ import { requireStudent } from '@/lib/auth/permissions'
 import {
   ClipboardList, TrendingUp, Clock, Award, ArrowLeft,
   Zap, Sparkles, Dumbbell, AlertCircle, Swords, Trophy,
-  Flame, Star, Target, Layers, Lightbulb, PenTool, Search, Gauge, BrainCircuit, Crown
+  Flame, Star, Target, Layers, Lightbulb, PenTool, Search, Gauge, BrainCircuit, Crown,
+  Users, PlusCircle, FileText
 } from 'lucide-react'
 import PerformanceChart from '@/components/student/PerformanceChart'
 import Link from 'next/link'
@@ -67,8 +68,27 @@ export default async function StudentDashboardPage() {
     .from('exams')
     .select('id, title, duration_minutes, questions_count, total_points, subjects(name_ar, icon)')
     .eq('is_published', true)
+    .eq('visibility', 'public')
     .eq('grade_id', student?.grade_id || 0)
     .limit(4)
+
+  // Fetch student's groups
+  const { data: studentGroups } = await supabase
+    .from('group_students')
+    .select('group_id, student_groups(name_ar)')
+    .eq('student_id', profile.id)
+    .eq('status', 'active')
+
+  const groupIds = studentGroups?.map((g: any) => g.group_id) || []
+
+  // Fetch exams from these groups
+  const { data: groupExams } = groupIds.length > 0 ? await supabase
+    .from('exams')
+    .select('id, title, duration_minutes, questions_count, student_groups(name_ar)')
+    .in('group_id', groupIds)
+    .eq('is_published', true)
+    .order('created_at', { ascending: false })
+    .limit(4) : { data: [] }
 
   const { count: wrongAnswersCount } = await supabase
     .from('wrong_answers_bank')
@@ -460,6 +480,60 @@ export default async function StudentDashboardPage() {
               </div>
             )}
           </div>
+          {/* Teacher Groups Exams */}
+          {groupIds.length > 0 ? (
+            <div className="mt-8">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold flex items-center gap-2">
+                  <Users className="w-5 h-5 text-indigo-500" />
+                  اختبارات المعلمين (مجموعاتي)
+                </h2>
+                <Link href="/student/join-group" className="text-xs font-bold text-indigo-600 hover:bg-indigo-50 px-3 py-1.5 rounded-full transition-colors flex items-center gap-1">
+                  <PlusCircle className="w-3.5 h-3.5" /> انضمام لمجموعة
+                </Link>
+              </div>
+              
+              {groupExams && groupExams.length > 0 ? (
+                <div className="grid sm:grid-cols-2 gap-3">
+                  {groupExams.map((exam: any) => (
+                    <Link key={exam.id} href={`/student/exams/${exam.id}/start`}
+                      className="bg-indigo-50/50 rounded-2xl border border-indigo-100 p-4 hover:border-indigo-300 hover:shadow-md transition-all group">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-indigo-500 shadow-sm">
+                          <FileText className="w-5 h-5" />
+                        </div>
+                        <span className="text-[10px] font-bold bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">خاص</span>
+                      </div>
+                      <h3 className="font-bold text-sm mb-1 group-hover:text-indigo-700 transition-colors line-clamp-1">{exam.title}</h3>
+                      <div className="text-xs text-indigo-500 mb-2 font-medium">{exam.student_groups?.name_ar}</div>
+                      <div className="flex items-center gap-3 text-[10px] text-indigo-400 font-bold">
+                        <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{exam.duration_minutes} د</span>
+                        <span className="flex items-center gap-1"><ClipboardList className="w-3 h-3" />{exam.questions_count} سؤال</span>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className="bg-indigo-50/30 rounded-2xl border border-dashed border-indigo-200 p-6 text-center">
+                  <p className="text-indigo-400 text-sm font-medium">لا توجد اختبارات جديدة من معلميك حالياً.</p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="mt-8 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-3xl p-6 text-white shadow-lg relative overflow-hidden flex flex-col sm:flex-row items-center justify-between gap-6">
+              <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-20" />
+              <div className="relative z-10">
+                <h3 className="text-xl font-black mb-1 flex items-center gap-2">
+                  <Users className="w-5 h-5" />
+                  هل لديك كود دعوة من معلمك؟
+                </h3>
+                <p className="text-indigo-100 text-sm font-medium">انضم لمجموعات المعلمين الخاصة بك لتصلك الواجبات والاختبارات الحصرية.</p>
+              </div>
+              <Link href="/student/join-group" className="relative z-10 shrink-0 bg-white text-indigo-600 hover:bg-indigo-50 px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all shadow-md active:scale-95">
+                إدخال الكود <ArrowLeft className="w-4 h-4" />
+              </Link>
+            </div>
+          )}
         </div>
 
         {/* Right: rank + challenges + recent */}
