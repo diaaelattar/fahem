@@ -4,18 +4,20 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   Brain, LayoutDashboard, ClipboardList, BarChart3,
-  Award, Dumbbell, Swords, Trophy, User, Flame
+  Award, Dumbbell, Swords, Trophy, User, Flame, Crown, Users
 } from 'lucide-react'
 
 const navItems = [
   { href: '/student/dashboard',   icon: LayoutDashboard, label: 'الرئيسية' },
   { href: '/student/practice',    icon: Dumbbell,        label: 'مركز التدريب' },
   { href: '/student/challenges',  icon: Swords,          label: 'التحديات',    badge: 'جديد', badgeColor: 'bg-indigo-500' },
+  { href: '/student/groups',      icon: Users,           label: 'مجموعاتي' },
   { href: '/student/leaderboard', icon: Trophy,          label: 'لوحة الشرف',  badge: '🔥',   badgeColor: 'bg-amber-500' },
   { href: '/student/exams',       icon: ClipboardList,   label: 'اختباراتي' },
   { href: '/student/results',     icon: BarChart3,       label: 'نتائجي' },
   { href: '/student/achievements',icon: Award,           label: 'إنجازاتي' },
   { href: '/student/profile',     icon: User,            label: 'حسابي' },
+  { href: '/student/vip',         icon: Crown,           label: 'ترقية VIP',   badge: '👑',   badgeColor: 'bg-yellow-500' },
 ]
 
 export function StudentSidebar() {
