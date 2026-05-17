@@ -3,14 +3,6 @@
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { LogOut, User, Bell } from 'lucide-react'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 
 interface Props {
   profile: any
@@ -43,33 +35,24 @@ export function TeacherTopbar({ profile }: Props) {
           {/* Notification dot */}
         </button>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger className="outline-none">
-            <div className="flex items-center gap-2 bg-slate-50 border border-border p-1 pr-3 rounded-full hover:bg-slate-100 transition-colors cursor-pointer">
-              <span className="text-sm font-bold text-slate-700 hidden sm:block">
-                {profile.full_name.split(' ')[0]}
-              </span>
-              <img
-                src={profile.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${profile.full_name}`}
-                alt={profile.full_name}
-                className="w-8 h-8 rounded-full border border-slate-200"
-              />
-            </div>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56" dir="rtl">
-            <DropdownMenuLabel>حسابي</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => router.push('/teacher/settings')}>
-              <User className="w-4 h-4" />
-              <span>إعدادات الحساب</span>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer text-red-600 focus:bg-red-50 focus:text-red-700 gap-2" onClick={handleSignOut}>
-              <LogOut className="w-4 h-4" />
-              <span>تسجيل الخروج</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex items-center gap-2 bg-slate-50 border border-border p-1 pr-3 rounded-full">
+          <span className="text-sm font-bold text-slate-700 hidden sm:block">
+            {profile.full_name.split(' ')[0]}
+          </span>
+          <img
+            src={profile.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${profile.full_name}`}
+            alt={profile.full_name}
+            className="w-8 h-8 rounded-full border border-slate-200"
+          />
+        </div>
+        
+        <button 
+          onClick={handleSignOut}
+          className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors flex items-center gap-2"
+          title="تسجيل الخروج"
+        >
+          <LogOut className="w-5 h-5" />
+        </button>
       </div>
     </header>
   )
