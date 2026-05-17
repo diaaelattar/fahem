@@ -68,25 +68,32 @@ export function TeacherExamBuilder({
   // ── Fetch questions — always scoped to teacher's subject ──
   const loadQuestions = useCallback(async () => {
     setLoadingQ(true)
-    let q = supabase
-      .from('questions')
-      .select('id, question_type, context_passage, question_text, difficulty_level, points, unit_id, lesson_id, subjects(name_ar,icon), grades(name_ar), units(name_ar), lessons(name_ar)')
-      .eq('is_approved', true)
-      .eq('subject_id', teacherSubjectId) // ALWAYS filter by teacher's subject
-      .order('created_at', { ascending: false })
-      .limit(200)
+    try {
+      let q = supabase
+        .from('questions')
+        .select('id, question_type, context_passage, question_text, difficulty_level, points, unit_id, lesson_id, subjects(name_ar,icon), grades(name_ar), units(name_ar), lessons(name_ar)')
+        .or('is_approved.eq.true,status.eq.approved')  // either approved flag or approved status
+        .eq('subject_id', teacherSubjectId) // ALWAYS scoped to teacher's subject
+        .order('created_at', { ascending: false })
+        .limit(200)
 
-    if (form.gradeId)          q = q.eq('grade_id',         form.gradeId)
-    if (form.unitId)           q = q.eq('unit_id',          form.unitId)
-    if (form.lessonId)         q = q.eq('lesson_id',        form.lessonId)
-    if (form.bankQuestionType) q = q.eq('question_type',    form.bankQuestionType)
-    if (form.bankDifficulty)   q = q.eq('difficulty_level', form.bankDifficulty)
-    if (form.bankSearch)       q = q.ilike('question_text', `%${form.bankSearch}%`)
+      if (form.gradeId)          q = q.eq('grade_id',         form.gradeId)
+      if (form.unitId)           q = q.eq('unit_id',          form.unitId)
+      if (form.lessonId)         q = q.eq('lesson_id',        form.lessonId)
+      if (form.bankQuestionType) q = q.eq('question_type',    form.bankQuestionType)
+      if (form.bankDifficulty)   q = q.eq('difficulty_level', form.bankDifficulty)
+      if (form.bankSearch)       q = q.ilike('question_text', `%${form.bankSearch}%`)
 
-    const { data } = await q
-    setBankQuestions((data || []) as unknown as QuestionItem[])
-    setLoadingQ(false)
-  }, [form.gradeId, form.unitId, form.lessonId, form.bankQuestionType, form.bankDifficulty, form.bankSearch, teacherSubjectId, supabase])
+      const { data, error: qErr } = await q
+      if (qErr) console.error('[TeacherExamBuilder] loadQuestions error:', qErr)
+      setBankQuestions((data || []) as unknown as QuestionItem[])
+    } catch (e) {
+      console.error('[TeacherExamBuilder] unexpected error:', e)
+    } finally {
+      setLoadingQ(false)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.gradeId, form.unitId, form.lessonId, form.bankQuestionType, form.bankDifficulty, form.bankSearch, teacherSubjectId])
 
   useEffect(() => { loadQuestions() }, [loadQuestions])
 
