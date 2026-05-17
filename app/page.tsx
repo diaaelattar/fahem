@@ -19,13 +19,13 @@ export default function HomePage() {
             <span className="font-display font-bold text-xl text-primary">استباق مصر</span>
           </div>
           <div className="flex items-center gap-3">
-            <Link href="/auth/admin-login"
-              className="hidden sm:block px-4 py-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-              دخول المعلمين
-            </Link>
             <Link href="/auth/login"
+              className="hidden sm:block px-4 py-2 text-sm font-bold text-slate-600 hover:text-indigo-600 transition-colors">
+              بوابة المعلمين
+            </Link>
+            <Link href="/auth/register"
               className="bg-primary hover:bg-primary/90 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-all hover:shadow-lg hover:shadow-primary/25 flex items-center gap-2">
-              ابدأ مجاناً
+              إنشاء حساب
               <ArrowLeft className="w-4 h-4" />
             </Link>
           </div>
@@ -52,14 +52,14 @@ export default function HomePage() {
             <span className="text-yellow-300">وتفوّق في لغتك العربية</span>
           </h1>
           <p className="text-lg sm:text-xl text-blue-100 max-w-2xl mx-auto mb-10 leading-relaxed">
-            منصة تعليمية ذكية مجانية بالكامل. أسئلة مكيّفة بالذكاء الاصطناعي،
-            تحديات مباشرة مع زملائك، ولوحة شرف وطنية.
+            المنصة التعليمية الأذكى في مصر! أسئلة مكيّفة بالذكاء الاصطناعي للطلاب،
+            وأدوات متقدمة للمعلمين لإدارة الفصول وبناء الاختبارات بسهولة.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/auth/login"
-              className="bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-black px-8 py-4 rounded-2xl text-lg transition-all hover:scale-105 inline-flex items-center gap-2 shadow-xl shadow-yellow-400/30">
-              ابدأ الآن — مجاناً!
+            <Link href="/auth/register"
+              className="bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-black px-8 py-4 rounded-2xl text-lg transition-all hover:scale-105 inline-flex items-center justify-center gap-2 shadow-xl shadow-yellow-400/30">
+              أنشئ حسابك مجاناً
               <ArrowLeft className="w-5 h-5" />
             </Link>
             <a href="#features"
@@ -155,6 +155,71 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ── Teachers Section ────────────────────────────────────── */}
+      <section className="py-24 px-5 bg-gradient-to-br from-indigo-900 via-slate-900 to-indigo-950 text-white relative overflow-hidden">
+        {/* Background elements */}
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-500/20 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-blue-500/20 rounded-full blur-3xl" />
+        <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />
+
+        <div className="max-w-6xl mx-auto relative">
+          <div className="flex flex-col md:flex-row items-center gap-16">
+            <div className="flex-1 space-y-8">
+              <div className="inline-flex items-center gap-2 bg-indigo-500/30 border border-indigo-400/30 rounded-full px-4 py-1.5 text-sm font-bold text-indigo-200">
+                <Brain className="w-4 h-4" />
+                <span>مساحة المعلم الذكية</span>
+              </div>
+              <h2 className="text-4xl md:text-5xl font-display font-black leading-tight text-white">
+                هل أنت معلم؟ <br/>
+                <span className="text-transparent bg-clip-text bg-gradient-to-l from-indigo-300 to-blue-300">
+                  أدر فصولك بذكاء وسهولة
+                </span>
+              </h2>
+              <p className="text-lg text-indigo-100/80 leading-relaxed max-w-lg">
+                انضم الآن لمئات المعلمين الذين يعتمدون على استباق. أنشئ مجموعاتك الخاصة، واسحب أسئلة جاهزة من بنك المنصة، وتابع تقارير طلابك التفصيلية مجاناً.
+              </p>
+              
+              <ul className="space-y-4">
+                {[
+                  'مجموعات افتراضية مغلقة لطلابك فقط بكلمة مرور',
+                  'منشئ اختبارات يسحب الأسئلة آلياً حسب مادتك التخصصية',
+                  'تقارير تفصيلية لدرجات ونسب نجاح كل طالب',
+                ].map((item, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <CheckCircle className="w-6 h-6 text-indigo-400 shrink-0" />
+                    <span className="text-indigo-50 font-medium">{item}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <div className="pt-4">
+                <Link href="/auth/register" className="bg-indigo-500 hover:bg-indigo-400 text-white font-bold px-8 py-4 rounded-2xl text-lg transition-all hover:-translate-y-1 inline-flex items-center gap-3 shadow-xl shadow-indigo-500/25">
+                  أنشئ بوابتك كمعلم
+                  <ArrowLeft className="w-5 h-5" />
+                </Link>
+              </div>
+            </div>
+
+            <div className="flex-1 w-full max-w-md md:max-w-none relative">
+              <div className="aspect-[4/3] rounded-3xl overflow-hidden border border-white/10 shadow-2xl relative">
+                 <div className="absolute inset-0 bg-slate-800 flex items-center justify-center flex-col gap-4">
+                   <div className="w-20 h-20 rounded-full bg-indigo-500/20 flex items-center justify-center border border-indigo-400/30">
+                     <Users className="w-10 h-10 text-indigo-300" />
+                   </div>
+                   <div className="text-center">
+                     <div className="text-xl font-bold text-white mb-2">لوحة تحكم المعلم</div>
+                     <div className="text-indigo-200 text-sm">إدارة المجموعات، الاختبارات، والتقارير</div>
+                   </div>
+                   <div className="w-3/4 h-2 bg-slate-700 rounded-full mt-4 overflow-hidden">
+                     <div className="w-2/3 h-full bg-gradient-to-r from-indigo-500 to-blue-400"></div>
+                   </div>
+                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── How it works ─────────────────────────────────────────── */}
       <section className="py-20 px-5 bg-slate-50">
         <div className="max-w-4xl mx-auto">
@@ -197,27 +262,45 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── CTA ─────────────────────────────────────────────────── */}
-      <section className="py-24 px-5 bg-hero-pattern text-white text-center relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-5" />
-        <div className="max-w-3xl mx-auto relative">
-          <div className="text-5xl mb-4 animate-bounce">🏆</div>
-          <h2 className="text-3xl sm:text-4xl font-display font-black mb-4">
-            جاهز تتصدر لوحة الشرف؟
+      {/* ── Dual CTA ─────────────────────────────────────────────────── */}
+      <section className="py-24 px-5 bg-white relative overflow-hidden border-t border-border">
+        <div className="max-w-6xl mx-auto text-center">
+          <h2 className="text-3xl sm:text-5xl font-display font-black mb-6">
+            انضم الآن وابدأ رحلتك
           </h2>
-          <p className="text-blue-100 text-lg mb-8">
-            انضم لآلاف الطلاب المصريين — مجاني تماماً، لا بطاقة ائتمان
+          <p className="text-muted-foreground text-lg mb-16 max-w-xl mx-auto">
+            سواء كنت طالباً يبحث عن التفوق أو معلماً يسعى للتميز، استباق مصر هي بيئتك المثالية.
           </p>
-          <Link href="/auth/login"
-            className="bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-black px-10 py-4 rounded-2xl text-xl transition-all hover:scale-105 inline-flex items-center gap-3 shadow-xl shadow-yellow-400/30">
-            <svg className="w-6 h-6" viewBox="0 0 24 24">
-              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-            </svg>
-            سجّل بـ Google — مجاناً
-          </Link>
+
+          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            {/* Student CTA */}
+            <div className="bg-slate-50 border border-slate-200 p-8 rounded-3xl text-center flex flex-col items-center hover:border-primary/30 hover:shadow-xl transition-all">
+              <div className="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center mb-6">
+                <Trophy className="w-8 h-8 text-yellow-500" />
+              </div>
+              <h3 className="text-2xl font-black text-slate-800 mb-3">أنا طالب</h3>
+              <p className="text-slate-600 mb-8 flex-1">
+                تحدى زملاءك، اكسب النقاط، وتصدر لوحة الشرف الوطنية في بيئة ممتعة وتنافسية.
+              </p>
+              <Link href="/auth/register" className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-xl transition-colors">
+                إنشاء حساب طالب
+              </Link>
+            </div>
+
+            {/* Teacher CTA */}
+            <div className="bg-indigo-50 border border-indigo-100 p-8 rounded-3xl text-center flex flex-col items-center hover:border-indigo-300 hover:shadow-xl transition-all">
+              <div className="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center mb-6">
+                <Brain className="w-8 h-8 text-indigo-600" />
+              </div>
+              <h3 className="text-2xl font-black text-indigo-900 mb-3">أنا معلم</h3>
+              <p className="text-indigo-700/80 mb-8 flex-1">
+                أدر مجموعاتك، أنشئ اختباراتك بسهولة، وتابع أداء طلابك بأدق التفاصيل والتقارير.
+              </p>
+              <Link href="/auth/register" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl transition-colors">
+                إنشاء بوابة معلم
+              </Link>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -229,8 +312,8 @@ export default function HomePage() {
         </div>
         <p className="text-sm mb-4">منصة تعليمية مجانية للمرحلة الإعدادية المصرية</p>
         <div className="flex items-center justify-center gap-6 text-xs text-slate-500">
-          <Link href="/auth/login" className="hover:text-white transition-colors">دخول الطلاب</Link>
-          <Link href="/auth/admin-login" className="hover:text-white transition-colors">دخول المعلمين</Link>
+          <Link href="/auth/login" className="hover:text-white transition-colors">تسجيل الدخول</Link>
+          <Link href="/auth/register" className="hover:text-white transition-colors">إنشاء حساب جديد</Link>
         </div>
         <p className="text-xs text-slate-600 mt-6">
           © {new Date().getFullYear()} استباق مصر — جميع الحقوق محفوظة
