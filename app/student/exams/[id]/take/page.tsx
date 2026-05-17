@@ -5,6 +5,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireStudent } from '@/lib/auth/permissions'
 import { ExamInterface } from '@/components/student/ExamInterface'
+import { ClientErrorBoundary } from '@/components/shared/ClientErrorBoundary'
 import { notFound, redirect } from 'next/navigation'
 import { AlertCircle } from 'lucide-react'
 
@@ -122,10 +123,12 @@ export default async function TakeExamPage({ params, searchParams }: Props) {
     }))
 
   return (
-    <ExamInterface
-      exam={exam as any}
-      questions={questions}
-      attemptId={attemptId}
-    />
+    <ClientErrorBoundary sectionName="exam">
+      <ExamInterface
+        exam={exam as any}
+        questions={questions}
+        attemptId={attemptId}
+      />
+    </ClientErrorBoundary>
   )
 }
