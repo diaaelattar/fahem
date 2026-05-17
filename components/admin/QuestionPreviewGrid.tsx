@@ -249,8 +249,36 @@ export function QuestionPreviewGrid({
       </div>
 
       {/* Questions */}
-      <div className="space-y-3">
-        {filtered.map((q, idx) => (
+      <div className="space-y-6">
+        {(() => {
+          const groups: { passage: string | null; questions: (GeneratedQuestion & { originalIndex: number })[] }[] = []
+          const passageToGroupIndex = new Map<string, number>()
+
+          filtered.forEach((q, idx) => {
+            const qWithIndex = { ...q, originalIndex: idx }
+            if (q.context_passage) {
+              if (passageToGroupIndex.has(q.context_passage)) {
+                groups[passageToGroupIndex.get(q.context_passage)!].questions.push(qWithIndex)
+              } else {
+                passageToGroupIndex.set(q.context_passage, groups.length)
+                groups.push({ passage: q.context_passage, questions: [qWithIndex] })
+              }
+            } else {
+              groups.push({ passage: null, questions: [qWithIndex] })
+            }
+          })
+
+          return groups.map((group, groupIdx) => (
+            <div key={`group-${groupIdx}`} className={group.passage ? "bg-slate-50/50 border border-slate-200 rounded-3xl p-3 shadow-sm space-y-3" : "space-y-3"}>
+              {group.passage && (
+                <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-xl text-sm text-indigo-950 leading-relaxed italic relative mb-1 mt-2">
+                  <span className="absolute -top-3 right-4 bg-indigo-100 text-indigo-800 text-[10px] font-bold px-3 py-0.5 rounded-full border border-indigo-200">
+                    القطعة المرجعية (مرتبط بها {group.questions.length} أسئلة)
+                  </span>
+                  <MathRenderer text={group.passage} />
+                </div>
+              )}
+              {group.questions.map((q) => (
           <div key={q.id}
             className={`bg-white rounded-2xl border-2 transition-all ${q.selected ? 'border-primary/30' : 'border-border opacity-60'}`}>
             <div className="p-5">
@@ -276,13 +304,7 @@ export function QuestionPreviewGrid({
                     </span>
                   </div>
 
-                  {/* Context Passage */}
-                  {q.context_passage && (
-                    <div className="mb-4 bg-indigo-50/50 border border-indigo-100 rounded-xl p-4 text-sm text-indigo-950 leading-relaxed italic relative">
-                      <div className="absolute top-0 right-4 -translate-y-1/2 bg-indigo-100 text-indigo-800 text-[10px] font-bold px-2 py-0.5 rounded-full">القطعة المرجعية</div>
-                      <MathRenderer text={q.context_passage} />
-                    </div>
-                  )}
+                  {/* Context Passage - تمت إزالته من هنا ونقله للأعلى كإطار تجميعي */}
 
                   {/* Question text */}
                   {q.editing ? (
@@ -396,7 +418,8 @@ export function QuestionPreviewGrid({
               </div>
             </div>
           </div>
-        ))}
+          ))
+        })()}
       </div>
     </div>
   )

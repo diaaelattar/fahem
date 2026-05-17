@@ -134,6 +134,25 @@ export function ExamInterface({
     }
   }, [exam.id, attemptId, exam.duration_minutes, startExam])
 
+  // --- Grouping Logic ---
+  const groups: { passage: string | null; questions: Question[]; originalIndexes: number[] }[] = []
+  const passageToGroupIndex = new Map<string, number>()
+
+  questions.forEach((q, idx) => {
+    if (q.context_passage) {
+      if (passageToGroupIndex.has(q.context_passage)) {
+        const gIdx = passageToGroupIndex.get(q.context_passage)!
+        groups[gIdx].questions.push(q)
+        groups[gIdx].originalIndexes.push(idx)
+      } else {
+        passageToGroupIndex.set(q.context_passage, groups.length)
+        groups.push({ passage: q.context_passage, questions: [q], originalIndexes: [idx] })
+      }
+    } else {
+      groups.push({ passage: null, questions: [q], originalIndexes: [idx] })
+    }
+  })
+
   const [submitted, setSubmitted] = useState(false)
   const [result, setResult] = useState<any>(null)
   const [showConfirm, setShowConfirm] = useState(false)
@@ -397,26 +416,25 @@ export function ExamInterface({
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
   }
   
-  const progress = ((currentIdx + 1) / questions.length) * 100
-  const answeredCount = Object.keys(answers).length
-  const currentQ = questions[currentIdx] ?? questions[0]
+  const progress = (answeredCount / questions.length) * 100
+  const currentGroup = groups[currentIdx] ?? groups[0]
 
   // Guard: should never happen but prevents blank-screen crashes
-  if (!currentQ) return null
+  if (!currentGroup) return null
 
-  const handleAnswer = (value: string) => {
+  const handleAnswer = (qId: string, value: string, qType: string) => {
     // If immediate feedback is on and already answered/checked, prevent changing answer
-    if (exam.show_results_immediately && immediateFeedback[currentQ.id]) return;
+    if (exam.show_results_immediately && immediateFeedback[qId]) return;
 
-    setAnswer(currentQ.id, value)
+    setAnswer(qId, value)
     
-    // Auto-advance logic for MCQ and TF
-    if (currentQ.question_type !== 'fill_blank' && currentQ.question_type !== 'essay' && currentQ.question_type !== 'correction') {
+    // Auto-advance logic for MCQ and TF - only if it's a single question group
+    if (currentGroup.questions.length === 1 && qType !== 'fill_blank' && qType !== 'essay' && qType !== 'correction') {
       if (exam.show_results_immediately) {
-         setImmediateFeedback(prev => ({ ...prev, [currentQ.id]: true }))
+         setImmediateFeedback(prev => ({ ...prev, [qId]: true }))
       } else {
          setTimeout(() => {
-           if (currentIdx < questions.length - 1) {
+           if (currentIdx < groups.length - 1) {
              setCurrentIdx(prev => prev + 1)
            }
          }, 500)
@@ -424,15 +442,15 @@ export function ExamInterface({
     }
   }
 
-  const submitTextAnswer = () => {
-    if (exam.show_results_immediately && answers[currentQ.id]) {
-      setImmediateFeedback(prev => ({ ...prev, [currentQ.id]: true }))
+  const submitTextAnswer = (qId: string) => {
+    if (exam.show_results_immediately && answers[qId]) {
+      setImmediateFeedback(prev => ({ ...prev, [qId]: true }))
     }
   }
 
-  const handleMathInsert = (symbol: string) => {
-    const currentVal = answers[currentQ.id] || ''
-    handleAnswer((currentVal as string) + symbol)
+  const handleMathInsert = (qId: string, symbol: string) => {
+    const currentVal = answers[qId] || ''
+    handleAnswer(qId, (currentVal as string) + symbol, '')
   }
 
   if (submitted && result) {
@@ -537,325 +555,322 @@ export function ExamInterface({
             <div className="h-full bg-primary rounded-full transition-all duration-300" style={{ width: `${progress}%` }} />
           </div>
           <span className="text-sm text-muted-foreground whitespace-nowrap">
-            {currentIdx + 1}/{questions.length}
+            مجموعة {currentIdx + 1}/{groups.length}
           </span>
           <span className="text-sm text-muted-foreground whitespace-nowrap">
-            ({answeredCount} مُجاب)
+            ({answeredCount} من {questions.length} مُجاب)
           </span>
         </div>
       </div>
 
-      {/* Question Card */}
-      <div className="question-card mb-5">
-        <div className="flex items-center gap-2 mb-4">
-          <span className="bg-primary text-white text-sm font-bold w-8 h-8 rounded-lg flex items-center justify-center">
-            {currentIdx + 1}
-          </span>
-          <span className="text-sm text-muted-foreground">{(currentQ as any)?.points || 0} {(currentQ as any)?.points === 1 ? 'درجة' : 'درجات'}</span>
-        </div>
+      {/* Group Content */}
+      <div className="mb-5 space-y-6">
+        {currentGroup.passage && (
+          <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-5 text-indigo-900 italic relative mb-8">
+            <div className="absolute top-0 right-5 -translate-y-1/2 bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded-full shadow-sm">اقرأ القطعة التالية، ثم أجب عن الأسئلة المرتبطة بها:</div>
+            <MathRenderer text={currentGroup.passage} className="text-base" dir={dir} />
+          </div>
+        )}
 
-        <div className="mb-6">
-          {currentQ.context_passage && (
-            <div className="mb-6 bg-indigo-50 border border-indigo-100 rounded-xl p-5 text-indigo-900 italic relative">
-              <div className="absolute top-0 right-5 -translate-y-1/2 bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded-full shadow-sm">اقرأ القطعة التالية:</div>
-              <MathRenderer text={currentQ.context_passage} className="text-base" dir={dir} />
-            </div>
-          )}
-          
-          <div className={`flex ${
-            currentQ.image_position === 'top' ? 'flex-col-reverse' :
-            currentQ.image_position === 'right' ? 'flex-row-reverse gap-6 items-center' :
-            currentQ.image_position === 'left' ? 'flex-row gap-6 items-center' :
-            'flex-col' // bottom (default)
-          }`}>
-            <div className="flex-1">
-              <MathRenderer 
-                text={(currentQ.question_text ?? '').replace(/^(\(?\d+[\)\.\-\s]\s*)/, '').trim()} 
-                className={`text-xl font-medium leading-relaxed ${textAlign}`}
-                dir={dir}
-              />
-            </div>
-            
-            {currentQ.question_image_url && (
-              <div className={`rounded-xl overflow-hidden border border-border bg-muted/30 shrink-0 ${
-                currentQ.image_position === 'right' || currentQ.image_position === 'left' ? 'w-1/3' : 'mt-4 w-full'
-              }`}>
-                <img
-                  src={currentQ.question_image_url}
-                  alt="صورة السؤال"
-                  className="w-full max-h-72 object-contain"
-                />
+        {currentGroup.questions.map((currentQ, qIndexWithinGroup) => {
+          const globalQIndex = currentGroup.originalIndexes[qIndexWithinGroup]
+          return (
+            <div key={currentQ.id} className="question-card">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="bg-primary text-white text-sm font-bold w-8 h-8 rounded-lg flex items-center justify-center shrink-0">
+                  {globalQIndex + 1}
+                </span>
+                <span className="text-sm text-muted-foreground">{(currentQ as any)?.points || 0} {(currentQ as any)?.points === 1 ? 'درجة' : 'درجات'}</span>
               </div>
-            )}
-          </div>
-        </div>
 
-        {/* MCQ Options */}
-        {currentQ.question_type === 'mcq' && currentQ.options && (
-          <div className="space-y-3">
-            {currentQ.options.map((opt, i) => {
-              const isSelected = answers[currentQ.id] === opt;
-              const isCorrectOpt = checkAnswer(opt, currentQ.correct_answer || '', 'mcq');
-              const showFeedback = exam.show_results_immediately && immediateFeedback[currentQ.id];
-              
-              let btnClass = `answer-option w-full text-right ${isSelected ? 'selected' : ''}`;
-              if (showFeedback) {
-                if (isCorrectOpt) btnClass += ' !bg-green-100 !border-green-500 !text-green-800';
-                else if (isSelected) btnClass += ' !bg-red-100 !border-red-500 !text-red-800';
-              }
-
-              return (
-                <button key={i} onClick={() => handleAnswer(opt)} className={btnClass}>
-                  <span className="w-8 h-8 rounded-lg border-2 border-current flex items-center justify-center text-sm font-bold shrink-0">
-                    {['أ', 'ب', 'ج', 'د'][i]}
-                  </span>
-                    <MathRenderer text={opt} className="text-base" dir={dir} />
-                </button>
-              )
-            })}
-          </div>
-        )}
-
-        {/* True/False Options */}
-        {currentQ.question_type === 'true_false' && (
-          <div className="grid grid-cols-2 gap-4">
-            {['صح', 'خطأ'].map(opt => {
-              const isSelected = answers[currentQ.id] === opt;
-              const isCorrectOpt = checkAnswer(opt, currentQ.correct_answer || '', 'true_false');
-              const showFeedback = exam.show_results_immediately && immediateFeedback[currentQ.id];
-              
-              let btnClass = `answer-option flex-col justify-center py-8 ${isSelected ? 'selected' : ''}`;
-              if (showFeedback) {
-                if (isCorrectOpt) btnClass += ' !bg-green-100 !border-green-500 !text-green-800';
-                else if (isSelected) btnClass += ' !bg-red-100 !border-red-500 !text-red-800';
-              }
-
-              return (
-                <button key={opt} onClick={() => handleAnswer(opt)} className={btnClass}>
-                  <span className="text-3xl mb-2">{opt === 'صح' ? '✅' : '❌'}</span>
-                  <span className="font-bold text-lg">{opt}</span>
-                </button>
-              )
-            })}
-          </div>
-        )}
-
-        {/* Fill Blank */}
-        {currentQ.question_type === 'fill_blank' && (
-          <div className="mt-4">
-            <input
-              type="text"
-              value={answers[currentQ.id] || ''}
-              onChange={e => handleAnswer(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && submitTextAnswer()}
-              disabled={exam.show_results_immediately && immediateFeedback[currentQ.id]}
-              placeholder="اكتب إجابتك هنا..."
-              className="w-full px-4 py-3 border-2 border-border rounded-xl focus:border-primary focus:outline-none transition-colors"
-              dir="ltr"
-            />
-            {exam.show_results_immediately && !immediateFeedback[currentQ.id] && answers[currentQ.id] && (
-              <button onClick={submitTextAnswer} className="mt-3 bg-primary text-white px-4 py-2 rounded-xl font-bold text-sm w-full sm:w-auto hover:bg-primary/90 transition-colors">
-                تحقق من الإجابة
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* Essay / Correction — with handwriting image upload option */}
-        {(currentQ.question_type === 'essay' || currentQ.question_type === 'correction') && (
-          <div className="mt-4 flex flex-col gap-3">
-
-            {/* Mode toggle: نص / صورة */}
-            <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-xl w-fit">
-              <button
-                onClick={() => setAnswerMode(prev => ({ ...prev, [currentQ.id]: 'text' }))}
-                disabled={exam.show_results_immediately && immediateFeedback[currentQ.id]}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  getMode(currentQ.id) === 'text'
-                    ? 'bg-white text-primary shadow-sm'
-                    : 'text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                <Keyboard className="w-3.5 h-3.5" />
-                كتابة نصية
-              </button>
-              <button
-                onClick={() => setAnswerMode(prev => ({ ...prev, [currentQ.id]: 'image' }))}
-                disabled={exam.show_results_immediately && immediateFeedback[currentQ.id]}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  getMode(currentQ.id) === 'image'
-                    ? 'bg-white text-primary shadow-sm'
-                    : 'text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                <Camera className="w-3.5 h-3.5" />
-                صورة بخط اليد
-              </button>
-            </div>
-
-            {/* ─── Text mode ─── */}
-            {getMode(currentQ.id) === 'text' && (
-              <>
-                <div className="flex justify-end">
-                  <button
-                    onClick={() => setShowMath(!showMath)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-colors border ${
-                      showMath ? 'bg-primary text-white border-primary' : 'bg-slate-50 text-slate-600 border-border hover:bg-slate-100'
-                    }`}
-                  >
-                    <Calculator className="w-4 h-4" />
-                    {showMath ? 'إغلاق لوحة الرياضيات' : 'كتابة رموز رياضية'}
-                  </button>
-                </div>
-
-                {showMath ? (
-                  <MathLiveInput
-                    value={(answers[currentQ.id] as string) || ''}
-                    onChange={val => handleAnswer(val)}
-                    className="w-full text-left font-mono"
-                  />
-                ) : (
-                  <textarea
-                    value={(answers[currentQ.id] as string)?.startsWith('[image:') ? '' : ((answers[currentQ.id] as string) || '')}
-                    onChange={e => handleAnswer(e.target.value)}
-                    disabled={exam.show_results_immediately && immediateFeedback[currentQ.id]}
-                    placeholder="اكتب إجابتك هنا بوضوح..."
-                    className="w-full px-4 py-3 border-2 border-border rounded-xl focus:border-primary focus:outline-none transition-colors h-36 resize-none"
-                    dir="auto"
-                  />
-                )}
-
-                {exam.show_results_immediately && !immediateFeedback[currentQ.id] && answers[currentQ.id] && (
-                  <button onClick={submitTextAnswer} className="bg-primary text-white px-4 py-2 rounded-xl font-bold text-sm w-full sm:w-auto hover:bg-primary/90 transition-colors">
-                    تحقق من الإجابة
-                  </button>
-                )}
-              </>
-            )}
-
-            {/* ─── Image mode ─── */}
-            {getMode(currentQ.id) === 'image' && (
-              <>
-                <div className="text-xs text-muted-foreground bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-start gap-2">
-                  <span className="text-amber-500 text-base leading-none mt-0.5">💡</span>
-                  <span>اكتب الإجابة على ورقة بيضاء بخط واضح، ثم صوّرها بكاميرا هاتفك أو ارفعها من جهازك. سيقوم الذكاء الاصطناعي بقراءتها وتقييمها.</span>
-                </div>
-
-                <HandwritingUploader
-                  questionId={currentQ.id}
-                  attemptId={attemptId}
-                  existingImageUrl={imageAnswers[currentQ.id] || null}
-                  onImageUploaded={(url) => handleImageUploaded(currentQ.id, url, currentQ)}
-                  onImageRemoved={() => handleImageRemoved(currentQ.id)}
-                  disabled={exam.show_results_immediately && immediateFeedback[currentQ.id]}
-                />
-
-                {/* Vision grading loading */}
-                {visionGrading[currentQ.id]?.loading && (
-                  <div className="flex items-center gap-3 bg-primary/5 border border-primary/20 rounded-xl px-4 py-3">
-                    <Loader2 className="w-5 h-5 text-primary animate-spin shrink-0" />
-                    <div>
-                      <p className="text-sm font-bold text-primary">الذكاء الاصطناعي يقرأ إجابتك...</p>
-                      <p className="text-xs text-muted-foreground">يتم تحليل خط يدك وتقييم الحل</p>
+              <div className="mb-6">
+                <div className={`flex ${
+                  currentQ.image_position === 'top' ? 'flex-col-reverse' :
+                  currentQ.image_position === 'right' ? 'flex-row-reverse gap-6 items-center' :
+                  currentQ.image_position === 'left' ? 'flex-row gap-6 items-center' :
+                  'flex-col' // bottom (default)
+                }`}>
+                  <div className="flex-1">
+                    <MathRenderer 
+                      text={(currentQ.question_text ?? '').replace(/^(\(?\d+[\)\.\-\s]\s*)/, '').trim()} 
+                      className={`text-xl font-medium leading-relaxed ${textAlign}`}
+                      dir={dir}
+                    />
+                  </div>
+                  
+                  {currentQ.question_image_url && (
+                    <div className={`rounded-xl overflow-hidden border border-border bg-muted/30 shrink-0 ${
+                      currentQ.image_position === 'right' || currentQ.image_position === 'left' ? 'w-1/3' : 'mt-4 w-full'
+                    }`}>
+                      <img
+                        src={currentQ.question_image_url}
+                        alt="صورة السؤال"
+                        className="w-full max-h-72 object-contain"
+                      />
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
+              </div>
 
-                {/* Vision grading error */}
-                {visionGrading[currentQ.id]?.error && (
-                  <div className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-xl px-4 py-3">
-                    ⚠️ {visionGrading[currentQ.id]?.error}
-                  </div>
-                )}
+              {/* MCQ Options */}
+              {currentQ.question_type === 'mcq' && currentQ.options && (
+                <div className="space-y-3">
+                  {currentQ.options.map((opt, i) => {
+                    const isSelected = answers[currentQ.id] === opt;
+                    const isCorrectOpt = checkAnswer(opt, currentQ.correct_answer || '', 'mcq');
+                    const showFeedback = exam.show_results_immediately && immediateFeedback[currentQ.id];
+                    
+                    let btnClass = `answer-option w-full text-right ${isSelected ? 'selected' : ''}`;
+                    if (showFeedback) {
+                      if (isCorrectOpt) btnClass += ' !bg-green-100 !border-green-500 !text-green-800';
+                      else if (isSelected) btnClass += ' !bg-red-100 !border-red-500 !text-red-800';
+                    }
 
-                {/* Vision grading result (practice mode) */}
-                {visionGrading[currentQ.id]?.result && exam.show_results_immediately && (
-                  <div className={`p-4 rounded-xl border-2 ${
-                    visionGrading[currentQ.id]!.result!.is_correct
-                      ? 'bg-green-50 border-green-200'
-                      : 'bg-orange-50 border-orange-200'
-                  }`}>
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className={`font-bold flex items-center gap-2 ${
-                        visionGrading[currentQ.id]!.result!.is_correct ? 'text-green-700' : 'text-orange-700'
-                      }`}>
-                        {visionGrading[currentQ.id]!.result!.is_correct
-                          ? <><CheckCircle className="w-5 h-5" /> ممتاز!</>
-                          : <><Eye className="w-5 h-5" /> راجع إجابتك</>
-                        }
-                      </h4>
-                      <span className={`text-lg font-black ${
-                        visionGrading[currentQ.id]!.result!.is_correct ? 'text-green-600' : 'text-orange-600'
-                      }`}>
-                        {visionGrading[currentQ.id]!.result!.earned_score}/{currentQ.points}
-                      </span>
-                    </div>
-                    {visionGrading[currentQ.id]!.result!.extracted_text && (
-                      <div className="text-xs text-slate-600 bg-white/60 rounded-lg px-3 py-2 mb-2">
-                        <span className="font-bold block mb-1">ما قرأه الذكاء الاصطناعي:</span>
-                        {visionGrading[currentQ.id]!.result!.extracted_text}
-                      </div>
-                    )}
-                    <p className="text-sm text-slate-700">{visionGrading[currentQ.id]!.result!.feedback}</p>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        )}
-
-        {/* Immediate Feedback Box (Practice Mode) */}
-        {exam.show_results_immediately && immediateFeedback[currentQ.id] && currentQ.correct_answer && (
-          <div className={`mt-6 p-4 rounded-xl border-2 ${
-            checkAnswer(answers[currentQ.id] as string, currentQ.correct_answer, currentQ.question_type)
-              ? 'bg-green-50 border-green-200' 
-              : 'bg-red-50 border-red-200'
-          }`}>
-            <h4 className={`font-bold flex items-center gap-2 ${
-              checkAnswer(answers[currentQ.id] as string, currentQ.correct_answer, currentQ.question_type) ? 'text-green-700' : 'text-red-700'
-            }`}>
-              {checkAnswer(answers[currentQ.id] as string, currentQ.correct_answer, currentQ.question_type) ? (
-                <><CheckCircle className="w-5 h-5" /> إجابة صحيحة!</>
-              ) : (
-                <><XCircle className="w-5 h-5" /> إجابة خاطئة</>
+                    return (
+                      <button key={i} onClick={() => handleAnswer(currentQ.id, opt, 'mcq')} className={btnClass}>
+                        <span className="w-8 h-8 rounded-lg border-2 border-current flex items-center justify-center text-sm font-bold shrink-0">
+                          {['أ', 'ب', 'ج', 'د'][i]}
+                        </span>
+                          <MathRenderer text={opt} className="text-base" dir={dir} />
+                      </button>
+                    )
+                  })}
+                </div>
               )}
-            </h4>
-            
-            {!checkAnswer(answers[currentQ.id] as string, currentQ.correct_answer, currentQ.question_type) && (
-              <div className="mt-2 text-sm">
-                <strong>الإجابة الصحيحة هي:</strong> <span className="text-green-700 font-bold">{getDisplayCorrectAnswer(currentQ.correct_answer, currentQ.question_type)}</span>
-              </div>
-            )}
-            
-            {currentQ.explanation && (
-              <div className="mt-3 pt-3 border-t border-current/10 text-sm">
-                <strong className="block mb-1">التفسير:</strong>
-                <MathRenderer text={currentQ.explanation} className="leading-relaxed" dir={dir} />
-              </div>
-            )}
 
-            {/* AI Explain Button - only for wrong answers */}
-            {!checkAnswer(answers[currentQ.id] as string, currentQ.correct_answer, currentQ.question_type) && (
-              <AIExplainButton
-                questionId={currentQ.id}
-                questionText={currentQ.question_text}
-                correctAnswer={getDisplayCorrectAnswer(currentQ.correct_answer, currentQ.question_type)}
-                studentAnswer={answers[currentQ.id] as string}
-              />
-            )}
-            
-            {currentIdx < questions.length - 1 && (
-               <button 
-                 onClick={() => setCurrentIdx(currentIdx + 1)} 
-                 className="mt-4 bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors w-full sm:w-auto"
-               >
-                 السؤال التالي <ChevronLeft className="w-4 h-4 inline" />
-               </button>
-            )}
-          </div>
-        )}
+              {/* True/False Options */}
+              {currentQ.question_type === 'true_false' && (
+                <div className="grid grid-cols-2 gap-4">
+                  {['صح', 'خطأ'].map(opt => {
+                    const isSelected = answers[currentQ.id] === opt;
+                    const isCorrectOpt = checkAnswer(opt, currentQ.correct_answer || '', 'true_false');
+                    const showFeedback = exam.show_results_immediately && immediateFeedback[currentQ.id];
+                    
+                    let btnClass = `answer-option flex-col justify-center py-8 ${isSelected ? 'selected' : ''}`;
+                    if (showFeedback) {
+                      if (isCorrectOpt) btnClass += ' !bg-green-100 !border-green-500 !text-green-800';
+                      else if (isSelected) btnClass += ' !bg-red-100 !border-red-500 !text-red-800';
+                    }
 
-      </div>
+                    return (
+                      <button key={opt} onClick={() => handleAnswer(currentQ.id, opt, 'true_false')} className={btnClass}>
+                        <span className="text-3xl mb-2">{opt === 'صح' ? '✅' : '❌'}</span>
+                        <span className="font-bold text-lg">{opt}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+
+              {/* Fill Blank */}
+              {currentQ.question_type === 'fill_blank' && (
+                <div className="mt-4">
+                  <input
+                    type="text"
+                    value={answers[currentQ.id] || ''}
+                    onChange={e => handleAnswer(currentQ.id, e.target.value, 'fill_blank')}
+                    onKeyDown={e => e.key === 'Enter' && submitTextAnswer(currentQ.id)}
+                    disabled={exam.show_results_immediately && immediateFeedback[currentQ.id]}
+                    placeholder="اكتب إجابتك هنا..."
+                    className="w-full px-4 py-3 border-2 border-border rounded-xl focus:border-primary focus:outline-none transition-colors"
+                    dir="ltr"
+                  />
+                  {exam.show_results_immediately && !immediateFeedback[currentQ.id] && answers[currentQ.id] && (
+                    <button onClick={() => submitTextAnswer(currentQ.id)} className="mt-3 bg-primary text-white px-4 py-2 rounded-xl font-bold text-sm w-full sm:w-auto hover:bg-primary/90 transition-colors">
+                      تحقق من الإجابة
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Essay / Correction — with handwriting image upload option */}
+              {(currentQ.question_type === 'essay' || currentQ.question_type === 'correction') && (
+                <div className="mt-4 flex flex-col gap-3">
+
+                  {/* Mode toggle: نص / صورة */}
+                  <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-xl w-fit">
+                    <button
+                      onClick={() => setAnswerMode(prev => ({ ...prev, [currentQ.id]: 'text' }))}
+                      disabled={exam.show_results_immediately && immediateFeedback[currentQ.id]}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                        getMode(currentQ.id) === 'text'
+                          ? 'bg-white text-primary shadow-sm'
+                          : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                    >
+                      <Keyboard className="w-3.5 h-3.5" />
+                      كتابة نصية
+                    </button>
+                    <button
+                      onClick={() => setAnswerMode(prev => ({ ...prev, [currentQ.id]: 'image' }))}
+                      disabled={exam.show_results_immediately && immediateFeedback[currentQ.id]}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                        getMode(currentQ.id) === 'image'
+                          ? 'bg-white text-primary shadow-sm'
+                          : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                    >
+                      <Camera className="w-3.5 h-3.5" />
+                      صورة بخط اليد
+                    </button>
+                  </div>
+
+                  {/* ─── Text mode ─── */}
+                  {getMode(currentQ.id) === 'text' && (
+                    <>
+                      <div className="flex justify-end">
+                        <button
+                          onClick={() => setShowMath(!showMath)}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-colors border ${
+                            showMath ? 'bg-primary text-white border-primary' : 'bg-slate-50 text-slate-600 border-border hover:bg-slate-100'
+                          }`}
+                        >
+                          <Calculator className="w-4 h-4" />
+                          {showMath ? 'إغلاق لوحة الرياضيات' : 'كتابة رموز رياضية'}
+                        </button>
+                      </div>
+
+                      {showMath ? (
+                        <MathLiveInput
+                          value={(answers[currentQ.id] as string) || ''}
+                          onChange={val => handleAnswer(currentQ.id, val, currentQ.question_type)}
+                          className="w-full text-left font-mono"
+                        />
+                      ) : (
+                        <textarea
+                          value={(answers[currentQ.id] as string)?.startsWith('[image:') ? '' : ((answers[currentQ.id] as string) || '')}
+                          onChange={e => handleAnswer(currentQ.id, e.target.value, currentQ.question_type)}
+                          disabled={exam.show_results_immediately && immediateFeedback[currentQ.id]}
+                          placeholder="اكتب إجابتك هنا بوضوح..."
+                          className="w-full px-4 py-3 border-2 border-border rounded-xl focus:border-primary focus:outline-none transition-colors h-36 resize-none"
+                          dir="auto"
+                        />
+                      )}
+
+                      {exam.show_results_immediately && !immediateFeedback[currentQ.id] && answers[currentQ.id] && (
+                        <button onClick={() => submitTextAnswer(currentQ.id)} className="bg-primary text-white px-4 py-2 rounded-xl font-bold text-sm w-full sm:w-auto hover:bg-primary/90 transition-colors">
+                          تحقق من الإجابة
+                        </button>
+                      )}
+                    </>
+                  )}
+
+                  {/* ─── Image mode ─── */}
+                  {getMode(currentQ.id) === 'image' && (
+                    <>
+                      <div className="text-xs text-muted-foreground bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-start gap-2">
+                        <span className="text-amber-500 text-base leading-none mt-0.5">💡</span>
+                        <span>اكتب الإجابة على ورقة بيضاء بخط واضح، ثم صوّرها بكاميرا هاتفك أو ارفعها من جهازك. سيقوم الذكاء الاصطناعي بقراءتها وتقييمها.</span>
+                      </div>
+
+                      <HandwritingUploader
+                        questionId={currentQ.id}
+                        attemptId={attemptId}
+                        existingImageUrl={imageAnswers[currentQ.id] || null}
+                        onImageUploaded={(url) => handleImageUploaded(currentQ.id, url, currentQ)}
+                        onImageRemoved={() => handleImageRemoved(currentQ.id)}
+                        disabled={exam.show_results_immediately && immediateFeedback[currentQ.id]}
+                      />
+
+                      {/* Vision grading loading */}
+                      {visionGrading[currentQ.id]?.loading && (
+                        <div className="flex items-center gap-3 bg-primary/5 border border-primary/20 rounded-xl px-4 py-3">
+                          <Loader2 className="w-5 h-5 text-primary animate-spin shrink-0" />
+                          <div>
+                            <p className="text-sm font-bold text-primary">الذكاء الاصطناعي يقرأ إجابتك...</p>
+                            <p className="text-xs text-muted-foreground">يتم تحليل خط يدك وتقييم الحل</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Vision grading error */}
+                      {visionGrading[currentQ.id]?.error && (
+                        <div className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                          ⚠️ {visionGrading[currentQ.id]?.error}
+                        </div>
+                      )}
+
+                      {/* Vision grading result (practice mode) */}
+                      {visionGrading[currentQ.id]?.result && exam.show_results_immediately && (
+                        <div className={`p-4 rounded-xl border-2 ${
+                          visionGrading[currentQ.id]!.result!.is_correct
+                            ? 'bg-green-50 border-green-200'
+                            : 'bg-orange-50 border-orange-200'
+                        }`}>
+                          <div className="flex items-center justify-between mb-2">
+                            <h4 className={`font-bold flex items-center gap-2 ${
+                              visionGrading[currentQ.id]!.result!.is_correct ? 'text-green-700' : 'text-orange-700'
+                            }`}>
+                              {visionGrading[currentQ.id]!.result!.is_correct
+                                ? <><CheckCircle className="w-5 h-5" /> ممتاز!</>
+                                : <><Eye className="w-5 h-5" /> راجع إجابتك</>
+                              }
+                            </h4>
+                            <span className={`text-lg font-black ${
+                              visionGrading[currentQ.id]!.result!.is_correct ? 'text-green-600' : 'text-orange-600'
+                            }`}>
+                              {visionGrading[currentQ.id]!.result!.earned_score}/{currentQ.points}
+                            </span>
+                          </div>
+                          {visionGrading[currentQ.id]!.result!.extracted_text && (
+                            <div className="text-xs text-slate-600 bg-white/60 rounded-lg px-3 py-2 mb-2">
+                              <span className="font-bold block mb-1">ما قرأه الذكاء الاصطناعي:</span>
+                              {visionGrading[currentQ.id]!.result!.extracted_text}
+                            </div>
+                          )}
+                          <p className="text-sm text-slate-700">{visionGrading[currentQ.id]!.result!.feedback}</p>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Immediate Feedback Box (Practice Mode) */}
+              {exam.show_results_immediately && immediateFeedback[currentQ.id] && currentQ.correct_answer && (
+                <div className={`mt-6 p-4 rounded-xl border-2 ${
+                  checkAnswer(answers[currentQ.id] as string, currentQ.correct_answer, currentQ.question_type)
+                    ? 'bg-green-50 border-green-200' 
+                    : 'bg-red-50 border-red-200'
+                }`}>
+                  <h4 className={`font-bold flex items-center gap-2 ${
+                    checkAnswer(answers[currentQ.id] as string, currentQ.correct_answer, currentQ.question_type) ? 'text-green-700' : 'text-red-700'
+                  }`}>
+                    {checkAnswer(answers[currentQ.id] as string, currentQ.correct_answer, currentQ.question_type) ? (
+                      <><CheckCircle className="w-5 h-5" /> إجابة صحيحة!</>
+                    ) : (
+                      <><XCircle className="w-5 h-5" /> إجابة خاطئة</>
+                    )}
+                  </h4>
+                  
+                  {!checkAnswer(answers[currentQ.id] as string, currentQ.correct_answer, currentQ.question_type) && (
+                    <div className="mt-2 text-sm">
+                      <strong>الإجابة الصحيحة هي:</strong> <span className="text-green-700 font-bold">{getDisplayCorrectAnswer(currentQ.correct_answer, currentQ.question_type)}</span>
+                    </div>
+                  )}
+                  
+                  {currentQ.explanation && (
+                    <div className="mt-3 pt-3 border-t border-current/10 text-sm">
+                      <strong className="block mb-1">التفسير:</strong>
+                      <MathRenderer text={currentQ.explanation} className="leading-relaxed" dir={dir} />
+                    </div>
+                  )}
+
+                  {/* AI Explain Button - only for wrong answers */}
+                  {!checkAnswer(answers[currentQ.id] as string, currentQ.correct_answer, currentQ.question_type) && (
+                    <AIExplainButton
+                      questionId={currentQ.id}
+                      questionText={currentQ.question_text}
+                      correctAnswer={getDisplayCorrectAnswer(currentQ.correct_answer, currentQ.question_type)}
+                      studentAnswer={answers[currentQ.id] as string}
+                    />
+                  )}
+                </div>
+              )}
+
+            </div>
+          )
+        })}
 
       {/* Navigation Footer */}
       <div className="flex items-center justify-between">
@@ -867,18 +882,19 @@ export function ExamInterface({
 
         {/* Question Grid */}
         <div className="flex flex-wrap gap-1.5 max-w-sm justify-center">
-          {questions.map((q, i) => (
-            <button key={q.id} onClick={() => setCurrentIdx(i)}
+          {groups.map((g, i) => (
+            <button key={`nav-${i}`} onClick={() => setCurrentIdx(i)}
               className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${
                 i === currentIdx ? 'ring-2 ring-primary ring-offset-1 bg-primary text-white' :
-                answers[q.id] ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                g.questions.every(q => answers[q.id]) ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground hover:bg-muted/80'
               }`}>
-              {i + 1}
+              {g.originalIndexes[0] + 1}
+              {g.questions.length > 1 && <span className="text-[9px] block leading-none">+{g.questions.length - 1}</span>}
             </button>
           ))}
         </div>
 
-        {currentIdx < questions.length - 1 ? (
+        {currentIdx < groups.length - 1 ? (
           <button onClick={() => setCurrentIdx(currentIdx + 1)}
             className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl font-medium text-sm hover:bg-primary/90 transition-colors">
             التالي

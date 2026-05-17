@@ -54,6 +54,24 @@ export function QuestionsListClient({
     }
   }
 
+  // تجميع الأسئلة المرتبطة بقطعة معاً
+  const groups: { passage: string | null; questions: any[] }[] = []
+  const passageToGroupIndex = new Map<string, number>()
+
+  questions.forEach((q: any) => {
+    if (q.context_passage) {
+      if (passageToGroupIndex.has(q.context_passage)) {
+        const index = passageToGroupIndex.get(q.context_passage)!
+        groups[index].questions.push(q)
+      } else {
+        passageToGroupIndex.set(q.context_passage, groups.length)
+        groups.push({ passage: q.context_passage, questions: [q] })
+      }
+    } else {
+      groups.push({ passage: null, questions: [q] })
+    }
+  })
+
   return (
     <>
       {/* ── الشريط العلوي للحذف الجماعي (يظهر فقط إذا كان هناك تحديد) ── */}
@@ -101,103 +119,109 @@ export function QuestionsListClient({
         </label>
       </div>
 
-      <div className="space-y-2 relative">
-        {questions.map((q: any) => {
-          const typeInfo = TYPE_LABELS[q.question_type] || { label: q.question_type, color: 'bg-slate-100 text-slate-700' }
-          const bloom = q.bloom_level ? BLOOM_LABELS[q.bloom_level] : null
-          const isSelected = selectedIds.includes(q.id)
-
-          return (
-            <div
-              key={q.id}
-              className={`bg-white rounded-2xl border transition-all group flex items-stretch overflow-hidden
-                ${isSelected ? 'border-blue-400 bg-blue-50/30 shadow-md ring-1 ring-blue-400' : 'border-border hover:border-primary/30'}
-              `}
-            >
-              {/* Checkbox Column */}
-              <div 
-                className={`w-14 flex items-start justify-center pt-5 shrink-0 border-l border-transparent cursor-pointer
-                  ${isSelected ? 'bg-blue-50 border-blue-100' : 'hover:bg-slate-50'}
-                `}
-                onClick={() => toggleSelection(q.id)}
-              >
-                <input 
-                  type="checkbox"
-                  checked={isSelected}
-                  onChange={() => toggleSelection(q.id)}
-                  onClick={(e) => e.stopPropagation()}
-                  className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-600 cursor-pointer"
-                />
+      <div className="space-y-6 relative">
+        {groups.map((group, groupIdx) => (
+          <div key={`group-${groupIdx}`} className={group.passage ? "bg-slate-50/50 border border-slate-200 rounded-3xl p-3 shadow-sm" : ""}>
+            {group.passage && (
+              <div className="mb-3 p-4 bg-indigo-50 border border-indigo-100 rounded-xl text-sm text-indigo-950 leading-relaxed italic relative">
+                <span className="absolute -top-3 right-4 bg-indigo-100 text-indigo-800 text-[10px] font-bold px-3 py-0.5 rounded-full border border-indigo-200">
+                  القطعة المرجعية (مرتبط بها {group.questions.length} أسئلة)
+                </span>
+                <MathRenderer text={group.passage} />
               </div>
+            )}
+            <div className="space-y-2">
+              {group.questions.map((q: any) => {
+                const typeInfo = TYPE_LABELS[q.question_type] || { label: q.question_type, color: 'bg-slate-100 text-slate-700' }
+                const bloom = q.bloom_level ? BLOOM_LABELS[q.bloom_level] : null
+                const isSelected = selectedIds.includes(q.id)
 
-              {/* Question Content */}
-              <div className="flex-1 p-4 pl-4 border-r border-slate-100">
-                <div className="flex flex-col md:flex-row items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    {/* Badges row */}
-                    <div className="flex flex-wrap items-center gap-1.5 mb-2">
-                      <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${typeInfo.color}`}>
-                        {typeInfo.label}
-                      </span>
-                      {q.difficulty_level && (
-                        <span className={`text-[11px] px-2 py-0.5 rounded-full border font-medium ${DIFF_COLORS[q.difficulty_level]}`}>
-                          {q.difficulty_level === 'easy' ? 'سهل' : q.difficulty_level === 'medium' ? 'متوسط' : 'صعب'}
-                        </span>
-                      )}
-                      {bloom && (
-                        <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${bloom.color}`}>
-                          بلوم: {bloom.ar}
-                        </span>
-                      )}
-                      <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${STATUS_STYLES[q.status || 'draft']}`}>
-                        {q.status === 'approved' ? '✓ معتمد' : q.status === 'review' ? '⏳ مراجعة' : q.status === 'rejected' ? '✗ مرفوض' : 'مسودة'}
-                      </span>
-                    </div>
-
-                    {/* القطعة المرجعية إن وجدت */}
-                    {q.context_passage && (
-                      <div className="mb-2 mt-2 p-2.5 bg-indigo-50 border border-indigo-100 rounded-lg text-xs text-indigo-900 italic relative">
-                        <span className="font-bold text-indigo-800 absolute -top-2.5 right-3 bg-indigo-50 px-1 border border-indigo-100 rounded-full text-[9px]">القطعة المرجعية</span>
-                        <MathRenderer text={q.context_passage} className="line-clamp-2 leading-relaxed" />
-                      </div>
-                    )}
-                    
-                    {/* نص السؤال */}
-                    <MathRenderer text={q.question_text} className="text-sm font-medium leading-relaxed line-clamp-2 mt-2" />
-
-                    {/* التسلسل التعليمي */}
-                    <div className="flex flex-wrap items-center gap-1 mt-2 text-[10px] text-muted-foreground">
-                      {q.grades?.name_ar && (
-                        <span className="bg-slate-100 px-2 py-0.5 rounded-full">{q.grades.name_ar}</span>
-                      )}
-                      {q.subjects?.name_ar && (
-                        <span className="bg-slate-100 px-2 py-0.5 rounded-full">{q.subjects.icon} {q.subjects.name_ar}</span>
-                      )}
-                      {q.units?.name_ar && (
-                        <span className="bg-slate-100 px-2 py-0.5 rounded-full">📦 {q.units.name_ar}</span>
-                      )}
-                      {q.lessons?.name_ar && (
-                        <span className="bg-slate-100 px-2 py-0.5 rounded-full">📄 {q.lessons.name_ar}</span>
-                      )}
-                      <span className="mr-auto">{q.points} {q.points === 1 ? 'درجة' : 'درجات'} • استُخدم {q.usage_count} مرة</span>
-                    </div>
-                  </div>
-
-                  {/* أزرار التحكم */}
-                  <div className="flex flex-row md:flex-col items-center md:items-end gap-2 shrink-0 border-t md:border-t-0 md:border-r border-slate-100 pt-3 md:pt-0 md:pr-4 mt-3 md:mt-0 w-full md:w-auto">
-                    <QuestionApprovalButtons questionId={q.id} currentStatus={q.status || 'draft'} />
-                    <a
-                      href={`/admin/questions/${q.id}`}
-                      className="text-xs text-primary bg-primary/5 hover:bg-primary/10 px-3 py-1.5 rounded-lg transition-colors font-bold mr-auto md:mr-0"
+                return (
+                  <div
+                    key={q.id}
+                    className={`bg-white rounded-2xl border transition-all group flex items-stretch overflow-hidden
+                      ${isSelected ? 'border-blue-400 bg-blue-50/30 shadow-md ring-1 ring-blue-400' : 'border-border hover:border-primary/30'}
+                    `}
+                  >
+                    {/* Checkbox Column */}
+                    <div 
+                      className={`w-14 flex items-start justify-center pt-5 shrink-0 border-l border-transparent cursor-pointer
+                        ${isSelected ? 'bg-blue-50 border-blue-100' : 'hover:bg-slate-50'}
+                      `}
+                      onClick={() => toggleSelection(q.id)}
                     >
-                      تعديل السؤال
-                    </a>
+                      <input 
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleSelection(q.id)}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-600 cursor-pointer"
+                      />
+                    </div>
+
+                    {/* Question Content */}
+                    <div className="flex-1 p-4 pl-4 border-r border-slate-100">
+                      <div className="flex flex-col md:flex-row items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          {/* Badges row */}
+                          <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                            <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${typeInfo.color}`}>
+                              {typeInfo.label}
+                            </span>
+                            {q.difficulty_level && (
+                              <span className={`text-[11px] px-2 py-0.5 rounded-full border font-medium ${DIFF_COLORS[q.difficulty_level]}`}>
+                                {q.difficulty_level === 'easy' ? 'سهل' : q.difficulty_level === 'medium' ? 'متوسط' : 'صعب'}
+                              </span>
+                            )}
+                            {bloom && (
+                              <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${bloom.color}`}>
+                                بلوم: {bloom.ar}
+                              </span>
+                            )}
+                            <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${STATUS_STYLES[q.status || 'draft']}`}>
+                              {q.status === 'approved' ? '✓ معتمد' : q.status === 'review' ? '⏳ مراجعة' : q.status === 'rejected' ? '✗ مرفوض' : 'مسودة'}
+                            </span>
+                          </div>
+                          
+                          {/* نص السؤال */}
+                          <MathRenderer text={q.question_text} className="text-sm font-medium leading-relaxed line-clamp-2 mt-2" />
+
+                          {/* التسلسل التعليمي */}
+                          <div className="flex flex-wrap items-center gap-1 mt-2 text-[10px] text-muted-foreground">
+                            {q.grades?.name_ar && (
+                              <span className="bg-slate-100 px-2 py-0.5 rounded-full">{q.grades.name_ar}</span>
+                            )}
+                            {q.subjects?.name_ar && (
+                              <span className="bg-slate-100 px-2 py-0.5 rounded-full">{q.subjects.icon} {q.subjects.name_ar}</span>
+                            )}
+                            {q.units?.name_ar && (
+                              <span className="bg-slate-100 px-2 py-0.5 rounded-full">📦 {q.units.name_ar}</span>
+                            )}
+                            {q.lessons?.name_ar && (
+                              <span className="bg-slate-100 px-2 py-0.5 rounded-full">📄 {q.lessons.name_ar}</span>
+                            )}
+                            <span className="mr-auto">{q.points} {q.points === 1 ? 'درجة' : 'درجات'} • استُخدم {q.usage_count} مرة</span>
+                          </div>
+                        </div>
+
+                        {/* أزرار التحكم */}
+                        <div className="flex flex-row md:flex-col items-center md:items-end gap-2 shrink-0 border-t md:border-t-0 md:border-r border-slate-100 pt-3 md:pt-0 md:pr-4 mt-3 md:mt-0 w-full md:w-auto">
+                          <QuestionApprovalButtons questionId={q.id} currentStatus={q.status || 'draft'} />
+                          <a
+                            href={`/admin/questions/${q.id}`}
+                            className="text-xs text-primary bg-primary/5 hover:bg-primary/10 px-3 py-1.5 rounded-lg transition-colors font-bold mr-auto md:mr-0"
+                          >
+                            تعديل السؤال
+                          </a>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
+                )
+              })}
             </div>
-          )
-        })}
+          </div>
+        ))}
       </div>
 
       {/* مودال التأكيد */}
