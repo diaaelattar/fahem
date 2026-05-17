@@ -13,7 +13,7 @@ export default function HomePage() {
       <nav className="fixed top-0 inset-x-0 z-50 bg-white/90 backdrop-blur-md border-b border-border">
         <div className="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <img src="/logo.png" alt="استباق مصر فاهم" className="w-10 h-10 object-contain" />
+            <img src="/logo.png" alt="استباق مصر فاهم" className="w-12 h-12 object-contain mix-blend-multiply" />
             <span className="font-display font-bold text-xl text-primary">استباق مصر</span>
           </div>
           <div className="flex items-center gap-3">
@@ -305,8 +305,10 @@ export default function HomePage() {
       {/* ── Footer ──────────────────────────────────────────────── */}
       <footer className="bg-slate-900 text-slate-400 py-10 px-5 text-center">
         <div className="flex items-center justify-center gap-2 mb-3">
-          <img src="/logo.png" alt="استباق مصر فاهم" className="w-8 h-8 object-contain" />
-          <span className="font-display font-bold text-white text-lg">استباق مصر</span>
+          <div className="w-10 h-10 bg-white rounded-xl shadow-lg flex items-center justify-center shrink-0">
+            <img src="/logo.png" alt="استباق مصر فاهم" className="w-full h-full object-contain mix-blend-multiply" />
+          </div>
+          <span className="font-display font-bold text-white text-xl">استباق مصر</span>
         </div>
         <p className="text-sm mb-4">منصة تعليمية مجانية للمرحلة الإعدادية المصرية</p>
         <div className="flex items-center justify-center gap-6 text-xs text-slate-500">

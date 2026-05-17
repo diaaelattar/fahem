@@ -27,7 +27,7 @@ export function StudentSidebar() {
       {/* Logo */}
       <div className="p-5 border-b border-border">
         <Link href="/student/dashboard" className="flex items-center gap-3">
-          <img src="/logo.png" alt="استباق مصر فاهم" className="w-10 h-10 object-contain" />
+          <img src="/logo.png" alt="استباق مصر فاهم" className="w-12 h-12 object-contain mix-blend-multiply" />
           <div>
             <div className="font-display font-bold text-base text-primary leading-none">استباق مصر</div>
             <div className="text-xs text-muted-foreground mt-0.5">المرحلة الإعدادية</div>
