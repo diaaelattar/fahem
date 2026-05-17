@@ -6,6 +6,7 @@ import { LogOut, Zap, Flame, Brain, Star } from 'lucide-react'
 import type { Profile } from '@/types/supabase'
 import Link from 'next/link'
 import { InstallAppButton } from '@/components/shared/InstallAppButton'
+import { NotificationsDropdown } from '@/components/shared/NotificationsDropdown'
 
 export function StudentTopbar({ profile }: { profile: Profile }) {
   const router = useRouter()
@@ -33,6 +34,7 @@ export function StudentTopbar({ profile }: { profile: Profile }) {
 
       {/* Right side */}
       <div className="flex items-center gap-2">
+        <NotificationsDropdown userId={profile.id} />
         <InstallAppButton />
 
         {/* Avatar */}

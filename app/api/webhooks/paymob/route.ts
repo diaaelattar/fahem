@@ -110,6 +110,17 @@ export async function POST(req: Request) {
               end_date: endDate.toISOString(),
               status: 'active'
             })
+
+          // Send VIP Activation Notification
+          await supabase
+            .from('notifications')
+            .insert({
+              user_id: transaction.student_id,
+              title: 'تم تفعيل حساب الـ VIP 👑',
+              message: `مبروك! تم تفعيل اشتراكك في باقة "${plan.name_ar}" بنجاح. استمتع بوصول غير محدود للامتحانات حتى ${endDate.toLocaleDateString('ar-EG')}.`,
+              type: 'success',
+              link: '/student/vip'
+            })
         }
       }
     } else {

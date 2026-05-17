@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { LogOut, User, Bell } from 'lucide-react'
+import { NotificationsDropdown } from '@/components/shared/NotificationsDropdown'
 
 interface Props {
   profile: any
@@ -30,10 +31,7 @@ export function TeacherTopbar({ profile }: Props) {
       </div>
 
       <div className="flex items-center gap-3">
-        <button className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors relative">
-          <Bell className="w-5 h-5" />
-          {/* Notification dot */}
-        </button>
+        <NotificationsDropdown userId={profile.id} />
 
         <div className="flex items-center gap-2 bg-slate-50 border border-border p-1 pr-3 rounded-full">
           <span className="text-sm font-bold text-slate-700 hidden sm:block">
