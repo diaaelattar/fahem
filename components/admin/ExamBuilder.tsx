@@ -3,25 +3,25 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Plus, Trash2, Loader2, BookOpen, Save, Eye, CheckCircle, GripVertical, BarChart2, Sparkles } from 'lucide-react'
-import { QuestionFilterSidebar, type QuestionFilters } from './QuestionFilterSidebar'
+import {
+  Loader2, Save, Eye, CheckCircle, ChevronLeft, ChevronRight, BarChart2
+} from 'lucide-react'
 import { AutoSelectModal } from './AutoSelectModal'
-import { ExamSummaryStats } from './ExamSummaryStats'
 import { ExamBuilderSettings } from './ExamBuilderSettings'
+import { QuestionBankPanel } from './QuestionBankPanel'
 import type { QuestionItem, SelectedQuestion, ExamBuilderProps, ExamFormState } from './ExamBuilderTypes'
-import { TYPE_AR, DIFF_AR, DIFF_COLOR } from './ExamBuilderTypes'
+import { DEFAULT_FORM, DIFF_AR, DIFF_COLOR, TYPE_AR } from './ExamBuilderTypes'
 
-const DEFAULT_FORM: ExamFormState = {
-  title: '', description: '', subjectId: '', gradeId: '', semesterId: '',
-  unitId: '', lessonId: '', examType: 'partial', duration: '30',
-  passingScore: '', instructions: '', isPublished: false,
-  availableFrom: '', availableUntil: '', shuffleQuestions: true,
-  shuffleOptions: true, showResultsImmediately: true, allowedAttempts: '1',
-}
+const STEPS = [
+  { id: 1, label: 'إعدادات الاختبار', icon: '⚙️' },
+  { id: 2, label: 'اختيار الأسئلة',    icon: '📝' },
+  { id: 3, label: 'مراجعة ونشر',       icon: '🚀' },
+]
 
 export function ExamBuilder({ subjects, grades, semesters, units, lessons, examId, initialData }: ExamBuilderProps) {
   const router = useRouter()
   const supabase = createClient()
+  const [step, setStep] = useState(1)
 
   const [form, setForm] = useState<ExamFormState>(() =>
     initialData ? {
@@ -43,18 +43,13 @@ export function ExamBuilder({ subjects, grades, semesters, units, lessons, examI
       shuffleOptions: initialData.shuffle_options ?? true,
       showResultsImmediately: initialData.show_results_immediately ?? true,
       allowedAttempts: initialData.allowed_attempts?.toString() || '1',
-    } : DEFAULT_FORM
+      bankSearch: '', bankQuestionType: '', bankDifficulty: '', groupId: '',
+    } : { ...DEFAULT_FORM }
   )
-
-  const [filters, setFilters] = useState<QuestionFilters>({
-    search: '', gradeId: '', subjectId: '', semesterId: '',
-    unitId: '', lessonId: '', questionType: '', difficulty: '',
-  })
 
   const [bankQuestions, setBankQuestions] = useState<QuestionItem[]>([])
   const [selectedQuestions, setSelectedQuestions] = useState<SelectedQuestion[]>([])
   const [loadingQ, setLoadingQ] = useState(false)
-  const [activeTab, setActiveTab] = useState<'settings' | 'questions'>('settings')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
@@ -62,7 +57,7 @@ export function ExamBuilder({ subjects, grades, semesters, units, lessons, examI
 
   const totalPoints = selectedQuestions.reduce((s, q) => s + (q.points_override ?? q.points), 0)
 
-  // Load bank questions whenever filters change
+  // ── Fetch questions when hierarchy filters change ─────────
   const loadQuestions = useCallback(async () => {
     setLoadingQ(true)
     let q = supabase
@@ -70,32 +65,34 @@ export function ExamBuilder({ subjects, grades, semesters, units, lessons, examI
       .select('id, question_type, context_passage, question_text, difficulty_level, points, unit_id, lesson_id, subjects(name_ar,icon), grades(name_ar), units(name_ar), lessons(name_ar)')
       .eq('is_approved', true)
       .order('created_at', { ascending: false })
-      .limit(150)
+      .limit(200)
 
-    if (filters.gradeId)      q = q.eq('grade_id', filters.gradeId)
-    if (filters.subjectId)    q = q.eq('subject_id', filters.subjectId)
-    // if (filters.semesterId)   q = q.eq('semester_id', filters.semesterId) // Requires DB migration
-    if (filters.unitId)       q = q.eq('unit_id', filters.unitId)
-    if (filters.lessonId)     q = q.eq('lesson_id', filters.lessonId)
-    if (filters.questionType) q = q.eq('question_type', filters.questionType)
-    if (filters.difficulty)   q = q.eq('difficulty_level', filters.difficulty)
-    if (filters.search)       q = q.ilike('question_text', `%${filters.search}%`)
+    if (form.gradeId)          q = q.eq('grade_id',         form.gradeId)
+    if (form.subjectId)        q = q.eq('subject_id',       form.subjectId)
+    if (form.unitId)           q = q.eq('unit_id',          form.unitId)
+    if (form.lessonId)         q = q.eq('lesson_id',        form.lessonId)
+    if (form.bankQuestionType) q = q.eq('question_type',    form.bankQuestionType)
+    if (form.bankDifficulty)   q = q.eq('difficulty_level', form.bankDifficulty)
+    if (form.bankSearch)       q = q.ilike('question_text', `%${form.bankSearch}%`)
 
     const { data } = await q
     setBankQuestions((data || []) as unknown as QuestionItem[])
     setLoadingQ(false)
-  }, [filters, supabase])
+  }, [form.gradeId, form.subjectId, form.unitId, form.lessonId, form.bankQuestionType, form.bankDifficulty, form.bankSearch, supabase])
 
   useEffect(() => { loadQuestions() }, [loadQuestions])
 
+  // Load existing questions when editing
   useEffect(() => {
     if (examId && initialData) {
       supabase.from('exam_questions')
-        .select('question_id, question_order, points_override, questions(id,question_type,context_passage,question_text,difficulty_level,points,unit_id,lesson_id,subjects(name_ar,icon),grades(name_ar))')
+        .select('question_id, question_order, points_override, questions(id,question_type,context_passage,question_text,difficulty_level,points,unit_id,lesson_id,subjects(name_ar,icon),grades(name_ar),units(name_ar),lessons(name_ar))')
         .eq('exam_id', examId)
         .order('question_order')
         .then(({ data }) => {
-          if (data) setSelectedQuestions(data.map((eq: any) => ({ ...eq.questions, order: eq.question_order, points_override: eq.points_override })))
+          if (data) setSelectedQuestions(data.map((eq: any) => ({
+            ...eq.questions, order: eq.question_order, points_override: eq.points_override
+          })))
         })
     }
   }, [examId])
@@ -105,10 +102,10 @@ export function ExamBuilder({ subjects, grades, semesters, units, lessons, examI
     setSelectedQuestions(prev => [...prev, { ...q, order: prev.length + 1 }])
   }
 
-  const handleAutoAdd = (newQuestions: QuestionItem[]) => {
+  const handleAutoAdd = (newQs: QuestionItem[]) => {
     setSelectedQuestions(prev => {
-      const currentIds = new Set(prev.map(q => q.id))
-      const toAdd = newQuestions.filter(q => !currentIds.has(q.id))
+      const ids = new Set(prev.map(q => q.id))
+      const toAdd = newQs.filter(q => !ids.has(q.id))
       return [...prev, ...toAdd.map((q, i) => ({ ...q, order: prev.length + i + 1 }))]
     })
   }
@@ -119,13 +116,18 @@ export function ExamBuilder({ subjects, grades, semesters, units, lessons, examI
   const updatePoints = (id: string, pts: number) =>
     setSelectedQuestions(prev => prev.map(q => q.id === id ? { ...q, points_override: pts } : q))
 
-  const handleSave = async (publish: boolean) => {
-    if (!form.title.trim())               { setError('العنوان مطلوب'); return }
-    if (!form.subjectId)                  { setError('اختر المادة الدراسية'); return }
-    if (!form.gradeId)                    { setError('اختر الصف الدراسي'); return }
-    if (selectedQuestions.length === 0)   { setError('أضف سؤالاً واحداً على الأقل'); return }
-    if (!form.duration || parseInt(form.duration) < 1) { setError('مدة الاختبار يجب أن تكون أكبر من صفر'); return }
+  const validate = (): string => {
+    if (!form.title.trim())               return 'العنوان مطلوب'
+    if (!form.subjectId)                  return 'اختر المادة الدراسية'
+    if (!form.gradeId)                    return 'اختر الصف الدراسي'
+    if (selectedQuestions.length === 0)   return 'أضف سؤالاً واحداً على الأقل'
+    if (!form.duration || parseInt(form.duration) < 1) return 'مدة الاختبار يجب أن تكون أكبر من صفر'
+    return ''
+  }
 
+  const handleSave = async (publish: boolean) => {
+    const err = validate()
+    if (err) { setError(err); return }
     setError('')
     setSaving(true)
 
@@ -134,7 +136,6 @@ export function ExamBuilder({ subjects, grades, semesters, units, lessons, examI
       if (!user) throw new Error('غير مسجل الدخول')
 
       const examData = {
-        admin_id: user.id,
         title: form.title.trim(),
         description: form.description.trim() || null,
         subject_id: parseInt(form.subjectId),
@@ -144,7 +145,7 @@ export function ExamBuilder({ subjects, grades, semesters, units, lessons, examI
         lesson_id: form.lessonId ? parseInt(form.lessonId) : null,
         exam_type: form.examType,
         duration_minutes: parseInt(form.duration),
-        passing_score: form.passingScore ? parseFloat(form.passingScore) : null, // نسبة مئوية 0-100
+        passing_score: form.passingScore ? parseFloat(form.passingScore) : null,
         instructions: form.instructions.trim() || null,
         is_published: publish || form.isPublished,
         available_from: form.availableFrom ? new Date(form.availableFrom).toISOString() : null,
@@ -156,7 +157,6 @@ export function ExamBuilder({ subjects, grades, semesters, units, lessons, examI
       }
 
       let finalExamId = examId
-
       if (examId) {
         const { error: e } = await supabase.from('exams').update(examData).eq('id', examId)
         if (e) throw e
@@ -173,7 +173,6 @@ export function ExamBuilder({ subjects, grades, semesters, units, lessons, examI
         question_order: i + 1,
         points_override: q.points_override || null,
       }))
-
       const { error: qErr } = await supabase.from('exam_questions').insert(questionsData as any)
       if (qErr) throw qErr
 
@@ -186,170 +185,136 @@ export function ExamBuilder({ subjects, grades, semesters, units, lessons, examI
     }
   }
 
-  const availableInBank = bankQuestions.filter(q => !selectedQuestions.find(s => s.id === q.id))
-
   if (saved) return (
-    <div className="text-center py-20">
-      <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-        <CheckCircle className="w-9 h-9 text-green-600" />
+    <div className="text-center py-24 animate-fade-in">
+      <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-5 shadow-lg shadow-emerald-100">
+        <CheckCircle className="w-10 h-10 text-emerald-600" />
       </div>
-      <h3 className="text-xl font-bold mb-2">تم حفظ الاختبار بنجاح! 🎉</h3>
-      <p className="text-muted-foreground text-sm">جاري التوجيه إلى قائمة الاختبارات...</p>
+      <h3 className="text-2xl font-black mb-2 text-slate-800">تم حفظ الاختبار بنجاح! 🎉</h3>
+      <p className="text-slate-500">جاري التوجيه إلى قائمة الاختبارات...</p>
     </div>
   )
 
+  const diffCounts = { easy: 0, medium: 0, hard: 0 }
+  selectedQuestions.forEach(q => { if (q.difficulty_level in diffCounts) (diffCounts as any)[q.difficulty_level]++ })
+
   return (
-    <div className="space-y-5">
-      {/* Tabs */}
-      <div className="flex border-b border-border gap-1">
-        {(['settings', 'questions'] as const).map(tab => (
-          <button key={tab} onClick={() => setActiveTab(tab)}
-            className={`px-5 py-3 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === tab ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'
-            }`}>
-            {tab === 'settings' ? '⚙️ إعدادات الاختبار' : `📝 الأسئلة (${selectedQuestions.length})`}
-          </button>
-        ))}
-        {totalPoints > 0 && (
-          <div className="mr-auto flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground">
-            <BarChart2 className="w-4 h-4" />
-            الدرجة الكلية: <span className="font-bold text-foreground">{totalPoints}</span>
-          </div>
-        )}
+    <div className="space-y-6">
+
+      {/* ══ Wizard Progress Bar ══ */}
+      <div className="bg-white rounded-2xl border border-border shadow-sm p-4">
+        <div className="flex items-center gap-2">
+          {STEPS.map((s, i) => (
+            <div key={s.id} className="flex items-center gap-2 flex-1">
+              <button
+                onClick={() => { if (s.id < step || (s.id === 2 && form.title && form.subjectId && form.gradeId)) setStep(s.id) }}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex-1 justify-center ${
+                  step === s.id
+                    ? 'bg-primary text-white shadow-md shadow-primary/20'
+                    : step > s.id
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                    : 'bg-slate-50 text-slate-400 border border-border cursor-default'
+                }`}
+              >
+                <span>{s.icon}</span>
+                <span className="hidden sm:inline">{s.label}</span>
+                {step > s.id && <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />}
+              </button>
+              {i < STEPS.length - 1 && (
+                <ChevronLeft className={`w-4 h-4 shrink-0 ${step > s.id ? 'text-emerald-400' : 'text-slate-300'}`} />
+              )}
+            </div>
+          ))}
+          {/* Total points badge */}
+          {totalPoints > 0 && (
+            <div className="flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-2 rounded-xl text-sm font-black border border-primary/20 shrink-0">
+              <BarChart2 className="w-4 h-4" /> {totalPoints} درجة
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Settings Tab */}
-      {activeTab === 'settings' && (
+      {/* ══ Step 1: Settings ══ */}
+      {step === 1 && (
         <ExamBuilderSettings
           form={form} onChange={setForm}
-          subjects={subjects} grades={grades} semesters={semesters}
-          units={units} lessons={lessons} totalPoints={totalPoints}
+          subjects={subjects} grades={grades}
+          semesters={semesters} units={units} lessons={lessons}
+          totalPoints={totalPoints}
         />
       )}
 
-      {/* Questions Tab */}
-      {activeTab === 'questions' && (
-        <div className="grid lg:grid-cols-3 gap-5">
-          {/* Filter Sidebar */}
-          <div className="space-y-4">
-            <QuestionFilterSidebar
-              filters={filters} onChange={setFilters}
-              grades={grades} subjects={subjects} semesters={semesters}
-              units={units} lessons={lessons}
-              totalShown={availableInBank.length} totalInBank={bankQuestions.length}
-            />
-            <ExamSummaryStats questions={selectedQuestions} durationMinutes={parseInt(form.duration) || 0} />
-          </div>
+      {/* ══ Step 2: Questions ══ */}
+      {step === 2 && (
+        <QuestionBankPanel
+          form={form} onFormChange={setForm}
+          bankQuestions={bankQuestions}
+          selectedQuestions={selectedQuestions}
+          loading={loadingQ}
+          onAdd={addQuestion}
+          onRemove={removeQuestion}
+          onUpdatePoints={updatePoints}
+          onAutoSelect={() => setIsAutoSelectOpen(true)}
+        />
+      )}
 
-          {/* Bank */}
-          <div className="bg-white rounded-2xl border border-border overflow-hidden">
-            <div className="p-4 border-b border-border flex items-center justify-between">
-              <h3 className="font-bold">بنك الأسئلة</h3>
-              <span className="text-xs text-muted-foreground bg-slate-100 px-2 py-0.5 rounded-lg">{availableInBank.length} سؤال</span>
-            </div>
-            <div className="overflow-y-auto" style={{ maxHeight: 520 }}>
-              {loadingQ ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                </div>
-              ) : availableInBank.length === 0 ? (
-                <div className="text-center py-12 text-sm text-muted-foreground px-4">
-                  {bankQuestions.length === 0 ? 'لا توجد أسئلة معتمدة' : 'جميع الأسئلة مضافة أو لا توجد نتائج مطابقة'}
-                </div>
-              ) : (
-                <div className="divide-y divide-border">
-                  {availableInBank.map(q => (
-                    <div key={q.id} className="p-3 hover:bg-muted/30 transition-colors group">
-                      <div className="flex items-start gap-2">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex flex-wrap gap-1.5 mb-1.5">
-                            <span className="text-[10px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">{TYPE_AR[q.question_type]}</span>
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded ${DIFF_COLOR[q.difficulty_level]}`}>{DIFF_AR[q.difficulty_level]}</span>
-                            {(q.units as any)?.name_ar && (
-                              <span className="text-[10px] bg-purple-50 text-purple-700 px-1.5 py-0.5 rounded">{(q.units as any).name_ar}</span>
-                            )}
-                            {(q.lessons as any)?.name_ar && (
-                              <span className="text-[10px] bg-teal-50 text-teal-700 px-1.5 py-0.5 rounded">{(q.lessons as any).name_ar}</span>
-                            )}
-                            <span className="text-[10px] text-muted-foreground">{q.points} درجة</span>
-                          </div>
-                          {q.context_passage && (
-                            <div className="mb-1 text-[11px] text-indigo-700 bg-indigo-50/50 p-1.5 rounded border border-indigo-100 line-clamp-1 italic">القطعة: {q.context_passage}</div>
-                          )}
-                          <p className="text-sm leading-relaxed line-clamp-2" dangerouslySetInnerHTML={{ __html: q.question_text }} />
-                        </div>
-                        <button onClick={() => addQuestion(q)}
-                          className="shrink-0 w-7 h-7 rounded-lg bg-primary/10 hover:bg-primary hover:text-white text-primary flex items-center justify-center transition-all">
-                          <Plus className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+      {/* ══ Step 3: Review ══ */}
+      {step === 3 && (
+        <div className="space-y-5">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-8 h-8 rounded-full bg-primary text-white text-sm font-black flex items-center justify-center shadow-md">٣</div>
+            <div>
+              <h2 className="font-black text-slate-800 text-lg">مراجعة ونشر</h2>
+              <p className="text-sm text-slate-500">راجع ملخص الاختبار قبل الحفظ النهائي</p>
             </div>
           </div>
 
-          {/* Selected */}
-          <div className="bg-white rounded-2xl border border-border overflow-hidden">
-            <div className="p-4 border-b border-border flex items-center justify-between bg-slate-50">
-              <div>
-                <h3 className="font-bold flex items-center gap-2">
-                  أسئلة الاختبار
-                  {selectedQuestions.length > 0 && (
-                    <span className="text-xs font-normal text-muted-foreground bg-white px-2 py-0.5 rounded-md border border-border">
-                      {selectedQuestions.length} سؤال • {totalPoints} درجة
-                    </span>
-                  )}
-                </h3>
-              </div>
-              <div className="flex gap-2">
-                <button 
-                  onClick={() => setIsAutoSelectOpen(true)}
-                  disabled={availableInBank.length === 0}
-                  className="flex items-center gap-1.5 text-xs font-bold bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg hover:bg-indigo-200 transition-colors disabled:opacity-50"
-                >
-                  <Sparkles className="w-3.5 h-3.5" /> توليد عشوائي
-                </button>
-                {selectedQuestions.length > 0 && (
-                  <button onClick={() => setSelectedQuestions([])} className="text-xs text-red-500 hover:underline px-2">مسح الكل</button>
-                )}
+          <div className="grid md:grid-cols-2 gap-5">
+            {/* Summary card */}
+            <div className="bg-white rounded-2xl border border-border shadow-sm p-6 space-y-4">
+              <h3 className="font-bold text-slate-600 text-sm uppercase tracking-wider">ملخص الاختبار</h3>
+              <div className="space-y-3">
+                {[
+                  ['العنوان', form.title || '—'],
+                  ['المادة', subjects.find(s => s.id.toString() === form.subjectId)?.name_ar || '—'],
+                  ['الصف', grades.find(g => g.id.toString() === form.gradeId)?.name_ar || '—'],
+                  ['المدة', `${form.duration} دقيقة`],
+                  ['عدد الأسئلة', `${selectedQuestions.length} سؤال`],
+                  ['الدرجة الكلية', `${totalPoints} درجة`],
+                ].map(([label, val]) => (
+                  <div key={label} className="flex justify-between items-center py-2 border-b border-slate-100 last:border-0">
+                    <span className="text-sm text-slate-500 font-medium">{label}</span>
+                    <span className="text-sm font-bold text-slate-800">{val}</span>
+                  </div>
+                ))}
               </div>
             </div>
-            <div className="overflow-y-auto" style={{ maxHeight: 520 }}>
+
+            {/* Difficulty distribution */}
+            <div className="bg-white rounded-2xl border border-border shadow-sm p-6">
+              <h3 className="font-bold text-slate-600 text-sm uppercase tracking-wider mb-4">توزيع الصعوبة</h3>
               {selectedQuestions.length === 0 ? (
-                <div className="text-center py-16">
-                  <BookOpen className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
-                  <p className="text-sm text-muted-foreground">اضغط على + لإضافة أسئلة من البنك</p>
-                </div>
+                <p className="text-sm text-slate-400 text-center py-4">لا توجد أسئلة بعد</p>
               ) : (
-                <div className="divide-y divide-border">
-                  {selectedQuestions.map((q, i) => (
-                    <div key={q.id} className="p-3 hover:bg-muted/20">
-                      <div className="flex items-start gap-2">
-                        <GripVertical className="w-4 h-4 text-muted-foreground/40 mt-1 shrink-0 cursor-grab" />
-                        <span className="w-6 h-6 rounded-md bg-primary/10 text-primary text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
-                        <div className="flex-1 min-w-0">
-                          {q.context_passage && (
-                            <div className="mb-1 text-[11px] text-indigo-700 bg-indigo-50/50 p-1.5 rounded border border-indigo-100 line-clamp-2 italic">القطعة: {q.context_passage}</div>
-                          )}
-                          <p className="text-sm leading-snug line-clamp-2 mb-1.5" dangerouslySetInnerHTML={{ __html: q.question_text }} />
-                          <div className="flex items-center gap-2">
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded ${DIFF_COLOR[q.difficulty_level]}`}>{DIFF_AR[q.difficulty_level]}</span>
-                            <span className="text-xs text-muted-foreground">الدرجة:</span>
-                            <input type="number" min={1} max={20}
-                              value={q.points_override ?? q.points}
-                              onChange={e => updatePoints(q.id, parseInt(e.target.value) || q.points)}
-                              className="w-14 px-2 py-0.5 border border-border rounded text-xs text-center focus:outline-none focus:ring-1 focus:ring-primary/30" />
-                          </div>
+                <div className="space-y-3">
+                  {(['easy', 'medium', 'hard'] as const).map(d => {
+                    const count = diffCounts[d]
+                    const pct = selectedQuestions.length ? Math.round((count / selectedQuestions.length) * 100) : 0
+                    return (
+                      <div key={d}>
+                        <div className="flex justify-between text-xs font-bold mb-1">
+                          <span className={`px-2 py-0.5 rounded border ${DIFF_COLOR[d]}`}>{DIFF_AR[d]}</span>
+                          <span className="text-slate-500">{count} سؤال ({pct}%)</span>
                         </div>
-                        <button onClick={() => removeQuestion(q.id)}
-                          className="shrink-0 p-1 hover:bg-red-50 hover:text-red-500 text-muted-foreground rounded-lg transition-colors">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <div className="w-full bg-slate-100 rounded-full h-2">
+                          <div
+                            className={`h-2 rounded-full transition-all ${d === 'easy' ? 'bg-emerald-400' : d === 'medium' ? 'bg-amber-400' : 'bg-red-400'}`}
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
             </div>
@@ -357,33 +322,62 @@ export function ExamBuilder({ subjects, grades, semesters, units, lessons, examI
         </div>
       )}
 
-      {/* Error */}
+      {/* ══ Error ══ */}
       {error && (
-        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
+        <div className="flex items-center gap-2 p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-sm font-bold shadow-sm">
           ⚠️ {error}
         </div>
       )}
 
-      {/* Actions */}
-      <div className="flex items-center gap-3 pt-2">
-        <button onClick={() => handleSave(false)} disabled={saving}
-          className="flex items-center gap-2 border border-border px-5 py-2.5 rounded-xl font-medium text-sm hover:bg-muted transition-colors disabled:opacity-60">
-          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-          حفظ كمسودة
-        </button>
-        <button onClick={() => handleSave(true)} disabled={saving}
-          className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-6 py-2.5 rounded-xl font-medium text-sm transition-colors disabled:opacity-60">
-          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
-          حفظ ونشر الاختبار
-        </button>
-        <button onClick={() => router.back()} className="mr-auto text-sm text-muted-foreground hover:text-foreground transition-colors">
-          إلغاء
-        </button>
+      {/* ══ Navigation + Actions ══ */}
+      <div className="flex items-center gap-3 pt-2 border-t border-border">
+        {step > 1 ? (
+          <button onClick={() => setStep(s => s - 1)}
+            className="flex items-center gap-2 text-sm font-bold text-slate-600 bg-white border border-slate-200 px-5 py-3 rounded-xl shadow-sm hover:bg-slate-50 transition-colors">
+            <ChevronRight className="w-4 h-4" /> السابق
+          </button>
+        ) : (
+          <button onClick={() => router.back()}
+            className="text-sm font-bold text-slate-500 hover:text-slate-800 transition-colors bg-white border border-slate-200 px-5 py-3 rounded-xl shadow-sm">
+            إلغاء
+          </button>
+        )}
+
+        <div className="mr-auto flex gap-3">
+          {step < 3 ? (
+            <button
+              onClick={() => {
+                if (step === 1 && (!form.title || !form.subjectId || !form.gradeId)) {
+                  setError('يرجى إدخال العنوان والمادة والصف أولاً')
+                  return
+                }
+                setError('')
+                setStep(s => s + 1)
+              }}
+              className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-xl font-bold text-sm transition-colors shadow-md shadow-primary/20"
+            >
+              التالي <ChevronLeft className="w-4 h-4" />
+            </button>
+          ) : (
+            <>
+              <button onClick={() => handleSave(false)} disabled={saving}
+                className="flex items-center gap-2 bg-slate-800 hover:bg-slate-900 text-white px-6 py-3 rounded-xl font-bold text-sm transition-colors shadow-sm disabled:opacity-60">
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                حفظ كمسودة
+              </button>
+              <button onClick={() => handleSave(true)} disabled={saving}
+                className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl font-bold text-sm transition-colors shadow-md shadow-emerald-200 disabled:opacity-60">
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
+                حفظ ونشر
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {isAutoSelectOpen && (
-        <AutoSelectModal 
-          availableQuestions={availableInBank}
+        <AutoSelectModal
+          availableQuestions={bankQuestions.filter(q => !selectedQuestions.find(s => s.id === q.id))}
           onAdd={handleAutoAdd}
           onClose={() => setIsAutoSelectOpen(false)}
         />

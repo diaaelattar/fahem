@@ -38,15 +38,14 @@ export interface ExamBuilderProps {
   initialData?: any
 }
 
+/**
+ * UNIFIED STATE: covers both exam metadata AND question bank filters.
+ * subjectId/gradeId/semesterId/unitId/lessonId are shared — set once, used everywhere.
+ */
 export interface ExamFormState {
+  // ── Exam metadata ──────────────────────────────────────────
   title: string
   description: string
-  subjectId: string
-  gradeId: string
-  groupId?: string
-  semesterId: string
-  unitId: string
-  lessonId: string
   examType: ExamType
   duration: string
   passingScore: string
@@ -58,15 +57,28 @@ export interface ExamFormState {
   shuffleOptions: boolean
   showResultsImmediately: boolean
   allowedAttempts: string
+  groupId?: string
+
+  // ── Shared hierarchy (drives BOTH exam settings + bank filter) ──
+  subjectId: string
+  gradeId: string
+  semesterId: string
+  unitId: string
+  lessonId: string
+
+  // ── Bank-only extra filters (not saved to exam) ────────────
+  bankSearch: string
+  bankQuestionType: string
+  bankDifficulty: string
 }
 
-export const EXAM_TYPE_OPTIONS: { value: ExamType; label: string; color: string }[] = [
-  { value: 'partial',  label: 'اختبار جزئي (درس/وحدة)', color: 'bg-blue-50 text-blue-700 border-blue-200' },
-  { value: 'monthly',  label: 'اختبار شهري',             color: 'bg-purple-50 text-purple-700 border-purple-200' },
-  { value: 'midterm',  label: 'نصف الترم',               color: 'bg-orange-50 text-orange-700 border-orange-200' },
-  { value: 'final',    label: 'امتحان نهائي',            color: 'bg-red-50 text-red-700 border-red-200' },
-  { value: 'homework', label: 'واجب منزلي',              color: 'bg-green-50 text-green-700 border-green-200' },
-  { value: 'custom',   label: 'مخصص',                    color: 'bg-slate-50 text-slate-700 border-slate-200' },
+export const EXAM_TYPE_OPTIONS: { value: ExamType; label: string; icon: string; color: string }[] = [
+  { value: 'partial',  label: 'اختبار جزئي',   icon: '📝', color: 'bg-blue-50 text-blue-700 border-blue-200' },
+  { value: 'monthly',  label: 'اختبار شهري',    icon: '📅', color: 'bg-purple-50 text-purple-700 border-purple-200' },
+  { value: 'midterm',  label: 'نصف الترم',      icon: '📊', color: 'bg-orange-50 text-orange-700 border-orange-200' },
+  { value: 'final',    label: 'امتحان نهائي',   icon: '🎓', color: 'bg-red-50 text-red-700 border-red-200' },
+  { value: 'homework', label: 'واجب منزلي',     icon: '🏠', color: 'bg-green-50 text-green-700 border-green-200' },
+  { value: 'custom',   label: 'مخصص',           icon: '⚙️', color: 'bg-slate-50 text-slate-700 border-slate-200' },
 ]
 
 export const TYPE_AR: Record<string, string> = {
@@ -76,7 +88,22 @@ export const DIFF_AR: Record<string, string> = {
   easy: 'سهل', medium: 'متوسط', hard: 'صعب'
 }
 export const DIFF_COLOR: Record<string, string> = {
-  easy: 'bg-green-100 text-green-700',
-  medium: 'bg-yellow-100 text-yellow-700',
-  hard: 'bg-red-100 text-red-700'
+  easy:   'bg-emerald-100 text-emerald-700 border-emerald-200',
+  medium: 'bg-amber-100 text-amber-700 border-amber-200',
+  hard:   'bg-red-100 text-red-700 border-red-200',
+}
+export const TYPE_COLOR: Record<string, string> = {
+  mcq:        'bg-blue-50 text-blue-700 border-blue-200',
+  true_false: 'bg-violet-50 text-violet-700 border-violet-200',
+  fill_blank: 'bg-teal-50 text-teal-700 border-teal-200',
+}
+
+export const DEFAULT_FORM: ExamFormState = {
+  title: '', description: '', examType: 'partial', duration: '30',
+  passingScore: '', instructions: '', isPublished: false,
+  availableFrom: '', availableUntil: '', shuffleQuestions: true,
+  shuffleOptions: true, showResultsImmediately: true, allowedAttempts: '1',
+  groupId: '',
+  subjectId: '', gradeId: '', semesterId: '', unitId: '', lessonId: '',
+  bankSearch: '', bankQuestionType: '', bankDifficulty: '',
 }
