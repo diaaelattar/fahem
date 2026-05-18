@@ -88,10 +88,10 @@ export async function POST(req: Request) {
           })
           .eq('id', transactionId)
 
-        // Get plan duration
+        // Get plan duration and name
         const { data: plan } = await supabase
           .from('subscription_plans')
-          .select('duration_days')
+          .select('duration_days, name_ar')
           .eq('id', transaction.plan_id)
           .single()
 

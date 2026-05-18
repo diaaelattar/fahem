@@ -416,6 +416,7 @@ export function ExamInterface({
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
   }
   
+  const answeredCount = Object.keys(answers).length
   const progress = (answeredCount / questions.length) * 100
 
   if (questions.length === 0) {

@@ -21,6 +21,8 @@ interface GeneratedQuestion {
   learning_outcome_id?: number | null
 }
 
+type PreviewQuestion = GeneratedQuestion & { id: string, selected: boolean, editing: boolean }
+
 const TYPE_LABELS = { mcq: 'اختيار من متعدد', true_false: 'صح / خطأ', fill_blank: 'ملء فراغ', essay: 'مقالي', correction: 'تصويب خطأ' }
 const DIFF_LABELS = { easy: 'سهل', medium: 'متوسط', hard: 'صعب' }
 const DIFF_COLORS = { easy: 'badge-easy', medium: 'badge-medium', hard: 'badge-hard' }
@@ -34,7 +36,7 @@ export function QuestionPreviewGrid({
   documentId: string
 }) {
   const supabase = createClient() as any
-  const [questions, setQuestions] = useState(
+  const [questions, setQuestions] = useState<PreviewQuestion[]>(
     initialQuestions.map((q, i) => ({ ...q, id: `q-${i}`, selected: true, editing: false }))
   )
   const [saving, setSaving] = useState(false)
@@ -248,10 +250,9 @@ export function QuestionPreviewGrid({
         </div>
       </div>
 
-      {/* Questions */}
       <div className="space-y-6">
         {(() => {
-          const groups: { passage: string | null; questions: (GeneratedQuestion & { originalIndex: number })[] }[] = []
+          const groups: { passage: string | null; questions: (PreviewQuestion & { originalIndex: number })[] }[] = []
           const passageToGroupIndex = new Map<string, number>()
 
           filtered.forEach((q, idx) => {
