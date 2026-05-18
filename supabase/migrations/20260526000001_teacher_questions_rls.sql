@@ -5,6 +5,7 @@
 -- =====================================================
 
 -- السماح للمعلمين برؤية الأسئلة المعتمدة في النظام
+DROP POLICY IF EXISTS "Teachers can view approved questions" ON public.questions;
 CREATE POLICY "Teachers can view approved questions" ON public.questions FOR SELECT USING (
   EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'teacher')
   AND is_approved = true
