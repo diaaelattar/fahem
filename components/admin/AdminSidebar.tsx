@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useSidebar } from './SidebarContext'
 import {
   Brain, LayoutDashboard, Upload, HelpCircle, ShieldCheck,
-  ClipboardList, BarChart3, Users, Settings, BookOpen, X
+  ClipboardList, BarChart3, Users, Settings, BookOpen, X, GraduationCap
 } from 'lucide-react'
 
 const navItems = [
@@ -15,6 +15,7 @@ const navItems = [
   { href: '/admin/questions/audit', icon: ShieldCheck,       label: 'مركز التدقيق' },
   { href: '/admin/exams',           icon: ClipboardList,    label: 'الاختبارات' },
   { href: '/admin/students',  icon: Users,            label: 'الطلاب' },
+  { href: '/admin/teachers',  icon: GraduationCap,    label: 'المعلمون' },
   { href: '/admin/reports',   icon: BarChart3,        label: 'التقارير' },
 ]
 
