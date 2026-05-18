@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import { Users, ArrowRight, Trophy, TrendingUp, Calendar, CheckCircle, XCircle, BookOpen } from 'lucide-react'
 import Link from 'next/link'
+import { AddStudentForm } from './AddStudentForm'
 
 export default async function GroupDetailPage({ params }: { params: { id: string } }) {
   const profile = await getCurrentProfile()
@@ -116,6 +117,7 @@ export default async function GroupDetailPage({ params }: { params: { id: string
               <Users className="w-5 h-5 text-indigo-500" />
               طلاب المجموعة ({totalStudents})
             </h2>
+            <AddStudentForm groupId={group.id} />
           </div>
           {groupStudents && groupStudents.length > 0 ? (
             <div className="divide-y divide-border max-h-[400px] overflow-y-auto">
