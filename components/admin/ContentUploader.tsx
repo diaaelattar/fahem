@@ -47,6 +47,7 @@ export function ContentUploader({ subjects, grades }: Props) {
   const [questionCount, setQuestionCount] = useState(12)
   const [requestedTypes, setRequestedTypes] = useState<string[]>(['mcq', 'true_false', 'fill_blank'])
   const [targetCognitiveLevel, setTargetCognitiveLevel] = useState('متنوع')
+  const [customInstructions, setCustomInstructions] = useState('')
   
   const [units, setUnits] = useState<any[]>([])
   const [lessons, setLessons] = useState<any[]>([])
@@ -335,6 +336,7 @@ export function ContentUploader({ subjects, grades }: Props) {
                   questionCount,
                   requestedTypes,
                   targetCognitiveLevel,
+                  customInstructions,
                   generationMode,
                 }),
               })
@@ -423,6 +425,7 @@ export function ContentUploader({ subjects, grades }: Props) {
             questionCount,
             requestedTypes,
             targetCognitiveLevel,
+            customInstructions,
           }),
         })
 
@@ -678,6 +681,17 @@ export function ContentUploader({ subjects, grades }: Props) {
                   className="w-full px-3 py-2 border border-border rounded-lg text-xs outline-none focus:ring-1 focus:ring-primary/30"
                 />
                 <p className="text-[10px] text-muted-foreground mt-1">اتركه فارغاً لمعالجة كافة الصفحات</p>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold block mb-1">تعليمات إضافية للذكاء الاصطناعي (اختياري)</label>
+                <textarea 
+                  value={customInstructions} 
+                  onChange={e => setCustomInstructions(e.target.value)}
+                  placeholder="مثال: ركز على أسئلة النحو، اجعل الأسئلة صعبة جداً وتتطلب استنتاجاً عميقاً، استهدف أفكار الدرس الفلاني..."
+                  className="w-full h-20 px-3 py-2 border border-border rounded-lg text-xs outline-none focus:ring-1 focus:ring-primary/30 resize-none"
+                />
+                <p className="text-[10px] text-muted-foreground mt-1">اكتب أي تعليمات إضافية وسيلتزم بها المحرك الذكي</p>
               </div>
 
               <div className="flex items-center justify-between gap-2">

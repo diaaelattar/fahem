@@ -18,6 +18,7 @@ export interface PromptParams {
   totalChunks?: number
   requestedTypes?: string[]
   targetCognitiveLevel?: string
+  customInstructions?: string
 }
 
 const MATH_STRICT_RULES = `
@@ -157,6 +158,9 @@ ${typeCountBreakdown}
 - **المادة الدراسية:** ${params.subject}
 - **الصف الدراسي:** ${params.grade}
 
+${params.customInstructions ? `## تعليمات مخصصة من المدرس (التزم بها بدقة شديدة)
+${params.customInstructions}
+` : ''}
 ## معايير تربوية للنمط: SMART_GEN
 - الأسئلة يجب أن تكون مشوّقة، تعتمد على الفهم والتطبيق لا الحفظ والتلقين.
 - الاختيار من متعدد (MCQ): أرومة واضحة + 4 بدائل منطقية + مشتتات قوية + إجابة واحدة مؤكدة.
