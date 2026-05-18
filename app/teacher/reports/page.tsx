@@ -28,12 +28,12 @@ export default async function TeacherReportsPage({ searchParams }: { searchParam
   }
   const { data: exams } = await examsQuery
 
-  // If an exam is selected, fetch attempts
-  let attempts = []
+  // If an exam is selected, fetch attempts with exam total_points
+  let attempts: any[] = []
   if (selectedExamId) {
     const { data: fetchedAttempts } = await supabase
       .from('exam_attempts')
-      .select('*, students(profiles(full_name))')
+      .select('*, students(profiles(full_name)), exams(total_points)')
       .eq('exam_id', selectedExamId)
       .not('completed_at', 'is', null)
       .order('percentage', { ascending: false })
@@ -163,7 +163,7 @@ export default async function TeacherReportsPage({ searchParams }: { searchParam
                           {new Date(attempt.completed_at).toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' })}
                         </td>
                         <td className="p-4 text-sm font-black text-slate-700">
-                          {attempt.score} / {attempt.total_score}
+                          {attempt.score} / {attempt.exams?.total_points ?? '—'}
                         </td>
                         <td className="p-4">
                           <span className={`font-black text-sm px-2.5 py-1 rounded-md ${

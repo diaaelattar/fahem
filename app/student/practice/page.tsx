@@ -42,7 +42,6 @@ export default async function PracticeCenterPage() {
     .from('units')
     .select('id, name_ar, subjects(id, name_ar, icon), lessons(id, name_ar)')
     .eq('grade_id', gradeId || 0)
-    .eq('is_active', true)
     .order('sort_order')
 
   const unitsWithQuestions: any[] = []

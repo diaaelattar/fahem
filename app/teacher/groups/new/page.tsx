@@ -1,101 +1,94 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createGroupAction } from './actions'
-import { ArrowRight, Loader2, Users } from 'lucide-react'
-import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { Loader2, Save, ArrowRight } from 'lucide-react'
+import Link from 'next/link'
+import { toast } from 'sonner'
 
 export default function NewGroupPage() {
-  const router = useRouter()
   const supabase = createClient()
-  
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [grades, setGrades] = useState<any[]>([])
+  const router = useRouter()
+  const [name, setName] = useState('')
+  const [saving, setSaving] = useState(false)
 
-  useEffect(() => {
-    supabase.from('grades').select('id, name_ar').order('grade_number').then(({ data }) => {
-      if (data) setGrades(data)
-    })
-  }, [])
+  const generateCode = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+    return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
+  }
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    setLoading(true)
-    setError('')
-
-    const formData = new FormData(e.currentTarget)
-    
+  const handleCreate = async () => {
+    if (!name.trim()) { toast.error('اسم المجموعة مطلوب'); return }
+    setSaving(true)
     try {
-      await createGroupAction(formData)
-      router.push('/teacher/groups')
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('غير مسجل الدخول')
+
+      const { data: teacher } = await supabase
+        .from('teachers')
+        .select('id')
+        .eq('id', user.id)
+        .single()
+
+      if (!teacher) throw new Error('لا يوجد حساب معلم مرتبط بهذا البريد الإلكتروني')
+
+      const invite_code = generateCode()
+      const { data, error } = await supabase
+        .from('student_groups')
+        .insert({ teacher_id: user.id, name_ar: name.trim(), invite_code })
+        .select()
+        .single()
+
+      if (error) throw error
+      toast.success('تم إنشاء المجموعة بنجاح!')
+      router.push(`/teacher/groups/${data.id}`)
     } catch (err: any) {
-      setError(err.message)
-      setLoading(false)
+      toast.error(err.message || 'حدث خطأ')
+    } finally {
+      setSaving(false)
     }
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
-      <div className="flex items-center gap-4">
-        <Link href="/teacher/groups" className="w-10 h-10 rounded-full bg-white border border-border flex items-center justify-center text-slate-500 hover:text-slate-800 hover:bg-slate-50 transition-colors">
-          <ArrowRight className="w-5 h-5" />
-        </Link>
-        <div>
-          <h1 className="text-2xl font-black text-slate-800">إنشاء مجموعة جديدة</h1>
-          <p className="text-sm text-slate-500 mt-1">أضف مجموعة جديدة لدعوة طلابك إليها لاحقاً.</p>
-        </div>
+    <div className="max-w-lg space-y-6" dir="rtl">
+      <div className="flex items-center gap-2 text-sm text-slate-500">
+        <Link href="/teacher/groups" className="hover:text-indigo-600 transition-colors font-medium">المجموعات</Link>
+        <ArrowRight className="w-4 h-4 rotate-180" />
+        <span className="font-bold text-slate-800">مجموعة جديدة</span>
       </div>
 
-      <div className="bg-white rounded-3xl border border-border p-6 md:p-8 shadow-sm">
-        <form onSubmit={handleSubmit} className="space-y-6">
-          
-          {error && (
-            <div className="bg-rose-50 border border-rose-200 text-rose-700 p-4 rounded-xl text-sm font-bold">
-              {error}
-            </div>
-          )}
+      <div>
+        <h1 className="text-2xl font-black text-slate-800">إنشاء مجموعة جديدة</h1>
+        <p className="text-slate-500 text-sm mt-1">أنشئ مجموعة لطلابك وأرسل لهم كود الانضمام</p>
+      </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-bold text-slate-700 block">اسم المجموعة <span className="text-rose-500">*</span></label>
-            <input 
-              type="text" 
-              name="name" 
-              required
-              placeholder="مثال: مجموعة يوم الإثنين 4م - الصف الأول"
-              className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all font-medium"
-            />
-          </div>
+      <div className="bg-white rounded-2xl border border-border p-6 space-y-5 shadow-sm">
+        <div>
+          <label className="block text-sm font-bold text-slate-700 mb-2">اسم المجموعة *</label>
+          <input
+            value={name}
+            onChange={e => setName(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleCreate()}
+            placeholder="مثال: سنتر النجاح — الصف الثالث الثانوي"
+            className="w-full px-4 py-3 border-2 border-border rounded-xl text-sm focus:outline-none focus:border-indigo-400 transition-colors"
+            autoFocus
+          />
+        </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-bold text-slate-700 block">المرحلة الدراسية (اختياري)</label>
-            <select 
-              name="grade_id" 
-              className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all font-medium bg-white"
-            >
-              <option value="">-- للجميع --</option>
-              {grades.map(g => (
-                <option key={g.id} value={g.id}>{g.name_ar}</option>
-              ))}
-            </select>
-          </div>
+        <div className="bg-indigo-50 rounded-xl p-4 border border-indigo-100">
+          <p className="text-xs font-bold text-indigo-700 mb-1">💡 سيتم إنشاء كود دعوة تلقائياً</p>
+          <p className="text-xs text-indigo-600">يمكن لطلابك الانضمام بهذا الكود من صفحة /student/join-group</p>
+        </div>
 
-          <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
-            <Link href="/teacher/groups" className="px-6 py-3 rounded-xl font-bold text-slate-500 hover:bg-slate-100 transition-colors">
-              إلغاء
-            </Link>
-            <button 
-              type="submit" 
-              disabled={loading}
-              className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-8 py-3 rounded-xl font-bold flex items-center gap-2 transition-all shadow-lg shadow-indigo-200"
-            >
-              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Users className="w-5 h-5" />}
-              حفظ المجموعة
-            </button>
-          </div>
-        </form>
+        <button
+          onClick={handleCreate}
+          disabled={saving || !name.trim()}
+          className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-colors shadow-lg shadow-indigo-200"
+        >
+          {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+          {saving ? 'جاري الإنشاء...' : 'إنشاء المجموعة'}
+        </button>
       </div>
     </div>
   )
