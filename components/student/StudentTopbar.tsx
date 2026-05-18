@@ -21,7 +21,7 @@ export function StudentTopbar({ profile }: { profile: Profile }) {
     <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-border px-4 md:px-6 h-16 flex items-center justify-between gap-3">
       {/* Mobile: Logo (hidden on desktop since sidebar shows it) */}
       <Link href="/student/dashboard" className="flex items-center gap-2 md:hidden">
-        <img src="/logo.png" alt="استباق مصر فاهم" className="w-10 h-10 object-contain mix-blend-multiply" />
+        <img src="/logo.png" alt="استباق مصر فاهم" className="w-10 h-10 object-contain" />
         <span className="font-display font-bold text-primary text-base">استباق</span>
       </Link>
 

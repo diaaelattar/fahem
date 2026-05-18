@@ -26,7 +26,7 @@ export function TeacherSidebar() {
     <div className="w-64 h-screen bg-slate-900 text-slate-300 flex flex-col fixed right-0 top-0 border-l border-slate-800">
       <div className="h-16 flex items-center justify-center border-b border-slate-800 shrink-0 px-6 gap-3">
         <div className="w-10 h-10 bg-white rounded-xl shadow-lg flex items-center justify-center shrink-0">
-          <img src="/logo.png" alt="استباق مصر فاهم" className="w-full h-full object-contain mix-blend-multiply" />
+          <img src="/logo.png" alt="استباق مصر فاهم" className="w-full h-full object-contain" />
         </div>
         <span className="font-display font-bold text-lg text-white">بوابة المعلم</span>
       </div>
