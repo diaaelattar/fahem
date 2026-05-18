@@ -36,8 +36,8 @@ export default async function EditTeacherExamPage({ params }: { params: { id: st
     supabase.from('subjects').select('id, name_ar, icon').order('name_ar'),
     supabase.from('grades').select('id, name_ar, grade_number').order('grade_number'),
     supabase.from('semesters').select('id, name_ar').order('sort_order'),
-    supabase.from('units').select('id, name_ar, subject_id, grade_id, semester_id').eq('is_active', true).order('sort_order'),
-    supabase.from('lessons').select('id, name_ar, unit_id').eq('is_active', true).order('sort_order'),
+    supabase.from('units').select('id, name_ar, subject_id, grade_id, semester_id').order('sort_order'),
+    supabase.from('lessons').select('id, name_ar, unit_id').order('sort_order'),
     supabase.from('student_groups').select('id, name_ar').eq('teacher_id', profile?.id).order('created_at')
   ])
 
