@@ -14,6 +14,19 @@ interface MathRendererProps {
 }
 
 /**
+ * يُصحح محتوى LaTeX بحيث تُلفّ أي أحرف عربية أو غير-ASCII داخل $...$ بأمر \text{}
+ * تجنباً لتحذير KaTeX "Unrecognized Unicode character"
+ */
+function sanitizeLatex(math: string): string {
+  // يلتقط أي سلسلة متواصلة من الأحرف غير-ASCII (عربية، أمازيغية، فارسية، إلخ)
+  // ويلفّها داخل \text{...} إذا لم تكن مسبوقة بأمر LaTeX بالفعل
+  return math.replace(
+    /(?<!\\text\{)(?<!\\mathrm\{)([\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF\u0080-\u024F]+)/g,
+    (match) => `\\text{${match}}`
+  )
+}
+
+/**
  * MathRenderer component
  * Parses text and renders LaTeX segments using KaTeX.
  * Supports:
@@ -68,43 +81,67 @@ export const MathRenderer: React.FC<MathRendererProps> = ({ text, className = ''
   // 6. (...) تحتوي على ...
   // 7. الأقواس بجميع أشكالها (هلالية، مربعة، أو فترات مفتوحة/مغلقة) التي تحتوي على أرقام وحروف إنجليزية وعلامات فقط (مثل الفترات [1, 2[ أو الأزواج (2, 5))
   // 8. الحروف الإنجليزية الفردية المستقلة (مثل X أو Y)
-  const regex = /(\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\]|\$[\s\S]*?\$|\\\([\s\S]*?\\\)|\(\s*[^$\)]*?[\=\>\<:\^\_\\][^$\)]*?\)|\(\s*[^$\)]*?\.\.\.[^$\)]*?\)|[\[\]\(]\s*[-+]?[a-zA-Z0-9\s\.\,\+\-\*\/]+\s*[\]\[\)]|\b[a-zA-Z]\b)/g
-  const parts = text.split(regex).filter(part => part !== undefined)
+  const regex = /(\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\]|\$[\s\S]*?\$|\\\([\s\S]*?\\\)|\(\s*[^$\)]*?[\=\>\<:\^\_\\][^$\)]*?\)|\(\s*[^$\)]*?\.\.\.[^$\)]*?\)|[\[\]\(]\s*[-+]?[a-zA-Z0-9\s\.,\+\-\*\/]+\s*[\]\[\)]|\b[a-zA-Z]\b)/g
+  
+  // تقسيم النص أولاً إلى مقاطع تحتوي على رسوم بيانية SVG ومقاطع نصية عادية
+  const svgRegex = /(<svg[\s\S]*?<\/svg>)/g
+  const segments = text.split(svgRegex).filter(part => part !== undefined)
 
   return (
     <div className={`math-container text-start leading-relaxed whitespace-pre-wrap ${className}`} dir={dir ?? 'auto'}>
       {/* Fallback to hide MathML if global CSS has conflicts */}
       <style dangerouslySetInnerHTML={{ __html: `.katex-mathml { display: none !important; }` }} />
-      {parts.map((part, index) => {
-        // التحقق من أن هذا الجزء هو تعبير رياضي وليس نصاً عادياً
-        const isMath = regex.test(part)
-        // يجب تصفير الـ lastIndex لأننا نستخدم g flag
-        regex.lastIndex = 0
-
-        if (isMath) {
-          let math = part
-          // تنظيف المحددات ومعالجة كل نوع
-          if (math.startsWith('$$') && math.endsWith('$$')) {
-             return <div key={index} className="my-2 overflow-x-auto" dir="ltr"><BlockMath math={math.slice(2, -2).trim()} /></div>
-          }
-          else if (math.startsWith('\\[') && math.endsWith('\\]')) {
-             return <div key={index} className="my-2 overflow-x-auto" dir="ltr"><BlockMath math={math.slice(2, -2).trim()} /></div>
-          }
-          else if (math.startsWith('\\(') && math.endsWith('\\)')) {
-             return <span key={index} className="inline-block px-1 align-middle" dir="ltr"><InlineMath math={math.slice(2, -2).trim()} /></span>
-          }
-          else if (math.startsWith('$') && math.endsWith('$')) {
-             return <span key={index} className="inline-block px-1 align-middle" dir="ltr"><InlineMath math={math.slice(1, -1).trim()} /></span>
-          }
-          else {
-             // الأنماط الأخرى المكتشفة تلقائياً (مثل الأقواس التي تحتوي أرقام أو الحروف الفردية)
-             // نمررها مباشرة لـ KaTeX مع الاحتفاظ بالأقواس لضمان عدم انعكاسها في الـ RTL
-             return <span key={index} className="inline-block px-1 align-middle" dir="ltr"><InlineMath math={math.trim()} /></span>
-          }
+      {segments.map((segment, segIdx) => {
+        const isSvg = segment.trim().startsWith('<svg') && segment.trim().endsWith('</svg>')
+        
+        if (isSvg) {
+          return (
+            <div 
+              key={`svg-${segIdx}`} 
+              className="my-4 flex justify-center bg-indigo-50/20 border border-indigo-100/50 rounded-2xl p-4 shadow-inner max-w-full overflow-x-auto" 
+              dir="ltr"
+              dangerouslySetInnerHTML={{ __html: segment }} 
+            />
+          )
         }
 
-        // نص عادي
-        return <span key={index} className="align-middle" dir="auto">{renderFormattedText(part)}</span>
+        // إذا لم يكن SVG، نقوم بمعالجته عبر نظام الـ LaTeX العادي
+        const parts = segment.split(regex).filter(part => part !== undefined)
+        
+        return (
+          <React.Fragment key={`text-seg-${segIdx}`}>
+            {parts.map((part, index) => {
+              const isMath = regex.test(part)
+              regex.lastIndex = 0
+
+              if (isMath) {
+                let math = part
+                if (math.startsWith('$$') && math.endsWith('$$')) {
+                   const cleaned = sanitizeLatex(math.slice(2, -2).trim())
+                   return <div key={index} className="my-2 overflow-x-auto" dir="ltr"><BlockMath math={cleaned} errorColor="#cc0000" /></div>
+                }
+                else if (math.startsWith('\\[') && math.endsWith('\\]')) {
+                   const cleaned = sanitizeLatex(math.slice(2, -2).trim())
+                   return <div key={index} className="my-2 overflow-x-auto" dir="ltr"><BlockMath math={cleaned} errorColor="#cc0000" /></div>
+                }
+                else if (math.startsWith('\\(') && math.endsWith('\\)')) {
+                   const cleaned = sanitizeLatex(math.slice(2, -2).trim())
+                   return <span key={index} className="inline-block px-1 align-middle" dir="ltr"><InlineMath math={cleaned} errorColor="#cc0000" /></span>
+                }
+                else if (math.startsWith('$') && math.endsWith('$')) {
+                   const cleaned = sanitizeLatex(math.slice(1, -1).trim())
+                   return <span key={index} className="inline-block px-1 align-middle" dir="ltr"><InlineMath math={cleaned} errorColor="#cc0000" /></span>
+                }
+                else {
+                   const cleaned = sanitizeLatex(math.trim())
+                   return <span key={index} className="inline-block px-1 align-middle" dir="ltr"><InlineMath math={cleaned} errorColor="#cc0000" /></span>
+                }
+              }
+
+              return <span key={index} className="align-middle" dir="auto">{renderFormattedText(part)}</span>
+            })}
+          </React.Fragment>
+        )
       })}
     </div>
   )

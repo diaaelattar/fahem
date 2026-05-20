@@ -5,6 +5,8 @@ import { createClient } from '@/lib/supabase/client'
 import { Swords, Loader2, Trophy, Clock, CheckCircle, XCircle, Zap, Shield } from 'lucide-react'
 import { MathRenderer } from '@/components/ui/MathRenderer'
 import { toast } from 'sonner'
+import { motion, AnimatePresence } from 'framer-motion'
+import { playSound } from '@/lib/utils/audio'
 
 type Phase = 'select' | 'searching' | 'playing' | 'result'
 
@@ -30,8 +32,9 @@ export default function ChallengesPage() {
   const [timeLeft, setTimeLeft] = useState(15)
   const [result, setResult] = useState<any>(null)
   const [userId, setUserId] = useState('')
-  const searchTimeout = useRef<NodeJS.Timeout>()
-  const pollInterval = useRef<NodeJS.Timeout>()
+  const searchTimeout = useRef<any>()
+  const pollInterval = useRef<any>()
+  const realtimeChannelRef = useRef<any>(null)
 
   useEffect(() => {
     async function init() {
@@ -46,8 +49,24 @@ export default function ChallengesPage() {
     return () => {
       clearTimeout(searchTimeout.current)
       clearInterval(pollInterval.current)
+      if (realtimeChannelRef.current) {
+        supabase.removeChannel(realtimeChannelRef.current)
+      }
     }
   }, [])
+
+  // Play result sound on victory/defeat/draw
+  useEffect(() => {
+    if (phase === 'result' && result) {
+      const isWinner = result.winner_id === userId
+      const isDraw = result.winner_id === null
+      if (isWinner) {
+        playSound('victory')
+      } else if (!isDraw) {
+        playSound('defeat')
+      }
+    }
+  }, [phase, result, userId])
 
   // Timer for each question
   useEffect(() => {
@@ -92,35 +111,55 @@ export default function ChallengesPage() {
       return
     }
 
-    // Challenger — poll until matched or timeout
-    let attempts = 0
-    pollInterval.current = setInterval(async () => {
-      attempts++
-      const { data: updated } = await supabase
-        .from('challenges').select('*').eq('id', data.challenge.id).single()
+    // Challenger — subscribe to Realtime updates instead of polling
+    const channel = supabase
+      .channel(`challenge_match_${data.challenge.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'challenges',
+          filter: `id=eq.${data.challenge.id}`
+        },
+        (payload) => {
+          const updated = payload.new as any
+          if (updated?.status === 'active') {
+            if (realtimeChannelRef.current) {
+              supabase.removeChannel(realtimeChannelRef.current)
+              realtimeChannelRef.current = null
+            }
+            clearTimeout(searchTimeout.current)
+            setChallenge(updated)
+            setQuestions(updated.questions || [])
+            setPhase('playing')
+          }
+        }
+      )
+      .subscribe()
 
-      if (updated?.status === 'active') {
-        clearInterval(pollInterval.current)
-        setChallenge(updated)
-        setQuestions(updated.questions || [])
-        setPhase('playing')
-        return
-      }
+    realtimeChannelRef.current = channel
 
-      if (attempts >= 20) { // 20 * 3s = 60s timeout
-        clearInterval(pollInterval.current)
-        // Cancel challenge and go to solo practice
-        await supabase.from('challenges').update({ status: 'cancelled' }).eq('id', data.challenge.id)
-        setPhase('select')
-        toast.info('لم يُوجد خصم الآن. حاول مجدداً لاحقاً!')
+    // 60 seconds timeout
+    searchTimeout.current = setTimeout(async () => {
+      if (realtimeChannelRef.current) {
+        supabase.removeChannel(realtimeChannelRef.current)
+        realtimeChannelRef.current = null
       }
-    }, 3000)
+      // Cancel challenge and go to solo practice
+      await supabase.from('challenges').update({ status: 'cancelled' }).eq('id', data.challenge.id)
+      setPhase('select')
+      toast.info('لم يُوجد خصم الآن. حاول مجدداً لاحقاً!')
+    }, 60000)
   }
 
   const handleAnswer = async (q: ChallengeQuestion, answer: string) => {
     if (answers[q.id] !== undefined) return
     const isCorrect = answer.trim().toLowerCase() === q.correct_answer.trim().toLowerCase()
     const pts = isCorrect ? q.points : 0
+
+    // Play synthesized sound effect
+    playSound(isCorrect ? 'correct' : 'incorrect')
 
     setAnswers(prev => ({ ...prev, [q.id]: answer }))
     setScore(s => s + pts)
@@ -143,25 +182,49 @@ export default function ChallengesPage() {
     })
     const data = await res.json()
 
-    // Poll for opponent to finish if they haven't
-    let attempts = 0
-    const waitInterval = setInterval(async () => {
-      attempts++
-      const { data: updated } = await supabase
-        .from('challenges').select('*').eq('id', challenge.id).single()
+    if (data.challenge?.status === 'completed') {
+      setResult(data.challenge)
+      setPhase('result')
+      return
+    }
 
-      if (updated?.status === 'completed') {
-        clearInterval(waitInterval)
-        setResult(updated)
-        setPhase('result')
-        return
+    // Subscribe to completion of the challenge
+    const channel = supabase
+      .channel(`challenge_finish_${challenge.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'challenges',
+          filter: `id=eq.${challenge.id}`
+        },
+        (payload) => {
+          const updated = payload.new as any
+          if (updated?.status === 'completed') {
+            if (realtimeChannelRef.current) {
+              supabase.removeChannel(realtimeChannelRef.current)
+              realtimeChannelRef.current = null
+            }
+            clearTimeout(searchTimeout.current)
+            setResult(updated)
+            setPhase('result')
+          }
+        }
+      )
+      .subscribe()
+
+    realtimeChannelRef.current = channel
+
+    // 30 seconds timeout if opponent disconnects
+    searchTimeout.current = setTimeout(() => {
+      if (realtimeChannelRef.current) {
+        supabase.removeChannel(realtimeChannelRef.current)
+        realtimeChannelRef.current = null
       }
-      if (attempts >= 15) {
-        clearInterval(waitInterval)
-        setResult({ ...challenge, winner_id: userId, challenger_score: finalScore, opponent_score: 0 })
-        setPhase('result')
-      }
-    }, 2000)
+      setResult({ ...challenge, winner_id: userId, challenger_score: finalScore, opponent_score: 0 })
+      setPhase('result')
+    }, 30000)
   }
 
   const q = questions[currentIdx]
@@ -170,7 +233,13 @@ export default function ChallengesPage() {
   // ── SELECT SUBJECT ──────────────────────────────────────────────────────────
   if (phase === 'select') {
     return (
-      <div className="max-w-lg mx-auto space-y-6 animate-fade-in pb-24" dir="rtl">
+      <motion.div 
+        initial={{ opacity: 0, y: 15 }} 
+        animate={{ opacity: 1, y: 0 }} 
+        exit={{ opacity: 0, y: -15 }}
+        className="max-w-lg mx-auto space-y-6 pb-24" 
+        dir="rtl"
+      >
         <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-3xl p-6 text-white">
           <div className="flex items-center gap-3 mb-2">
             <Swords className="w-8 h-8 text-yellow-300" />
@@ -210,18 +279,27 @@ export default function ChallengesPage() {
             ابدأ التحدي!
           </button>
         </div>
-      </div>
+      </motion.div>
     )
   }
 
   // ── SEARCHING ───────────────────────────────────────────────────────────────
   if (phase === 'searching') {
     return (
-      <div className="max-w-lg mx-auto flex flex-col items-center justify-center min-h-[60vh] text-center" dir="rtl">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="max-w-lg mx-auto flex flex-col items-center justify-center min-h-[60vh] text-center" 
+        dir="rtl"
+      >
         <div className="relative mb-6">
-          <div className="w-32 h-32 rounded-full border-4 border-indigo-200 flex items-center justify-center bg-indigo-50">
+          <motion.div 
+            animate={{ scale: [1, 1.08, 1], rotate: [0, 5, -5, 0] }}
+            transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut" }}
+            className="w-32 h-32 rounded-full border-4 border-indigo-200 flex items-center justify-center bg-indigo-50"
+          >
             <Swords className="w-16 h-16 text-indigo-400" />
-          </div>
+          </motion.div>
           <div className="absolute inset-0 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin" />
         </div>
         <h2 className="text-2xl font-display font-bold mb-2">نبحث عن خصم...</h2>
@@ -231,7 +309,7 @@ export default function ChallengesPage() {
             <div key={i} className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
           ))}
         </div>
-      </div>
+      </motion.div>
     )
   }
 
@@ -240,9 +318,13 @@ export default function ChallengesPage() {
     const answered = answers[q.id]
     const isCorrect = answered && answered === q.correct_answer
     return (
-      <div className="max-w-lg mx-auto space-y-4 animate-fade-in pb-24" dir="rtl">
+      <div className="max-w-lg mx-auto space-y-4 pb-24" dir="rtl">
         {/* Header */}
-        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-4 text-white">
+        <motion.div 
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-4 text-white"
+        >
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2 font-bold">
               <Zap className="w-4 h-4 text-yellow-300" />
@@ -258,39 +340,57 @@ export default function ChallengesPage() {
           <div className="w-full bg-white/20 rounded-full h-2">
             <div className="bg-yellow-400 h-2 rounded-full transition-all" style={{ width: `${progress}%` }} />
           </div>
-        </div>
+        </motion.div>
 
-        {/* Question */}
-        <div className={`bg-white rounded-3xl border-2 p-6 transition-all ${answered ? (isCorrect ? 'border-emerald-400' : 'border-rose-400') : 'border-border'}`}>
-          <MathRenderer text={q.question_text} className="text-xl font-bold mb-6 leading-relaxed" />
-          <div className="space-y-3">
-            {q.options?.map((opt, i) => {
-              const isSelected = answered === opt
-              const correct = opt === q.correct_answer
-              let cls = 'w-full text-right flex items-center gap-3 p-4 rounded-2xl border-2 font-medium transition-all'
-              if (!answered) {
-                cls += ' border-border hover:border-indigo-400 hover:bg-indigo-50 cursor-pointer'
-              } else if (correct) {
-                cls += ' border-emerald-500 bg-emerald-50 text-emerald-800 cursor-default'
-              } else if (isSelected) {
-                cls += ' border-rose-400 bg-rose-50 text-rose-800 cursor-default'
-              } else {
-                cls += ' border-border opacity-40 cursor-default'
-              }
-              return (
-                <button key={i} onClick={() => !answered && handleAnswer(q, opt)} className={cls} disabled={!!answered}>
-                  <span className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-black shrink-0
-                    ${answered && correct ? 'bg-emerald-500 text-white' : answered && isSelected ? 'bg-rose-500 text-white' : 'bg-muted text-muted-foreground'}`}>
-                    {['أ','ب','ج','د'][i]}
-                  </span>
-                  <MathRenderer text={opt} className="flex-1 text-base" />
-                  {answered && correct && <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0" />}
-                  {answered && isSelected && !correct && <XCircle className="w-5 h-5 text-rose-500 shrink-0" />}
-                </button>
-              )
-            })}
-          </div>
-        </div>
+        {/* Question with AnimatePresence */}
+        <AnimatePresence mode="wait">
+          <motion.div 
+            key={q.id}
+            initial={{ opacity: 0, x: 50 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -50 }}
+            transition={{ duration: 0.25 }}
+            className={`bg-white rounded-3xl border-2 p-6 transition-all ${answered ? (isCorrect ? 'border-emerald-400' : 'border-rose-400') : 'border-border'}`}
+          >
+            <MathRenderer text={q.question_text} className="text-xl font-bold mb-6 leading-relaxed" />
+            <div className="space-y-3">
+              {q.options?.map((opt, i) => {
+                const isSelected = answered === opt
+                const correct = opt === q.correct_answer
+                let cls = 'w-full text-right flex items-center gap-3 p-4 rounded-2xl border-2 font-medium transition-all'
+                if (!answered) {
+                  cls += ' border-border hover:border-indigo-400 hover:bg-indigo-50 cursor-pointer'
+                } else if (correct) {
+                  cls += ' border-emerald-500 bg-emerald-50 text-emerald-800 cursor-default'
+                } else if (isSelected) {
+                  cls += ' border-rose-400 bg-rose-50 text-rose-800 cursor-default'
+                } else {
+                  cls += ' border-border opacity-40 cursor-default'
+                }
+                return (
+                  <motion.button 
+                    key={i} 
+                    onClick={() => !answered && handleAnswer(q, opt)} 
+                    className={cls} 
+                    disabled={!!answered}
+                    whileHover={!answered ? { scale: 1.02, x: -2 } : {}}
+                    whileTap={!answered ? { scale: 0.98 } : {}}
+                    animate={answered && isSelected && !correct ? { x: [-6, 6, -6, 6, 0] } : answered && correct ? { scale: [1, 1.03, 1] } : {}}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <span className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-black shrink-0
+                      ${answered && correct ? 'bg-emerald-500 text-white' : answered && isSelected ? 'bg-rose-500 text-white' : 'bg-muted text-muted-foreground'}`}>
+                      {['أ','ب','ج','د'][i]}
+                    </span>
+                    <MathRenderer text={opt} className="flex-1 text-base" />
+                    {answered && correct && <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0" />}
+                    {answered && isSelected && !correct && <XCircle className="w-5 h-5 text-rose-500 shrink-0" />}
+                  </motion.button>
+                )
+              })}
+            </div>
+          </motion.div>
+        </AnimatePresence>
       </div>
     )
   }
@@ -303,13 +403,23 @@ export default function ChallengesPage() {
     const theirScore = role === 'challenger' ? result.opponent_score : result.challenger_score
 
     return (
-      <div className="max-w-lg mx-auto flex flex-col items-center justify-center min-h-[70vh] text-center space-y-6 pb-24" dir="rtl">
-        <div className={`w-28 h-28 rounded-3xl flex items-center justify-center shadow-2xl
-          ${isWinner ? 'bg-yellow-400' : isDraw ? 'bg-slate-200' : 'bg-rose-100'}`}>
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="max-w-lg mx-auto flex flex-col items-center justify-center min-h-[70vh] text-center space-y-6 pb-24" 
+        dir="rtl"
+      >
+        <motion.div 
+          initial={{ scale: 0, rotate: -30 }}
+          animate={{ scale: 1, rotate: 0 }}
+          transition={{ type: "spring", damping: 10, stiffness: 120 }}
+          className={`w-28 h-28 rounded-3xl flex items-center justify-center shadow-2xl
+            ${isWinner ? 'bg-yellow-400' : isDraw ? 'bg-slate-200' : 'bg-rose-100'}`}
+        >
           {isWinner ? <Trophy className="w-16 h-16 text-yellow-800" /> :
            isDraw ? <Shield className="w-16 h-16 text-slate-500" /> :
            <XCircle className="w-16 h-16 text-rose-400" />}
-        </div>
+        </motion.div>
 
         <div>
           <h1 className="text-4xl font-display font-black mb-2">
@@ -342,7 +452,7 @@ export default function ChallengesPage() {
             الرئيسية
           </a>
         </div>
-      </div>
+      </motion.div>
     )
   }
 

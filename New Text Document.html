@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منظومة العمرانية التعليمية - اختبارات تفاعلية</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+        }
+        @media print {
+            .no-print { display: none !important; }
+            .print-block { display: block !important; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen">
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const LISTENING_TEXT = "تواجه اللغة العربية تحديات كثيرة في ظل العولمة والانفتاح على الثقافات الأخرى ومحاولات طمس الهوية وإضعاف اللغة بالتخلي عن استعمالها أو الترويج لاستخدام العامية، أو بالدعوات التي تهدف إلى التقليل من شأن الفصحى أو انتشار الإدعاءات الكاذبة بصعوبة اللغة العربية، أو أنها لم تعد لغة العلم والثقافة وليست لها القدرة على منجزات العلوم الحديثة، بالإضافة إلى محاولات طمس الهوية العربية، باستخدام لغة الفرانكو وهي (استخدام الأرقام والحروف اللاتينية بدلاً من الحروف العربية في المحادثات).";
+
+        const EXAM_DATA = {
+          A: {
+            title: "النموذج ( أ )",
+            sections: [
+              {
+                id: "listening",
+                title: "أولاً: نص الاستماع",
+                instruction: "استمع إلى النص المشترك بالضغط على زر التشغيل ثم أجب:",
+                questions: [
+                  { id: "l1", type: "mcq", question: "مرادف (الترويج):", options: ["تعظيم وتقديس", "تطوير وتحديث", "نشر وتشجيع", "تنظيم وترتيب"], correct: "نشر وتشجيع", points: 2 },
+                  { id: "l2", type: "mcq", question: "من التحديات التي واجهت اللغة الفصحى:", options: ["التطور العلمي", "استخدام لغة الفرانكو", "احتواء المصطلحات العلمية", "ازدهار الأدب"], correct: "استخدام لغة الفرانكو", points: 2 },
+                  { id: "l3", type: "boolean", question: "لغة الفرانكو هي استخدام الحروف العربية لكتابة الكلمات الأجنبية.", correct: false, points: 2 },
+                  { id: "l4", type: "boolean", question: "العولمة والتطور التكنولوجي أسهما في تهديد استخدام اللغة العربية الفصحى.", correct: true, points: 2 }
+                ]
+              },
+              {
+                id: "reading_1",
+                title: "ثانياً: القراءة - شريان العالم: قناة السويس",
+                passage: "في قلب التاريخ وعلى ضفاف المجد، تقف مصر شامخة كما عهدها العالم، صانعة الحضارة حامية لهويتها وقادرة على تحويل التحديات إلى إنجازات تخلدها الأجيال، ويأتي مشروع قناة السويس الجديدة تجسيداً حياً لهذه الروح المصرية الأصيلة؛ فقد كان أكثر من مجرد مشروع تنموي، بل رسالة واضحة للعالم بأن مصر التي حفرت القناة الأولى بعرق أبنائها، قادرة اليوم على شق مجرى جديد بإرادتها المستقلة وعزيمتها التي لا تلين. لقد وحد هذا المشروع بين أصالة الماضي، وطموح الحاضر وملامح المستقبل، في لوحة تجسد هوية وطنية لا تعرف الذوبان.",
+                questions: [
+                  { id: "r1_1", type: "mcq", question: "مرادف (شامخة):", options: ["عالية", "رافضة", "معطاءة", "مخلصة"], correct: "عالية", points: 2 },
+                  { id: "r1_2", type: "mcq", question: "التعبير \"بل رسالة واضحة للعالم\" علاقته بما قبله:", options: ["تعليل", "تضاد", "استدراك", "إجمال"], correct: "استدراك", points: 2 },
+                  { id: "r1_3", type: "boolean", question: "تبدو في الفقرة عاطفة الخوف والإشفاق على مستقبل مصر.", correct: false, points: 2 },
+                  { id: "r1_4", type: "boolean", question: "مصر قادرة على صنع المعجزات بعزيمة أبنائها.", correct: true, points: 2 },
+                  { id: "r1_q1", type: "essay", question: "كيف عهد العالم مصر من خلال الفقرة؟", modelAnswer: "عهدها العالم شامخة، صانعة للحضارة، حامية لهويتها، وقادرة على تحويل التحديات إلى إنجازات تخلدها الأجيال.", points: 3 },
+                  { id: "r1_q2", type: "essay", question: "ما الرسالة التي حملها مشروع قناة السويس الجديدة للعالم؟", modelAnswer: "رسالة واضحة بأن مصر التي حفرت القناة الأولى بعرق أبنائها، قادرة اليوم على شق مجرى جديد بإرادتها المستقلة وعزيمتها التي لا تلين.", points: 3 }
+                ]
+              },
+              {
+                id: "reading_2",
+                title: "ثانياً: القراءة - من كنوز لغتي: البحر",
+                passage: "وسألت عنه النوتية والربابنة من الأبطال فقالوا: هو جبار نرهبه ونخشاه، لا أمان معه ولا ضمان، كم أرانا الأهوال من زبد غضبه! وكم تحطمت سفن كالمدائن بلطمة من موجه! نحسب له الحساب قبل أن نلقاه، ونستوثق من متانة الحبال والشراع والبخار؛ فإن مزاحه معنا قد يكون فيه الفناء، وهمساته في آذاننا رياح هوج قد تنثرنا على صدره هباءً.",
+                questions: [
+                  { id: "r2_1", type: "mcq", question: "مفرد (الربابنة):", options: ["ربيب", "ربابة", "ربان", "ربونة"], correct: "ربان", points: 2 },
+                  { id: "r2_2", type: "mcq", question: "معنى (متانة):", options: ["عزة", "قوة", "قسوة", "طول"], correct: "قوة", points: 2 },
+                  { id: "r2_3", type: "mcq", question: "التعبير (كم تحطمت سفن كالمدائن بلطمة من موجه) يوحي بـ:", options: ["كثرة السفن", "قلة السفن", "قسوة البحر وشدته", "ضعف السفن"], correct: "قسوة البحر وشدته", points: 2 },
+                  { id: "r2_4", type: "mcq", question: "الفكرة الرئيسية في الفقرة السابقة:", options: ["جمال البحر ورووعته", "اتساع البحر وضخامته", "البحر رهبة ودمار", "الاستعداد والحيطة"], correct: "البحر رهبة ودمار", points: 2 },
+                  { id: "r2_5", type: "boolean", question: "يجب الأخذ بالأسباب وحسن الاستعداد للعمل قبل البدء فيه.", correct: true, points: 2 },
+                  { id: "r2_6", type: "boolean", question: "البحر مصدر أمن وأمان للربان والنوتية في كل الأحوال.", correct: false, points: 2 },
+                  { id: "r2_q1", type: "essay", question: "كيف يرى الربابنة والنوتية البحر؟", modelAnswer: "يرونه جباراً يرهبونه ويخشونه، لا أمان معه ولا ضمان، يظهر لهم الأهوال من زبد غضبه وتحطم سفنهم كالمداين بلطمة موجه.", points: 3 },
+                  { id: "r2_q2", type: "essay", question: "ما الإجراءات التي يتخذها الربابنة لضمان سلامتهم قبل لقاء البحر؟", modelAnswer: "يحسبون له ألف حساب قبل لقائه، ويستوثقون تماماً من متانة الحبال، والشراع، والبخار.", points: 3 }
+                ]
+              },
+              {
+                id: "texts",
+                title: "ثالثاً: النصوص - من نص (أخي)",
+                passage: "أَخي، إِن شَرِبتَ المَاءَ صَفواً فَقَد زَكَت ... خَمائِلُ جَنّاتي وَطابَ حَصيدي\nأَخي, إِن جَفاكَ النَّهرُ أَو جَفَّ مَـنبَعُه ... مَشى المَوتُ في زَهري وَقَصَّفَ عودي\nحَياتُكَ في الوادي حَياتي، فَإِنَّمـا ... وُجودُكَ في هَذي الحَياةِ وُجودي",
+                questions: [
+                  { id: "t1", type: "boolean", question: "الأبيات السابقة تعبر عن حب شديد وأخوة صادقة وبناء مصيري مشترك بين أبناء الوطن الواحد.", correct: true, points: 2 },
+                  { id: "t_q1", type: "essay", question: "كيف كشف الشاعر عن حبه لأخيه وارتباط مصيره بمصيره في الأبيات؟", modelAnswer: "بين أن سعادته وازدهار حياته (خمائل جناته وطيب حصاده) مرتبطان بصفاء حياة أخيه، وإذا أصاب أخاه مكروه أو جفاء، حل الموت والذبول بحياته هو، مؤكداً أن حياته ووجوده هما عين حياة أخيه ووجوده.", points: 4 },
+                  { id: "t_q2", type: "essay", question: "عين من الأبيات تضاداً، وبيّن أثره الفني.", modelAnswer: "التضاد بين (شربت الماء صفواً) و (جفاكَ النهر أو جفَّ منبعه). أثره: يوضح المعنى ويؤكده بالتضاد ويبرز عمق الارتباط.", points: 3 }
+                ]
+              },
+              {
+                id: "grammar",
+                title: "رابعاً: القواعد النحوية",
+                passage: "\"( أخي ، إن أعظم ما تقدمه مصر للعالم حضارتها العريقة، تلك الحضارة التي وقف أمامها الغرب منبهراً، وأمسى مشتاقاً بصنع حضارة مماثلة، ونحن العرب ندرك أن أجدادنا امتلأت قلوبهم يقيناً بالقدرة على بلوغ المجد، فظل عطر الخلود باقياً في أجسادهم ).\"",
+                questions: [
+                  { id: "g1", type: "mcq", question: "كلمة (باقياً) في الفقرة تعرب:", options: ["خبر المبتدأ", "خبر ظل منصوب", "حال منصوب", "مضاف إليه مجرور"], correct: "خبر ظل منصوب", points: 2 },
+                  { id: "g2", type: "mcq", question: "كلمة (أخي) الواردة في مطلع الفقرة هي منادى نوعه:", options: ["مضاف", "شبيه بالمضاف", "نكرة مقصودة", "نكرة غير مقصودة"], correct: "مضاف", points: 2 },
+                  { id: "g3", type: "mcq", question: "الكلمة التي تعرب (تمييزاً ملحوظاً) في السطر الثاني هي:", options: ["منبهراً", "مشتاقاً", "يقيناً", "مماثلة"], correct: "يقيناً", points: 2 },
+                  { id: "g4", type: "mcq", question: "إعراب كلمة (حضارتها) هو:", options: ["بدل مطابق", "خبر إن مرفوع", "مفعول به ثان", "فاعل مرفوع"], correct: "خبر إن مرفوع", points: 2 },
+                  { id: "g5", type: "mcq", question: "تصويب الخطأ في الجملة: (يا أاصدقاؤنا، اعتزوا بهويتكم):", options: ["يا أصدقائنا", "يا أصدقاءنا", "يا أصدقاءٌ", "يا أصدقاءُنا"], correct: "يا أصدقاءنا", points: 2 },
+                  { id: "g6", type: "mcq", question: "في جملة (فاضت عيني دموعاً)، التمييز محول عن:", options: ["مفعول به", "فاعل مرفوع", "مبتدأ", "نائب فاعل"], correct: "فاعل مرفوع", points: 2 },
+                  { id: "g_q1", type: "essay", question: "حول (كم الخبرية) إلى (استفهامية) مغيراً ما يلزم: \"كم من شبابٍ أنفقوا أوقاتهم في فراغهم اليوم!\"", modelAnswer: "كم شاباً أنفقَ وقتَهُ في فراغِهِ اليوم؟", points: 3 },
+                  { id: "g_q2", type: "essay", question: "اكتب الأرقام في الجملة الآتية بحروف عربية: \"في المدرسة (22) معلمة و(8) معلمين.\"", modelAnswer: "في المدرسة اثنتان وعشرون معلمةً وثمانيةُ معلمينَ.", points: 4 }
+                ]
+              }
+            ]
+          },
+          B: {
+            title: "النموذج ( ب )",
+            sections: [
+              {
+                id: "listening",
+                title: "أولاً: نص الاستماع",
+                instruction: "استمع إلى النص المشترك بالضغط على زر التشغيل ثم أجب:",
+                questions: [
+                  { id: "l1", type: "mcq", question: "مرادف (طمس):", options: ["نشر وتوزيع", "محو وإزالة", "إثبات وتقوية", "دعم وتثبيت"], correct: "محو وإزالة", points: 2 },
+                  { id: "l2", type: "mcq", question: "من التحديات التي واجهت اللغة الفصحى:", options: ["التطور العلمي", "احتواء المصطلحات العلمية", "ازدهار الأدب", "الترويج لاستخدام العامية"], correct: "الترويج لاستخدام العامية", points: 2 },
+                  { id: "l3", type: "boolean", question: "عجزت اللغة العربية قديماً عن احتواء المصطلحات العلمية المعقدة.", correct: false, points: 2 },
+                  { id: "l4", type: "boolean", question: "الترويج لاستخدام العامية يهدد صدارة واستقامة اللغة العربية الفصحى.", correct: true, points: 2 }
+                ]
+              },
+              {
+                id: "reading_1",
+                title: "ثانياً: القراءة - شريان العالم: قناة السويس",
+                passage: "في قلب التاريخ وعلى ضفاف المجد، تقف مصر شامخة كما عهدها العالم، صانعة الحضارة حامية لهويتها وقادرة على تحويل التحديات إلى إنجازات تخلدها الأجيال، ويأتي مشروع قناة السويس الجديدة تجسيداً حياً لهذه الروح المصرية الأصيلة؛ فقد كان أكثر من مجرد مشروع تنموي، بل رسالة واضحة للعالم بأن مصر التي حفرت القناة الأولى بعرق أبنائها، قادرة اليوم على شق مجرى جديد بإرادتها المستقلة وعزيمتها التي لا تلين. لقد وحد هذا المشروع بين أصالة الماضي، وطموح الحاضر وملامح المستقبل، في لوحة تجسد هوية وطنية لا تعرف الذوبان.",
+                questions: [
+                  { id: "r1_1", type: "mcq", question: "مرادف (عزيمتها):", options: ["رغبتها", "حكمتها", "قناعتها", "إرادتها وثباتها"], correct: "إرادتها وثباتها", points: 2 },
+                  { id: "r1_2", type: "mcq", question: "العاطفة التي سيطرت على الكاتب في الفقرة هي عاطفة:", options: ["الخوف والتردد", "اليأس والاستسلام", "الحزن والأسى", "الفخر والاعتزاز المعتدل"], correct: "الفخر والاعتزاز المعتدل", points: 2 },
+                  { id: "r1_3", type: "boolean", question: "مشروع قناة السويس الجديدة دعم الهوية المصرية وأبرز ملامح تحدي المستقبل العظيم.", correct: true, points: 2 },
+                  { id: "r1_4", type: "boolean", question: "علاقة جملة \"بل رسالة واضحة للعالم\" بما قبلها هي نتيجة حتمية ومباشرة لها.", correct: false, points: 2 },
+                  { id: "r1_q1", type: "essay", question: "ما الدور المحوري الذي لعبه مشروع قناة السويس الجديدة في تعزيز وحفظ الهوية المصرية؟", modelAnswer: "جسد الروح المصرية الأصيلة ووحد بين أصالة الماضي وطموح الحاضر وملامح المستقبل في لوحة وطنية لا تعرف الذوبان.", points: 3 },
+                  { id: "r1_q2", type: "essay", question: "كيف يُعَدُّ هذا المشروع دليلاً قاطعاً على قدرة المصريين الاستثنائية على التحدي؟", modelAnswer: "لأنه أثبت للعالم أن مصر التي شقت مجرى القناة القديم بعرق بنيها، قادرة على إعادة الإنجاز بإرادتها المستقلة وعزيمتها الصلبة.", points: 3 }
+                ]
+              },
+              {
+                id: "reading_2",
+                title: "ثانياً: القراءة - من كنوز لغتي: البحر",
+                passage: "وسألت عنه النوتية والربابنة من الأبطال فقالوا: هو جبار نرهبه ونخشاه، لا أمان معه ولا ضمان، كم أرانا الأهوال من زبد غضبه! وكم تحطمت سفن كالمدائن بلطمة من موجه! نحسب له الحساب قبل أن نلقاه، ونستوثق من متانة الحبال والشراع والبخار؛ فإن مزاحه معنا قد يكون فيه الفناء، وهمساته في آذاننا رياح هوج قد تنثرنا على صدره هباءً.",
+                questions: [
+                  { id: "r2_1", type: "mcq", question: "مفرد كلمة (النوتية):", options: ["النوتة", "النوتي", "النواتي", "النوني"], correct: "النوتي", points: 2 },
+                  { id: "r2_2", type: "mcq", question: "معنى الفعل (نستوثق):", options: ["نتدافع ونحتمي", "ندهش ونتعجب", "نتأكد ونيقن تماماً", "نتفاخر ونتباهى"], correct: "نتأكد ونيقن تماماً", points: 2 },
+                  { id: "r2_3", type: "mcq", question: "التعبير البليغ (لا أمان معه ولا ضمان) يوحي بوضوح بـ:", options: ["شجاعة وبسالة الرجال", "غدر البحر وتقلب أحواله", "atساع البحر اللامتناهي", "أمان البحر وسكينته الرائعة"], correct: "غدر البحر وتقلب أحواله", points: 2 },
+                  { id: "r2_4", type: "mcq", question: "الفكرة الأساسية التي تتمحور حولها الفقرة السابقة هي:", options: ["جمال الطبيعة الساحر", "مهارة وبسالة الربابنة", "البحر رهبة ومصدر دمار وهلاك", "جمال البحر الأخاذ في السكون"], correct: "البحر رهبة ومصدر دمار وهلاك", points: 2 },
+                  { id: "r2_5", type: "boolean", question: "البحر يمثل دائماً وبشكل مطلق مصدر أمن وسكينة دائمين للنوتية والربابنة.", correct: false, points: 2 },
+                  { id: "r2_6", type: "boolean", question: "مزاح البحر المفاجئ مع البحارة قد يكون عاقبته الفناء والموت التام.", correct: true, points: 2 },
+                  { id: "r2_q1", type: "essay", question: "ما التدابير الوقائية والميكانيكية التي يتخذها الربابنة لضمان سلامتهم قبل مواجهة جبار البحر؟", modelAnswer: "يحسبون له حساباً دقيقاً مسبقاً، ويستوثقون ويفحصون متانة الحبال، وسلامة الشراع، وجاهزية محركات البخار.", points: 3 },
+                  { id: "r2_q2", type: "essay", question: "ما القيمة التربوية والعملية التي تستخلصها من قراءة هذه الفقرة؟", modelAnswer: "قيمة التخطيط المسبق، والأخذ بالأسباب، والحيطة الشديدة، والتحضير الدقيق لمواجهة الصعاب.", points: 3 }
+                ]
+              },
+              {
+                id: "texts",
+                title: "ثالثاً: النصوص - من نص (أخي)",
+                passage: "أَخي، إِن شَرِبتَ المَاءَ صَفواً فَقَد زَكَت ... خَمائِلُ جَنّاتي وَطابَ حَصيدي\nأَخي، إِن جَفاكَ النَّهرُ أَو جَفَّ مَـنبَعُه ... مَشى المَوتُ في زَهري وَقَصَّفَ عودي\nحَياتُكَ في الوادي حَياتي، فَإِنَّمـا ... وُجودُكَ في هَذي الحَياةِ وُجودي",
+                questions: [
+                  { id: "t1", type: "boolean", question: "الشاعر في هذه المنظومة يعبر عن نزعة أنانية فردية ولا يكترث لأمر أخيه في الإنسانية والوطن.", correct: false, points: 2 },
+                  { id: "t_q1", type: "essay", question: "عكست الأبيات السابقة مدى عمق وقوة علاقة الأخوة في الوطن والمصير. وضح ذلك تفصيلاً.", modelAnswer: "يوضح الشاعر أن سعادته من سعادة أخيه وازدهار حياته رهن بصفاء عيشه، في حين أن الشقاء والجفاف الذي يصيب أخاه ينتقل فوراً إليه في صورة ذبول وموت.", points: 4 },
+                  { id: "t_q2", type: "essay", question: "ما وجه الجمال الفني في التعبير الشعري التالي: (مشى الموتُ في زَهري)؟", modelAnswer: "تصوير رائع للموت بكائن حي يمشي، وتصوير للزهر بإنسان يُصيبه الموت، مما يوحي بالخراب التام.", points: 3 }
+                ]
+              },
+              {
+                id: "grammar",
+                title: "رابعاً: القواعد النحوية",
+                passage: "\"( يا مصري ، إن أعظم ما تقدمه مصر للعالم حضارتها العريقة، تلك الحضارة التي وقف أمامها الغرب منبهراً، وأمسى مشتاقاً بصنع حضارة مماثلة، ونحن العرب ندرك أن أجدادنا امتلأت قلوبهم يقيناً بالقدرة على بلوغ المجد، فظل عطر الخلود باقياً في أجسادهم ).\"",
+                questions: [
+                  { id: "g1", type: "mcq", question: "كلمة (مشتاقاً) الواردة بالسطر الأول تعرب:", options: ["خبر المبتدأ مرفوع", "حال منصوبة", "خبر أمسى منصوب وعلامته الفتحة", "مضاف إليه مجرور"], correct: "خبر أمسى منصوب وعلامته الفتحة", points: 2 },
+                  { id: "g2", type: "mcq", question: "نوع المنادى في الأسلوب (يا مصري) هو:", options: ["مضاف", "شبيه بالمضاف", "نكرة مقصودة مبنية على الضم", "نكرة غير مقصودة منصوبة"], correct: "نكرة مقصودة مبنية على الضم", points: 2 },
+                  { id: "g3", type: "mcq", question: "الاسم المنصوب الذي وقع تمييزاً في هذه الفقرة هو:", options: ["باقياً", "يقيناً", "منبهراً", "مماثلة"], correct: "يقيناً", points: 2 },
+                  { id: "g4", type: "mcq", question: "تصويب الخطأ النحوي للجملة (يا أبنائنا، اهتموا بالعلم):", options: ["يا أبناؤنا", "يا أبنائِنا", "يا أبناءَنا لأن المنادى مضاف منصوب", "يا أبناءُ"], correct: "يا أبناءَنا لأن المنادى مضاف منصوب", points: 2 },
+                  { id: "g5", type: "mcq", question: "في عبارة (قدّرتُ المصري مكانةً)، التمييز في أصله محول عن:", options: ["فاعل مرفوع", "مبتدأ مؤخر", "مفعول به منصوب في الأصل", "نائب فاعل"], correct: "مفعول به منصوب في الأصل", points: 2 },
+                  { id: "g_q1", type: "essay", question: "حول نوع (كم) في الجملة التالية من خبرية لاستفهامية: \"كم من علومٍ نبغَ فيها العربُ!\"", modelAnswer: "كم علماً نبغَ فيهِ العربُ؟", points: 3 },
+                  { id: "g_q2", type: "essay", question: "حول الأرقام الحسابية إلى ألفاظ عربية بضبط سليم: \"في المدرسة (22) معلمة و(8) معلمين.\"", modelAnswer: "في المدرسة اثنتان وعشرون معلمةً وثمانيةُ معلمينَ.", points: 4 }
+                ]
+              }
+            ]
+          },
+          C: {
+            title: "النموذج ( ج )",
+            sections: [
+              {
+                id: "listening",
+                title: "أولاً: نص الاستماع",
+                instruction: "استمع إلى النص المشترك بالضغط على زر التشغيل ثم أجب:",
+                questions: [
+                  { id: "l1", type: "mcq", question: "مضاد (الانفتاح):", options: ["الاقتصاد", "الانغلاق", "الاقتراب", "الابتعاد"], correct: "الانغلاق", points: 2 },
+                  { id: "l2", type: "mcq", question: "من التحديات التي واجهت اللغة العربية الفصحى ومكانتها العالمية:", options: ["الإدعاء الباطل بصعوبتها", "التطور العلمي الهائل", "كثرة وتنوع ألفاظها", "ازدهار فنون الأدب"], correct: "الإدعاء الباطل بصعوبتها", points: 2 },
+                  { id: "l3", type: "boolean", question: "اللغة العربية عاجزة تماماً وليست لها القدرة على استيعاب ومنجزات العلوم المعاصرة الحديثة.", correct: false, points: 2 },
+                  { id: "l4", type: "boolean", question: "استخدام لغة الفرانكو الهجينة يمثل تهديداً مباشراً وسلبياً على بقاء وثبات الفصحى.", correct: true, points: 2 }
+                ]
+              },
+              {
+                id: "reading_1",
+                title: "ثانياً: القراءة - شريان العالم: قناة السويس",
+                passage: "في قلب التاريخ وعلى ضفاف المجد، تقف مصر شامخة كما عهدها العالم، صانعة الحضارة حامية لهويتها وقادرة على تحويل التحديات إلى إنجازات تخلدها الأجيال، ويأتي مشروع قناة السويس الجديدة تجسيداً حياً لهذه الروح المصرية الأصيلة؛ فقد كان أكثر من مجرد مشروع تنموي، بل رسالة واضحة للعالم بأن مصر التي حفرت القناة الأولى بعرق أبنائها، قادرة اليوم على شق مجرى جديد بإرادتها المستقلة وعزيمتها التي لا تلين. لقد وحد هذا المشروع بين أصالة الماضي، وطموح الحاضر وملامح المستقبل، في لوحة تجسد هوية وطنية لا تعرف الذوبان.",
+                questions: [
+                  { id: "r1_1", type: "mcq", question: "مرادف (حامية):", options: ["ثابتة وراسخة", "حارسة ومدافعة", "ضعيفة ومترددة", "متغيرة ومتحولة"], correct: "حارسة ومدافعة", points: 2 },
+                  { id: "r1_2", type: "mcq", question: "علاقة جملة \"فقد كان أكثر من مجرد مشروع تنموي\" بما يسبقها مباشرة هو:", options: ["تفصيل وتوضيح", "نتيجة تابعة", "تعليل وتبيين للسبب", "تقابل وتضاد"], correct: "تعليل وتبيين للسبب", points: 2 },
+                  { id: "r1_3", type: "boolean", question: "سيطرت على الكاتب في صياغة الفقرة السابقة عاطفة جياشة من الفخر والاعتزاز القومي.", correct: true, points: 2 },
+                  { id: "r1_4", type: "boolean", question: "مشروع قناة السويس الجديدة يُعد مثالاً حياً ودليلاً على ضعف وتراجع الإرادة المصرية الحرة.", correct: false, points: 2 },
+                  { id: "r1_q1", type: "essay", question: "ما الرسالة التاريخية والحضارية الصارمة التي وجّهها مشروع القناة الجديدة لبلدان العالم؟", modelAnswer: "أن مصر التي حفرت القناة الأولى بدماء وعرق أبنائها، قادرة اليوم دائماً على شق مجاري المستقبل بإرادتها المستقلة الحرة.", points: 3 },
+                  { id: "r1_q2", type: "essay", question: "كيف عهد العالم الدولة المصرية عبر الحقب التاريخية المختلفة المذكورة في صدر النص؟", modelAnswer: "عهدها العالم دولة شامخة قوية، صانعة للحضارة الإنسانية الرائدة، وحامية لهويتها وثقافتها الأصيلة عبر الزمن.", points: 3 }
+                ]
+              },
+              {
+                id: "reading_2",
+                title: "ثانياً: القراءة - من كنوز لغتي: البحر",
+                passage: "وسألت عنه النوتية والربابنة من الأبطال فقالوا: هو جبار نرهبه ونخشاه، لا أمان معه ولا ضمان، كم أرانا الأهوال من زبد غضبه! وكم تحطمت سفن كالمدائن بلطمة من موجه! نحسب له الحساب قبل أن نلقاه، ونستوثق من متانة الحبال والشراع والبخار؛ فإن مزاحه معنا قد يكون فيه الفناء، وهمساته في آذاننا رياح هوج قد تنثرنا على صدره هباءً.",
+                questions: [
+                  { id: "r2_1", type: "mcq", question: "مفرد كلمة (المدائن):", options: ["مدنية", "ميدان", "مدان", "مدينة"], correct: "مدينة", points: 2 },
+                  { id: "r2_2", type: "mcq", question: "معنى لفظ (الأهوال):", options: ["الجماليات والزينة", "المخاوف والأخطار المفزعة", "المفاتن الساحرة", "الأحقاد والعداوات"], correct: "المخاوف والأخطار المفزعة", points: 2 },
+                  { id: "r2_3", type: "mcq", question: "التعبير البياني (نحسب له الحساب قبل أن نلقاه) يوحي صراحة بـ:", options: ["الاستعداد الجيد والحيطة التامة", "الحيرة والتردد الشديدين", "الشك المطبق وعدم الثقة", "اليأس وانقطاع الأمل تماماً"], correct: "الاستعداد الجيد والحيطة التامة", points: 2 },
+                  { id: "r2_4", type: "mcq", question: "الفكرة الكلية والأساسية المقررة في الفقرة المعروضة هي:", options: ["همسات البحر اللطيفة", "عجائب المخلوقات البحرية", "البحر كمظهر للرهبة والدمار والفناء", "مزاح البحر الهادئ معنا"], correct: "البحر كمظهر للرهبة والدمار والفناء", points: 2 },
+                  { id: "r2_5", type: "boolean", question: "البحر برغم هدوئه الظاهري ينطوي في داخله على خطر داهم وأهوال مفزعة للبحارة.", correct: true, points: 2 },
+                  { id: "r2_6", type: "boolean", question: "مزاح البحر المتقلب معنا ينتهي دوماً بجلب الخير والمنفعة المطلقة للبحارة.", correct: false, points: 2 },
+                  { id: "r2_q1", type: "essay", question: "لماذا يحرص الربابنة والبحارة على الاستيثاق البالغ من متانة الحبال، والشراع، والبخار؟", modelAnswer: "لأنهم يعلمون أن البحر متقلب وجبار، ومزاحه معهم قد يعقبه الفناء والهلاك، وهمساته قد تنقلب فجأة لرياح هوج مدمرة.", points: 3 },
+                  { id: "r2_q2", type: "essay", question: "وضح مستدلاً بالفقرة كيف يمكن أن تتحول النعم الطبيعية فجأة لعقاب وهلاك مدمر؟", modelAnswer: "البحر نعمة ومجرى للتجارة، ولكنه بلطمة واحدة من موجه الهائج يحطم سفناً ضخمة كالمدائن العظيمة.", points: 3 }
+                ]
+              },
+              {
+                id: "texts",
+                title: "ثالثاً: النصوص - من نص (أخي)",
+                passage: "أَخي، إِن شَرِبتَ المَاءَ صَفواً فَقَد زَكَت ... خَمائِلُ جَنّاتي وَطابَ حَصيدي\nأَخي، إِن جَفاكَ النَّهرُ أَو جَفَّ مَـنبَعُه ... مَشى المَوتُ في زَهري وَقَصَّفَ عودي\nحَياتُكَ في الوادي حَياتي، فَإِنَّمـا ... وُجودُكَ في هَذي الحَياةِ وُجودي",
+                questions: [
+                  { id: "t1", type: "boolean", question: "سيطرت على الشاعر في صياغة الأبيات عاطفة سلبية من الكره المقيت والأنانية وحب الذات.", correct: false, points: 2 },
+                  { id: "t_q1", type: "essay", question: "استخلص وسجل الأدلة والبراهين من النص على تلاحم الوجود وعمق المحبة بين الشاعر وأخيه.", modelAnswer: "الدليل قوله (حياتك في الوادي حياتي) و(وجودك في هذي الحياة وجودي)، حيث جعل ذاته وحياته صدى مباشراً لوجود وحياة أخيه.", points: 4 },
+                  { id: "t_q2", type: "essay", question: "ما القيمة الفنية والجمالية للتعبير المجازي: (جفاكَ النهرُ أو جفَّ منبعُه)؟", modelAnswer: "تصوير للنهر بشخص يجفو ويهجر، وتعبير يوحي بالقحط والفقر والشدة والمصائب التي قد تصيب شريك الوطن.", points: 3 }
+                ]
+              },
+              {
+                id: "grammar",
+                title: "رابعاً: القواعد النحوية",
+                passage: "\"( ولدي ، إن أعظم ما تقدمه مصر للعالم حضارتها العريقة، تلك الحضارة التي وقف أمامها الغرب منبهراً، وأمسى مشتاقاً بصنع حضارة مماثلة، ونحن العرب ندرك أن أجدادنا امتلأت قلوبهم يقيناً بالقدرة على بلوغ المجد، فظل عطر الخلود باقياً في أجسادهم ).\"",
+                questions: [
+                  { id: "g1", type: "mcq", question: "إعراب كلمة (حضارتها) في موقعها الإعرابي بالفقرة هو:", options: ["خبر المبتدأ مرفوع", "خبر الحرف الناسخ (إن) مرفوع بالضم", "مفعول به منصوب", "مضاف إليه مجرور"], correct: "خبر الحرف الناسخ (إن) مرفوع بالضم", points: 2 },
+                  { id: "g2", type: "mcq", question: "نوع أسلوب المنادى وحكمه في عبارة (ولدي) هو:", options: ["نكرة مقصودة مبنية", "شبيه بالمضاف معرب", "مضاف (لياء المتكلم) معرب منصوب بفتحة مقدرة", "نكرة غير مقصودة"], correct: "مضاف (لياء المتكلم) معرب منصوب بفتحة مقدرة", points: 2 },
+                  { id: "g3", type: "mcq", question: "الاسم المنصوب الذي وقع (تمييز ملحوظ محول عن الفاعل) بالفقرة هو:", options: ["مماثلة", "باقياً", "منبهراً", "يقيناً (امتلأت قلوبهم يقيناً أي امتلأ يقين قلوبهم)"], correct: "يقيناً (امتلأت قلوبهم يقيناً أي امتلأ يقين قلوبهم)", points: 2 },
+                  { id: "g4", type: "mcq", question: "الضبط الإعرابي الصحيح لكلمة (مشتاقاً) مع ذكر السبب:", options: ["مشتاقٌ - لأنها خبر مبتدأ", "مشتاقاً - لأنها خبر الفعل الناسخ (أمسى) منصوب", "مشتاقٍ - لأنها مضاف إليه", "مشتاقةً - لأنها حال مؤنثة"], correct: "مشتاقاً - لأنها خبر الفعل الناسخ (أمسى) منصوب", points: 2 },
+                  { id: "g5", type: "mcq", question: "تصويب الخطأ التركيبي النحوي لجملة (يا حافظوا العهد، لقد أظهرتم ولاءكم):", options: ["يا حافظون العهد", "يا حافظي العهدِ (منادى مضاف منصوب بالياء وحذفت النون للإضافة)", "يا حافظين العهد", "يا حافظو العهدِ"], correct: "يا حافظي العهدِ (منادى مضاف منصوب بالياء وحذفت النون للإضافة)", points: 2 },
+                  { id: "g_q1", type: "essay", question: "قم بتحويل (كم) التكثيرية الخبرية لاستفهامية محددة مع ضبط تمييزها: \"كم من أضرارٍ مصدرها الإفراط في اللعب!\"", modelAnswer: "كم ضرراً مصدرُهُ الإفراطُ في اللعب؟", points: 3 },
+                  { id: "g_q2", type: "essay", question: "أعد صياغة الأرقام العددية الحسابية بألفاظ لغوية عربية مضبوطة: \"في المدرسة (12) معلمة و(9) معلمين.\"", modelAnswer: "في المدرسة اثنتا عشرةَ معلمةً وتسعةُ معلمينَ.", points: 4 }
+                ]
+              }
+            ]
+          }
+        };
+
+        function App() {
+            const [studentName, setStudentName] = React.useState('');
+            const [selectedLetter, setSelectedLetter] = React.useState(null);
+            const [mode, setMode] = React.useState(null);
+            const [isStarted, setIsStarted] = React.useState(false);
+            const [currentSectionIndex, setCurrentSectionIndex] = React.useState(0);
+            const [answers, setAnswers] = React.useState({});
+            const [isSubmitted, setIsSubmitted] = React.useState(false);
+            const [isPlayingAudio, setIsPlayingAudio] = React.useState(false);
+
+            const handleStartExam = (e) => {
+                e.preventDefault();
+                if (!studentName.trim() || !selectedLetter || !mode) {
+                    alert("الرجاء إدخال الاسم واختيار النموذج ووضع الأداء أولاً.");
+                    return;
+                }
+                setIsStarted(true);
+                setCurrentSectionIndex(0);
+                setAnswers({});
+                setIsSubmitted(false);
+            };
+
+            const handleAnswerChange = (questionId, value) => {
+                if (isSubmitted && mode === 'exam') return;
+                setAnswers(prev => ({ ...prev, [questionId]: value }));
+            };
+
+            const handleToggleAudio = () => {
+                if (!window.speechSynthesis) {
+                    alert("المحاكاة الصوتية غير مدعومة على متصفح هذا الهاتف.");
+                    return;
+                }
+                if (isPlayingAudio) {
+                    window.speechSynthesis.cancel();
+                    setIsPlayingAudio(false);
+                } else {
+                    const utterance = new SpeechSynthesisUtterance(LISTENING_TEXT);
+                    utterance.lang = 'ar-EG';
+                    utterance.rate = 0.8;
+                    utterance.onend = () => setIsPlayingAudio(false);
+                    utterance.onerror = () => setIsPlayingAudio(false);
+                    setIsPlayingAudio(true);
+                    window.speechSynthesis.speak(utterance);
+                }
+            };
+
+            React.useEffect(() => {
+                return () => { if (window.speechSynthesis) window.speechSynthesis.cancel(); };
+            }, [currentSectionIndex, isStarted]);
+
+            const activeExam = EXAM_DATA[selectedLetter];
+
+            const calculateScores = () => {
+                let totalPossible = 0;
+                let studentScore = 0;
+                const sectionBreakdown = {};
+
+                activeExam.sections.forEach(sec => {
+                    let secPossible = 0;
+                    let secStudent = 0;
+                    sec.questions.forEach(q => {
+                        secPossible += q.points;
+                        totalPossible += q.points;
+                        const studentAns = answers[q.id];
+                        if (q.type === 'mcq' || q.type === 'boolean') {
+                            if (studentAns === q.correct) {
+                                secStudent += q.points;
+                                studentScore += q.points;
+                            }
+                        } else if (q.type === 'essay') {
+                            if (studentAns && studentAns.trim().length > 10) {
+                                secStudent += q.points;
+                                studentScore += q.points;
+                            } else if (studentAns && studentAns.trim().length > 0) {
+                                secStudent += Math.round(q.points / 2);
+                                studentScore += Math.round(q.points / 2);
+                            }
+                        }
+                    });
+                    sectionBreakdown[sec.title] = { score: secStudent, max: secPossible };
+                });
+                return { studentScore, totalPossible, sectionBreakdown };
+            };
+
+            const scoreResults = isSubmitted ? calculateScores() : null;
+
+            const getGradeDescriptor = (score, max) => {
+                const percentage = (score / max) * 100;
+                if (percentage >= 85) return { text: "ممتاز - يفوق التوقعات دائماً", color: "text-emerald-600 bg-emerald-50 border-emerald-200" };
+                if (percentage >= 65) return { text: "جيد جداً - يلبي التوقعات كاملة", color: "text-blue-600 bg-blue-50 border-blue-200" };
+                if (percentage >= 50) return { text: "مقبول - يلبي التوقعات بحدها الأدنى", color: "text-amber-600 bg-amber-50 border-amber-200" };
+                return { text: "بحاجة إلى دعم مكثف ومساندة", color: "text-rose-600 bg-rose-50 border-rose-200" };
+            };
+
+            return (
+                <div className="container mx-auto p-4 max-w-4xl">
+                    {/* طباعة التقرير الرسمي */}
+                    <div className="hidden print-block w-full text-center border-b-2 border-slate-900 pb-4 mb-6">
+                        <h2 className="text-xl font-bold">إدارة العمرانية التعليمية - بيان درجات تفاعلي</h2>
+                        <p className="mt-2">اسم الطالب: {studentName} | {activeExam?.title}</p>
+                    </div>
+
+                    {!isStarted ? (
+                        <div className="bg-white rounded-2xl shadow-md p-6 md:p-8 space-y-6">
+                            <div className="text-center">
+                                <h2 className="text-xl md:text-2xl font-black text-blue-900">كراسة امتحانات اللغة العربية التفاعلية</h2>
+                                <p className="text-slate-500 text-xs mt-1">الصف الثاني الإعدادي - الفصل الدراسي الثاني</p>
+                            </div>
+
+                            <form onSubmit={handleStartExam} className="space-y-6">
+                                <div className="space-y-1">
+                                    <label className="text-sm font-bold text-slate-700 block">اسم الطالب رباعياً:</label>
+                                    <input 
+                                        type="text" required placeholder="اكتب اسمك هنا..." value={studentName}
+                                        onChange={(e) => setStudentName(e.target.value)}
+                                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-sm font-bold text-slate-700 block">اختر نموذج الامتحان:</label>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                        {Object.keys(EXAM_DATA).map(letter => (
+                                            <button 
+                                                key={letter} type="button" onClick={() => setSelectedLetter(letter)}
+                                                className={`p-4 rounded-xl border-2 text-right transition-all ${selectedLetter === letter ? 'border-blue-600 bg-blue-50/50' : 'border-slate-200 bg-white'}`}
+                                            >
+                                                <span className="font-bold text-slate-900 block">{EXAM_DATA[letter].title}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-sm font-bold text-slate-700 block">وضع الأداء الحركي:</label>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <button 
+                                            type="button" onClick={() => setMode('exam')}
+                                            className={`p-4 rounded-xl border-2 text-right transition-all ${mode === 'exam' ? 'border-indigo-600 bg-indigo-50/50' : 'border-slate-200 bg-white'}`}
+                                        >
+                                            <span className="font-bold text-slate-900 block">وضع الاختبار والمحاكاة</span>
+                                            <span className="text-xs text-slate-500">تظهر النتائج في النهاية فقط</span>
+                                        </button>
+                                        <button 
+                                            type="button" onClick={() => setMode('practice')}
+                                            className={`p-4 rounded-xl border-2 text-right transition-all ${mode === 'practice' ? 'border-teal-600 bg-teal-50/50' : 'border-slate-200 bg-white'}`}
+                                        >
+                                            <span className="font-bold text-slate-900 block">وضع التدريب والتعلم الفوري</span>
+                                            <span className="text-xs text-slate-500">تظهر الإجابة الصحيحة فور اختيارها</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <button type="submit" className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg transition-all text-sm">
+                                    ابدأ الحل والتقييم التفاعلي الآن
+                                </button>
+                            </form>
+                        </div>
+                    ) : (
+                        <div className="space-y-6">
+                            {/* لوحة التحكم العلوية المحمولة */}
+                            <div className="bg-white p-3 rounded-xl shadow-sm border border-slate-100 flex flex-wrap justify-between items-center gap-2 no-print">
+                                <div className="text-xs font-bold text-slate-700">الطالب: {studentName} | <span className="text-blue-600">{activeExam.title}</span></div>
+                                <button onClick={() => setIsStarted(false)} className="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold rounded-lg transition-all">خروج</button>
+                            </div>
+
+                            {/* لوحة عرض النتائج الكلية */}
+                            {isSubmitted && (
+                                <div className="bg-white rounded-2xl shadow-sm border p-4 md:p-6 space-y-4">
+                                    <div className="text-center font-black text-lg text-slate-900">تم رصد وتصحيح ورقتك بنجاح!</div>
+                                    <div className="p-4 bg-slate-50 rounded-xl text-center border">
+                                        <div className="text-xs text-slate-400 font-bold">الدرجة النهائية المستحقة:</div>
+                                        <div className="text-2xl font-black text-slate-900">{scoreResults.studentScore} / {scoreResults.totalPossible}</div>
+                                        <div className={`mt-2 p-1.5 text-xs rounded-lg font-bold ${getGradeDescriptor(scoreResults.studentScore, scoreResults.totalPossible).color}`}>
+                                            {getGradeDescriptor(scoreResults.studentScore, scoreResults.totalPossible).text}
+                                        </div>
+                                    </div>
+                                    <button onClick={() => window.print()} className="w-full py-2 bg-slate-900 text-white rounded-lg text-xs font-bold no-print">طباعة كشف الدرجات الفوري</button>
+                                </div>
+                            )}
+
+                            {/* كراسة الفروع النشطة */}
+                            <div className="bg-white rounded-2xl shadow-sm p-4 md:p-6 space-y-6">
+                                <div className="border-b pb-3 flex justify-between items-center flex-wrap gap-2">
+                                    <h3 className="font-black text-md text-slate-900">{activeExam.sections[currentSectionIndex].title}</h3>
+                                    {activeExam.sections[currentSectionIndex].id === 'listening' && (
+                                        <button onClick={handleToggleAudio} className={`px-3 py-1.5 text-xs font-bold rounded-lg no-print ${isPlayingAudio ? 'bg-rose-100 text-rose-700 animate-pulse' : 'bg-blue-50 text-blue-700'}`}>
+                                            {isPlayingAudio ? 'إيقاف الاستماع' : 'تشغيل النص المسموع آلياً'}
+                                        </button>
+                                    )}
+                                </div>
+
+                                {activeExam.sections[currentSectionIndex].passage && (
+                                    <div className="bg-slate-50 border-r-4 border-blue-600 p-3 rounded-l-xl text-slate-800 text-sm leading-relaxed text-justify">
+                                        {activeExam.sections[currentSectionIndex].passage}
+                                    </div>
+                                )}
+
+                                <div className="space-y-4">
+                                    {activeExam.sections[currentSectionIndex].questions.map((q, idx) => {
+                                        const studentAns = answers[q.id];
+                                        const showFeedback = mode === 'practice' || isSubmitted;
+
+                                        return (
+                                            <div key={q.id} className="p-3 border border-slate-100 rounded-xl space-y-3 bg-white shadow-sm">
+                                                <div className="text-sm font-bold text-slate-900 flex justify-between gap-2">
+                                                    <span>{idx + 1}- {q.question}</span>
+                                                    <span className="text-xs text-slate-400 font-normal shrink-0">[{q.points} د]</span>
+                                                </div>
+
+                                                {q.type === 'mcq' && (
+                                                    <div className="grid grid-cols-1 gap-2">
+                                                        {q.options.map(opt => {
+                                                            const isSelected = studentAns === opt;
+                                                            let c = "border-slate-200 text-slate-700 bg-white";
+                                                            if (isSelected) c = "border-blue-600 bg-blue-50 font-bold";
+                                                            if (showFeedback) {
+                                                                if (opt === q.correct) c = "border-emerald-500 bg-emerald-50 text-emerald-900 font-bold";
+                                                                else if (isSelected) c = "border-rose-300 bg-rose-50 text-rose-900 line-through";
+                                                            }
+                                                            return (
+                                                                <button key={opt} type="button" onClick={() => handleAnswerChange(q.id, opt)} className={`text-right p-2.5 rounded-lg border text-xs transition-all ${c}`}>
+                                                                    {opt}
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                )}
+
+                                                {q.type === 'boolean' && (
+                                                    <div className="flex gap-2">
+                                                        {[true, false].map(bool => {
+                                                            const isSelected = studentAns === bool;
+                                                            let c = "border-slate-200 bg-white text-slate-700";
+                                                            if (isSelected) c = bool ? "border-emerald-600 bg-emerald-50" : "border-rose-600 bg-rose-50";
+                                                            if (showFeedback) {
+                                                                if (bool === q.correct) c = "border-emerald-500 bg-emerald-50 text-emerald-900 font-bold";
+                                                                else if (isSelected) c = "border-rose-300 bg-rose-50 text-rose-900 shadow-sm";
+                                                            }
+                                                            return (
+                                                                <button key={String(bool)} type="button" onClick={() => handleAnswerChange(q.id, bool)} className={`px-4 py-2 rounded-lg border text-xs font-bold transition-all ${c}`}>
+                                                                    {bool ? 'صح ( ✓ )' : 'خطأ ( ✗ )'}
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                )}
+
+                                                {q.type === 'essay' && (
+                                                    <div className="space-y-2">
+                                                        <textarea rows={2} placeholder="اكتب إجابتك اللغوية هنا..." value={studentAns || ''} onChange={(e) => handleAnswerChange(q.id, e.target.value)} className="w-full p-2 rounded-lg border text-xs bg-slate-50/50" />
+                                                        {showFeedback && (
+                                                            <div className="bg-amber-50 p-2 rounded-lg border border-amber-200 text-xs text-slate-700 leading-relaxed">
+                                                                <strong className="text-amber-800">النموذج المعتمد: </strong>{q.modelAnswer}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* أزرار التنقل السفلية المتجاوبة مع الموبايل */}
+                                <div className="flex justify-between items-center pt-3 border-t text-xs font-bold no-print">
+                                    <button type="button" disabled={currentSectionIndex === 0} onClick={() => setCurrentSectionIndex(p => p - 1)} className="px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg disabled:opacity-40">السابق</button>
+                                    <span className="text-slate-400">فرع {currentSectionIndex + 1} من {activeExam.sections.length}</span>
+                                    {currentSectionIndex < activeExam.sections.length - 1 ? (
+                                        <button type="button" onClick={() => setCurrentSectionIndex(p => p + 1)} className="px-3 py-1.5 bg-blue-600 text-white rounded-lg">التالي</button>
+                                    ) : (
+                                        !isSubmitted && <button type="button" onClick={() => setIsSubmitted(true)} className="px-3 py-1.5 bg-rose-600 text-white rounded-lg">تسليم الورقة</button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

@@ -88,6 +88,16 @@ export function ExamInterface({
   const supabase = createClient() as any
   const [currentIdx, setCurrentIdx] = useState(0)
   
+  const [isHydrated, setIsHydrated] = useState(false)
+  useEffect(() => {
+    setIsHydrated(useExamStore.persist.hasHydrated())
+    const unsub = useExamStore.persist.onFinishHydration(() => {
+      setIsHydrated(true)
+    })
+    return () => unsub()
+  }, [])
+
+  
   const { 
     answers, 
     setAnswer, 
@@ -129,10 +139,11 @@ export function ExamInterface({
 
   // Initialize store if empty
   useEffect(() => {
+    if (!isHydrated) return
     if (useExamStore.getState().attemptId !== attemptId) {
       startExam(exam.id, attemptId, exam.duration_minutes * 60)
     }
-  }, [exam.id, attemptId, exam.duration_minutes, startExam])
+  }, [exam.id, attemptId, exam.duration_minutes, startExam, isHydrated])
 
   // --- Grouping Logic ---
   const groups: { passage: string | null; questions: Question[]; originalIndexes: number[] }[] = []
@@ -360,14 +371,16 @@ export function ExamInterface({
     }
 
     try {
-      // 1. Save answers + image answer URLs together
+      // 1. Save answers
       const answersWithImages = { ...answers }
-      // Also save image URLs as a separate metadata key
       const answersPayload = {
         answers: answersWithImages,
-        answer_images: imageAnswers, // { questionId: imageUrl }
       }
-      await supabase.from('exam_attempts').update(answersPayload).eq('id', attemptId)
+      const { error: updateError } = await supabase.from('exam_attempts').update(answersPayload).eq('id', attemptId)
+      if (updateError) {
+        console.error('Error saving answers:', updateError)
+        throw new Error('فشل حفظ الإجابات: ' + updateError.message)
+      }
 
       // 2. Grade Exam using AI Semantic Endpoint
       const res = await fetch('/api/exams/grade', {

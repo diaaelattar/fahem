@@ -22,6 +22,15 @@ function getModel(name: string) {
   })
 }
 
+async function fetchImageAsBase64(imageUrl: string): Promise<{ data: string; mimeType: string }> {
+  const response = await fetch(imageUrl)
+  if (!response.ok) throw new Error(`Failed to fetch image: ${response.status}`)
+  const contentType = response.headers.get('content-type') || 'image/jpeg'
+  const arrayBuffer = await response.arrayBuffer()
+  const base64 = Buffer.from(arrayBuffer).toString('base64')
+  return { data: base64, mimeType: contentType.split(';')[0] }
+}
+
 // ---- Math/LaTeX normalization ----
 const normalizeMath = (text: string): string => {
   if (!text) return ''
@@ -177,7 +186,7 @@ export async function POST(req: NextRequest) {
       if (!q) continue
 
       const qPoints = eq.points_override || Math.max(1, q.points || 1)
-      const studentAns = answers[q.id]
+      let studentAns = answers[q.id]
       let isCorrect = false
       let scoreAwarded = 0
       let aiFeedback = null
@@ -196,6 +205,68 @@ export async function POST(req: NextRequest) {
         // Skip adding to studentAnswersPayload (already saved by /api/ai/grade-image)
         totalScore += scoreAwarded
         continue
+      } else if ((q.question_type === 'essay' || q.question_type === 'correction') && hasImageAnswer && !imageGradeMap[q.id]) {
+        // ── Grade handwritten image answer using Gemini Vision ──
+        const imageUrl = imageAnswers[q.id]
+        if (imageUrl) {
+          try {
+            const imageData = await fetchImageAsBase64(imageUrl)
+            const visionPrompt = `أنت مصحح امتحانات خبير متخصص في المناهج المصرية. مهمتك قراءة إجابة طالب مكتوبة بخط اليد وتقييمها.
+
+## بيانات التقييم:
+- **السؤال:** ${q.question_text}
+- **الإجابة النموذجية:** ${q.correct_answer || 'لا توجد إجابة نموذجية محددة، قيّم بناءً على صحة الحل الرياضي والعلمي'}
+- **الدرجة العظمى:** ${qPoints}
+
+## تعليمات التصحيح:
+1. **اقرأ خط اليد بعناية** - إذا كان خط اليد غير واضح في مكان ما، قدّر الأفضل
+2. **للرياضيات:** تحقق من صحة الخطوات والناتج النهائي. الطالب يستحق درجة كاملة إذا وصل للإجابة الصحيحة حتى لو كانت الطريقة مختلفة
+3. **الدرجات الجزئية مسموحة** - أعطِ درجة تتناسب مع مدى اكتمال وصحة الإجابة
+4. **لا تتشدد** في المطابقة الحرفية، قيّم الفهم والمنطق
+5. **اكتب ما قرأته** من الصورة في حقل extracted_text
+
+## المخرجات (JSON فقط، لا أي نص خارجه):
+{
+  "extracted_text": "النص أو الحل الذي قرأته من الصورة",
+  "is_correct": true/false,
+  "earned_score": رقم بين 0 و ${qPoints},
+  "feedback": "تغذية راجعة تربوية مشجعة للطالب تشرح درجته"
+}`
+
+            let aiResultStr = ''
+            for (const modelName of MODELS) {
+              try {
+                const model = getModel(modelName)
+                const result = await model.generateContent([
+                  {
+                    inlineData: {
+                      mimeType: imageData.mimeType,
+                      data: imageData.data,
+                    },
+                  },
+                  { text: visionPrompt },
+                ])
+
+                aiResultStr = result.response.text().trim()
+                aiResultStr = aiResultStr.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim()
+                break
+              } catch (e) {
+                console.warn(`[Vision Grade Exam] Model ${modelName} failed:`, e)
+              }
+            }
+
+            const parsed = JSON.parse(aiResultStr)
+            isCorrect = parsed.is_correct || parsed.earned_score > 0
+            scoreAwarded = Math.min(qPoints, Math.max(0, Number(parsed.earned_score) || 0))
+            aiFeedback = parsed.feedback
+            studentAns = parsed.extracted_text || studentAns
+          } catch (err) {
+            console.error("Failed vision grading for question:", q.id, err)
+            aiFeedback = 'تعذر تصحيح الصورة تلقائياً. (تم إعطاء 0 درجة مؤقتاً)'
+            scoreAwarded = 0
+            isCorrect = false
+          }
+        }
       } else if (q.question_type === 'mcq' || q.question_type === 'true_false') {
         // Exact Match
         if (studentAns.trim() === q.correct_answer?.trim()) {
@@ -265,6 +336,9 @@ export async function POST(req: NextRequest) {
 
       totalScore += scoreAwarded
 
+      const answerImageUrl = imageAnswers[q.id] || null
+      const gradingMethod = answerImageUrl ? 'image' : 'auto'
+
       studentAnswersPayload.push({
         attempt_id: attemptId,
         student_id: user.id,
@@ -273,7 +347,9 @@ export async function POST(req: NextRequest) {
         student_answer: studentAns,
         is_correct: isCorrect,
         score_awarded: scoreAwarded,
-        teacher_feedback: aiFeedback // Save AI feedback here
+        teacher_feedback: aiFeedback, // Save AI feedback here
+        answer_image_url: answerImageUrl,
+        grading_method: gradingMethod
       })
     }
 

@@ -1,9 +1,10 @@
 import { getCurrentProfile } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
-import { Users, ArrowRight, Trophy, TrendingUp, Calendar, CheckCircle, XCircle, BookOpen } from 'lucide-react'
+import { Users, ArrowRight, Trophy, TrendingUp, Calendar, CheckCircle, BookOpen } from 'lucide-react'
 import Link from 'next/link'
 import { AddStudentForm } from './AddStudentForm'
+import { SessionsTab } from './SessionsTab'
 
 export default async function GroupDetailPage({ params }: { params: { id: string } }) {
   const profile = await getCurrentProfile()
@@ -24,6 +25,7 @@ export default async function GroupDetailPage({ params }: { params: { id: string
     .from('group_students')
     .select(`
       id, joined_at, status,
+      student_id,
       students:student_id (
         id,
         profiles(full_name, email, avatar_url)
@@ -40,6 +42,13 @@ export default async function GroupDetailPage({ params }: { params: { id: string
     .eq('group_id', params.id)
     .order('created_at', { ascending: false })
 
+  // Fetch sessions for this group
+  const { data: sessions } = await supabase
+    .from('group_sessions')
+    .select('*')
+    .eq('group_id', params.id)
+    .order('scheduled_at', { ascending: false })
+
   // Stats
   const totalStudents = groupStudents?.length || 0
   const totalExams = exams?.length || 0
@@ -47,6 +56,7 @@ export default async function GroupDetailPage({ params }: { params: { id: string
   const avgGroupScore = exams && exams.length > 0
     ? Math.round(exams.reduce((s, e) => s + (e.avg_score || 0), 0) / exams.length)
     : 0
+  const totalSessions = sessions?.length || 0
 
   return (
     <div className="space-y-6 animate-fade-in" dir="rtl">
@@ -79,7 +89,7 @@ export default async function GroupDetailPage({ params }: { params: { id: string
             <Link href={`/teacher/exams/new?group_id=${group.id}`}
               className="bg-white text-indigo-700 hover:bg-indigo-50 px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-colors">
               <BookOpen className="w-4 h-4" />
-              اختبار جديد للمجموعة
+              اختبار جديد
             </Link>
             <Link href={`/teacher/groups/${group.id}/edit`}
               className="bg-white/20 hover:bg-white/30 px-5 py-2.5 rounded-xl font-bold transition-colors">
@@ -90,24 +100,32 @@ export default async function GroupDetailPage({ params }: { params: { id: string
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {[
-          { icon: Users, label: 'الطلاب', value: totalStudents, color: 'blue', bg: 'bg-blue-50', text: 'text-blue-600' },
-          { icon: BookOpen, label: 'الاختبارات', value: totalExams, color: 'indigo', bg: 'bg-indigo-50', text: 'text-indigo-600' },
-          { icon: CheckCircle, label: 'منشور', value: publishedExams, color: 'emerald', bg: 'bg-emerald-50', text: 'text-emerald-600' },
-          { icon: TrendingUp, label: 'متوسط الأداء', value: `${avgGroupScore}%`, color: 'amber', bg: 'bg-amber-50', text: 'text-amber-600' },
+          { icon: Users, label: 'الطلاب', value: totalStudents, bg: 'bg-blue-50', text: 'text-blue-600' },
+          { icon: BookOpen, label: 'الاختبارات', value: totalExams, bg: 'bg-indigo-50', text: 'text-indigo-600' },
+          { icon: CheckCircle, label: 'منشور', value: publishedExams, bg: 'bg-emerald-50', text: 'text-emerald-600' },
+          { icon: Calendar, label: 'الحصص', value: totalSessions, bg: 'bg-violet-50', text: 'text-violet-600' },
+          { icon: TrendingUp, label: 'متوسط الأداء', value: `${avgGroupScore}%`, bg: 'bg-amber-50', text: 'text-amber-600' },
         ].map(stat => (
-          <div key={stat.label} className="bg-white rounded-2xl border border-border p-5 flex items-center gap-4 shadow-sm">
-            <div className={`w-12 h-12 ${stat.bg} rounded-xl flex items-center justify-center shrink-0`}>
-              <stat.icon className={`w-6 h-6 ${stat.text}`} />
+          <div key={stat.label} className="bg-white rounded-2xl border border-border p-4 flex items-center gap-3 shadow-sm">
+            <div className={`w-10 h-10 ${stat.bg} rounded-xl flex items-center justify-center shrink-0`}>
+              <stat.icon className={`w-5 h-5 ${stat.text}`} />
             </div>
             <div>
               <p className="text-xs text-slate-500 font-bold">{stat.label}</p>
-              <p className="text-2xl font-black text-slate-800">{stat.value}</p>
+              <p className="text-xl font-black text-slate-800">{stat.value}</p>
             </div>
           </div>
         ))}
       </div>
+
+      {/* Sessions Tab - Full Width */}
+      <SessionsTab
+        groupId={group.id}
+        sessions={(sessions || []) as any}
+        groupStudents={(groupStudents || []) as any}
+      />
 
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Students List */}

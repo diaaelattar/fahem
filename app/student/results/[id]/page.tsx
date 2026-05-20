@@ -31,7 +31,7 @@ export default async function ResultDetailPage({ params }: Props) {
     .select(`
       id, score, percentage, is_passed, completed_at, started_at,
       time_spent_seconds, attempt_number, answers, feedback,
-      student_answers(question_id, is_correct, teacher_feedback, score_awarded),
+      student_answers(question_id, is_correct, teacher_feedback, score_awarded, answer_image_url, student_answer),
       exams(
         id, title, total_points, passing_score, show_results_immediately,
         allowed_attempts, subjects(name_ar, icon),
@@ -148,8 +148,10 @@ export default async function ResultDetailPage({ params }: Props) {
       .sort((a: any, b: any) => a.question_order - b.question_order)
       .map((eq: any) => {
         const q = eq.questions
-        const studentAnswer = answers[q.id]
         const sa = answerDetailsMap.get(q.id)
+        const studentAnswer = sa?.student_answer || answers[q.id]
+        const answerImageUrl = sa?.answer_image_url || (studentAnswer && studentAnswer.startsWith('[image:') ? studentAnswer.slice(7, -1) : null)
+        
         let isCorrect = false
         if (sa && sa.is_correct !== undefined) {
           isCorrect = sa.is_correct
@@ -160,9 +162,10 @@ export default async function ResultDetailPage({ params }: Props) {
           ...q,
           points: eq.points_override || q.points || 1,
           studentAnswer,
+          answerImageUrl,
           isCorrect,
           explanation: sa?.teacher_feedback || q.explanation,
-          isAnswered: studentAnswer !== undefined && studentAnswer !== '',
+          isAnswered: (studentAnswer !== undefined && studentAnswer !== '') || !!answerImageUrl,
         }
       })
   }
@@ -464,6 +467,41 @@ export default async function ResultDetailPage({ params }: Props) {
                           <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1 text-emerald-600">الإجابة الصحيحة</p>
                           <div className="px-4 py-3 rounded-xl border-2 border-emerald-500 bg-emerald-50 text-emerald-700 font-bold">
                             {q.correct_answer}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Essay or Correction Display */}
+                {(q.question_type === 'essay' || q.question_type === 'correction') && (
+                  <div className="bg-muted/30 rounded-3xl p-6 border border-border mb-6">
+                    <div className="space-y-4">
+                      <div>
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">إجابتك المسجلة</p>
+                        {q.answerImageUrl ? (
+                          <div className="space-y-2">
+                            <div className="relative rounded-2xl overflow-hidden border border-border max-w-md bg-white p-2">
+                              <img src={q.answerImageUrl} alt="إجابتك المكتوبة بخط اليد" className="w-full max-h-64 object-contain rounded-xl" />
+                            </div>
+                            {q.studentAnswer && !q.studentAnswer.startsWith('[image:') && (
+                              <p className="text-sm font-semibold text-muted-foreground italic mt-2">
+                                النص المستخرج من الصورة: <span className="text-foreground not-italic">{q.studentAnswer}</span>
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          <div className={`px-4 py-3 rounded-xl border-2 font-bold ${q.isCorrect ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-rose-400 bg-rose-50 text-rose-700'}`}>
+                            {q.studentAnswer || "لا توجد إجابة"}
+                          </div>
+                        )}
+                      </div>
+                      {!q.isCorrect && (
+                        <div>
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1 text-emerald-600">الإجابة النموذجية</p>
+                          <div className="px-4 py-3 rounded-xl border-2 border-emerald-500 bg-emerald-50 text-emerald-700 font-bold">
+                            <MathRenderer text={q.correct_answer} />
                           </div>
                         </div>
                       )}

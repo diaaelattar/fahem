@@ -68,6 +68,7 @@ async function generateQuestionsDirectly(
     targetCognitiveLevel?: string
     customInstructions?: string
     mode?: GenerationMode
+    passageBased?: boolean
   } = {}
 ): Promise<{ result: any, modelUsed: string }> {
   const promptParams = {
@@ -77,7 +78,8 @@ async function generateQuestionsDirectly(
     questionCount: options.questionCount || 12,
     requestedTypes: options.requestedTypes,
     targetCognitiveLevel: options.targetCognitiveLevel,
-    customInstructions: options.customInstructions
+    customInstructions: options.customInstructions,
+    passageBased: options.passageBased
   }
   const prompt = options.mode === 'EXACT_EXTRACT' 
     ? EXACT_EXTRACT_PROMPT(promptParams) 
@@ -201,7 +203,7 @@ export async function POST(request: NextRequest) {
 
     // ── 2. استلام البيانات ────────────────────────────────────────────────
     const body = await request.json()
-    const { documentId, fileType, pastedText, youtubeUrl, subjectId, gradeId, fileData, chunkIndex, totalChunks, generationMode = 'SMART_GEN', questionCount = 12, requestedTypes, targetCognitiveLevel, customInstructions } = body
+    const { documentId, fileType, pastedText, youtubeUrl, subjectId, gradeId, fileData, chunkIndex, totalChunks, generationMode = 'SMART_GEN', questionCount = 12, requestedTypes, targetCognitiveLevel, customInstructions, passageBased } = body
 
     // ── 3. جلب المستند وبيانات المنهج ────────────────────────────────────
     const { data: doc } = (await supabase.from('documents').select('*').eq('id', documentId).single()) as { data: any }
@@ -229,7 +231,8 @@ export async function POST(request: NextRequest) {
         questionCount,
         requestedTypes,
         targetCognitiveLevel,
-        customInstructions
+        customInstructions,
+        passageBased
       }
       const prompt = generationMode === 'EXACT_EXTRACT' 
         ? EXACT_EXTRACT_PROMPT(promptParams) 
@@ -271,7 +274,8 @@ export async function POST(request: NextRequest) {
         requestedTypes,
         targetCognitiveLevel,
         customInstructions,
-        mode: generationMode
+        mode: generationMode,
+        passageBased
       })
       finalResult = directGen.result
       const actualModel = directGen.modelUsed
@@ -323,7 +327,16 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'تعذّر قراءة محتوى ملف Word. جرّب تحويله لـ PDF أو الصق النص مباشرة.' }, { status: 400 })
       }
 
-      const prompt = QUESTION_GENERATION_PROMPT({ subject: subjectName, grade: gradeName, extractedText, questionCount, requestedTypes, targetCognitiveLevel, customInstructions })
+      const prompt = QUESTION_GENERATION_PROMPT({
+        subject: subjectName,
+        grade: gradeName,
+        extractedText,
+        questionCount,
+        requestedTypes,
+        targetCognitiveLevel,
+        customInstructions,
+        passageBased
+      })
       const genResult = await generateTextQuestionsWithFallback(prompt)
       finalResult = genResult.result
 

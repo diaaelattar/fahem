@@ -5,6 +5,26 @@ import { Plus, Check, Search, Sparkles, Eye, X, SlidersHorizontal } from 'lucide
 import type { QuestionItem, SelectedQuestion, ExamFormState, FilterOption } from './ExamBuilderTypes'
 import { TYPE_AR, DIFF_AR, DIFF_COLOR, TYPE_COLOR } from './ExamBuilderTypes'
 
+function groupQuestions<T extends { context_passage?: string | null }>(questionsList: T[]) {
+  const groups: { passage: string | null; items: T[] }[] = []
+  const passageToGroupIndex = new Map<string, number>()
+
+  questionsList.forEach(q => {
+    if (q.context_passage) {
+      if (passageToGroupIndex.has(q.context_passage)) {
+        const gIdx = passageToGroupIndex.get(q.context_passage)!
+        groups[gIdx].items.push(q)
+      } else {
+        passageToGroupIndex.set(q.context_passage, groups.length)
+        groups.push({ passage: q.context_passage, items: [q] })
+      }
+    } else {
+      groups.push({ passage: null, items: [q] })
+    }
+  })
+  return groups
+}
+
 interface Props {
   form: ExamFormState
   onFormChange: (f: ExamFormState) => void
@@ -180,59 +200,117 @@ export function QuestionBankPanel({
               </div>
             ) : (
               <div className="divide-y divide-border">
-                {availableInBank.map(q => (
-                  <div key={q.id} className="p-3.5 hover:bg-slate-50 transition-colors group">
-                    <div className="flex items-start gap-3">
-                      <div className="flex-1 min-w-0">
-                        {/* Tags */}
-                        <div className="flex flex-wrap gap-1 mb-2">
-                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${TYPE_COLOR[q.question_type]}`}>
-                            {TYPE_AR[q.question_type]}
+                {groupQuestions(availableInBank).map((group, groupIdx) => {
+                  if (group.passage) {
+                    return (
+                      <div key={`bank-group-${groupIdx}`} className="p-3 bg-indigo-50/20 border-b border-indigo-100/50 space-y-3">
+                        <div className="p-3 bg-indigo-50/80 border border-indigo-100/80 rounded-xl text-xs text-indigo-950 leading-relaxed italic relative mt-1">
+                          <span className="absolute -top-2.5 right-3 bg-indigo-100 text-indigo-800 text-[9px] font-bold px-2 py-0.5 rounded-full border border-indigo-200">
+                            القطعة المشتركة ({group.items.length} أسئلة متاحة)
                           </span>
-                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${DIFF_COLOR[q.difficulty_level]}`}>
-                            {DIFF_AR[q.difficulty_level]}
-                          </span>
-                          {(q.units as any)?.name_ar && (
-                            <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded border border-slate-200">
-                              {(q.units as any).name_ar}
-                            </span>
-                          )}
-                          <span className="text-[10px] font-bold bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded border border-amber-200">
-                            {q.points} درجة
-                          </span>
+                          {group.passage}
                         </div>
-                        {/* Context */}
-                        {q.context_passage && (
-                          <p className="text-[11px] text-indigo-600 bg-indigo-50 px-2 py-1 rounded mb-1.5 border border-indigo-100 line-clamp-1 italic">
-                            القطعة: {q.context_passage}
-                          </p>
-                        )}
-                        {/* Text */}
-                        <p
-                          className="text-sm font-medium text-slate-800 leading-relaxed line-clamp-2"
-                          dangerouslySetInnerHTML={{ __html: q.question_text }}
-                        />
+                        <div className="divide-y divide-indigo-100/30 bg-white/65 rounded-xl border border-indigo-100/40 overflow-hidden">
+                          {group.items.map(q => (
+                            <div key={q.id} className="p-3 hover:bg-indigo-50/25 transition-colors group">
+                              <div className="flex items-start gap-3">
+                                <div className="flex-1 min-w-0">
+                                  {/* Tags */}
+                                  <div className="flex flex-wrap gap-1 mb-2">
+                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${TYPE_COLOR[q.question_type]}`}>
+                                      {TYPE_AR[q.question_type]}
+                                    </span>
+                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${DIFF_COLOR[q.difficulty_level]}`}>
+                                      {DIFF_AR[q.difficulty_level]}
+                                    </span>
+                                    {(q.units as any)?.name_ar && (
+                                      <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded border border-slate-200">
+                                        {(q.units as any).name_ar}
+                                      </span>
+                                    )}
+                                    <span className="text-[10px] font-bold bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded border border-amber-200">
+                                      {q.points} درجة
+                                    </span>
+                                  </div>
+                                  {/* Text */}
+                                  <p
+                                    className="text-sm font-medium text-slate-800 leading-relaxed line-clamp-2"
+                                    dangerouslySetInnerHTML={{ __html: q.question_text }}
+                                  />
+                                </div>
+                                {/* Actions */}
+                                <div className="flex flex-col gap-1.5 shrink-0">
+                                  <button
+                                    onClick={() => setPreview(q)}
+                                    className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-400 flex items-center justify-center transition-all"
+                                    title="معاينة السؤال"
+                                  >
+                                    <Eye className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => onAdd(q)}
+                                    className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 hover:bg-primary hover:text-white text-primary flex items-center justify-center transition-all"
+                                    title="إضافة للاختبار"
+                                  >
+                                    <Plus className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                      {/* Actions */}
-                      <div className="flex flex-col gap-1.5 shrink-0">
-                        <button
-                          onClick={() => setPreview(q)}
-                          className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-400 flex items-center justify-center transition-all"
-                          title="معاينة السؤال"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => onAdd(q)}
-                          className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 hover:bg-primary hover:text-white text-primary flex items-center justify-center transition-all"
-                          title="إضافة للاختبار"
-                        >
-                          <Plus className="w-4 h-4" />
-                        </button>
+                    )
+                  } else {
+                    return group.items.map(q => (
+                      <div key={q.id} className="p-3.5 hover:bg-slate-50 transition-colors group border-b border-border last:border-0">
+                        <div className="flex items-start gap-3">
+                          <div className="flex-1 min-w-0">
+                            {/* Tags */}
+                            <div className="flex flex-wrap gap-1 mb-2">
+                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${TYPE_COLOR[q.question_type]}`}>
+                                {TYPE_AR[q.question_type]}
+                              </span>
+                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${DIFF_COLOR[q.difficulty_level]}`}>
+                                {DIFF_AR[q.difficulty_level]}
+                              </span>
+                              {(q.units as any)?.name_ar && (
+                                <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded border border-slate-200">
+                                  {(q.units as any).name_ar}
+                                </span>
+                              )}
+                              <span className="text-[10px] font-bold bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded border border-amber-200">
+                                {q.points} درجة
+                              </span>
+                            </div>
+                            {/* Text */}
+                            <p
+                              className="text-sm font-medium text-slate-800 leading-relaxed line-clamp-2"
+                              dangerouslySetInnerHTML={{ __html: q.question_text }}
+                            />
+                          </div>
+                          {/* Actions */}
+                          <div className="flex flex-col gap-1.5 shrink-0">
+                            <button
+                              onClick={() => setPreview(q)}
+                              className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-400 flex items-center justify-center transition-all"
+                              title="معاينة السؤال"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => onAdd(q)}
+                              className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 hover:bg-primary hover:text-white text-primary flex items-center justify-center transition-all"
+                              title="إضافة للاختبار"
+                            >
+                              <Plus className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                ))}
+                    ))
+                  }
+                })}
               </div>
             )}
           </div>
@@ -288,47 +366,101 @@ export function QuestionBankPanel({
               </div>
             ) : (
               <div className="divide-y divide-border">
-                {selectedQuestions.map((q, i) => (
-                  <div key={q.id} className="p-3.5 hover:bg-slate-50 transition-colors">
-                    <div className="flex items-start gap-3">
-                      <span className="w-6 h-6 rounded-md bg-primary/10 text-primary border border-primary/20 text-xs font-black flex items-center justify-center shrink-0 mt-0.5">
-                        {i + 1}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        {q.context_passage && (
-                          <p className="text-[11px] text-indigo-600 bg-indigo-50 px-2 py-1 rounded mb-1.5 border border-indigo-100 line-clamp-1 italic">
-                            القطعة: {q.context_passage}
-                          </p>
-                        )}
-                        <p
-                          className="text-sm font-medium text-slate-800 line-clamp-2 leading-snug mb-2"
-                          dangerouslySetInnerHTML={{ __html: q.question_text }}
-                        />
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${DIFF_COLOR[q.difficulty_level]}`}>
-                            {DIFF_AR[q.difficulty_level]}
+                {groupQuestions(selectedQuestions).map((group, groupIdx) => {
+                  if (group.passage) {
+                    return (
+                      <div key={`selected-group-${groupIdx}`} className="p-3 bg-indigo-50/20 border-b border-indigo-100/50 space-y-3">
+                        <div className="p-3 bg-indigo-50/80 border border-indigo-100/80 rounded-xl text-xs text-indigo-950 leading-relaxed italic relative mt-1">
+                          <span className="absolute -top-2.5 right-3 bg-indigo-100 text-indigo-800 text-[9px] font-bold px-2 py-0.5 rounded-full border border-indigo-200">
+                            القطعة المضافة للاختبار ({group.items.length} أسئلة)
                           </span>
-                          <span className="text-[10px] text-slate-500 font-semibold">الدرجة:</span>
-                          <input
-                            type="number" min={1} max={20}
-                            value={q.points_override ?? q.points}
-                            onChange={e => {
-                              if (onUpdatePoints) onUpdatePoints(q.id, parseInt(e.target.value) || q.points)
-                            }}
-                            className="w-12 px-1.5 py-0.5 border border-slate-200 rounded-lg text-xs text-center focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white font-bold text-slate-700"
-                          />
+                          {group.passage}
+                        </div>
+                        <div className="divide-y divide-indigo-100/30 bg-white/65 rounded-xl border border-indigo-100/40 overflow-hidden">
+                          {group.items.map(q => {
+                            const originalIdx = selectedQuestions.findIndex(sq => sq.id === q.id)
+                            return (
+                              <div key={q.id} className="p-3 hover:bg-indigo-50/25 transition-colors">
+                                <div className="flex items-start gap-3">
+                                  <span className="w-6 h-6 rounded-md bg-primary/10 text-primary border border-primary/20 text-xs font-black flex items-center justify-center shrink-0 mt-0.5">
+                                    {originalIdx + 1}
+                                  </span>
+                                  <div className="flex-1 min-w-0">
+                                    <p
+                                      className="text-sm font-medium text-slate-800 line-clamp-2 leading-snug mb-2"
+                                      dangerouslySetInnerHTML={{ __html: q.question_text }}
+                                    />
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${DIFF_COLOR[q.difficulty_level]}`}>
+                                        {DIFF_AR[q.difficulty_level]}
+                                      </span>
+                                      <span className="text-[10px] text-slate-500 font-semibold">الدرجة:</span>
+                                      <input
+                                        type="number" min={1} max={20}
+                                        value={q.points_override ?? q.points}
+                                        onChange={e => {
+                                          if (onUpdatePoints) onUpdatePoints(q.id, parseInt(e.target.value) || q.points)
+                                        }}
+                                        className="w-12 px-1.5 py-0.5 border border-slate-200 rounded-lg text-xs text-center focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white font-bold text-slate-700"
+                                      />
+                                    </div>
+                                  </div>
+                                  <button
+                                    onClick={() => onRemove(q.id)}
+                                    className="shrink-0 p-1.5 rounded-lg hover:bg-rose-50 hover:text-rose-500 text-slate-300 transition-colors border border-transparent hover:border-rose-200"
+                                    title="إزالة من الاختبار"
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </div>
+                            )
+                          })}
                         </div>
                       </div>
-                      <button
-                        onClick={() => onRemove(q.id)}
-                        className="shrink-0 p-1.5 rounded-lg hover:bg-rose-50 hover:text-rose-500 text-slate-300 transition-colors border border-transparent hover:border-rose-200"
-                        title="إزالة من الاختبار"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                    )
+                  } else {
+                    return group.items.map(q => {
+                      const originalIdx = selectedQuestions.findIndex(sq => sq.id === q.id)
+                      return (
+                        <div key={q.id} className="p-3.5 hover:bg-slate-50 transition-colors border-b border-border last:border-0">
+                          <div className="flex items-start gap-3">
+                            <span className="w-6 h-6 rounded-md bg-primary/10 text-primary border border-primary/20 text-xs font-black flex items-center justify-center shrink-0 mt-0.5">
+                              {originalIdx + 1}
+                            </span>
+                            <div className="flex-1 min-w-0">
+                              <p
+                                className="text-sm font-medium text-slate-800 line-clamp-2 leading-snug mb-2"
+                                dangerouslySetInnerHTML={{ __html: q.question_text }}
+                              />
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${DIFF_COLOR[q.difficulty_level]}`}>
+                                  {DIFF_AR[q.difficulty_level]}
+                                </span>
+                                <span className="text-[10px] text-slate-500 font-semibold">الدرجة:</span>
+                                <input
+                                  type="number" min={1} max={20}
+                                  value={q.points_override ?? q.points}
+                                  onChange={e => {
+                                    if (onUpdatePoints) onUpdatePoints(q.id, parseInt(e.target.value) || q.points)
+                                  }}
+                                  className="w-12 px-1.5 py-0.5 border border-slate-200 rounded-lg text-xs text-center focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white font-bold text-slate-700"
+                                />
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => onRemove(q.id)}
+                              className="shrink-0 p-1.5 rounded-lg hover:bg-rose-50 hover:text-rose-500 text-slate-300 transition-colors border border-transparent hover:border-rose-200"
+                              title="إزالة من الاختبار"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    })
+                  }
+                })}
               </div>
             )}
           </div>

@@ -48,6 +48,7 @@ export function ContentUploader({ subjects, grades }: Props) {
   const [requestedTypes, setRequestedTypes] = useState<string[]>(['mcq', 'true_false', 'fill_blank'])
   const [targetCognitiveLevel, setTargetCognitiveLevel] = useState('متنوع')
   const [customInstructions, setCustomInstructions] = useState('')
+  const [passageBased, setPassageBased] = useState(false)
   
   const [units, setUnits] = useState<any[]>([])
   const [lessons, setLessons] = useState<any[]>([])
@@ -338,6 +339,7 @@ export function ContentUploader({ subjects, grades }: Props) {
                   targetCognitiveLevel,
                   customInstructions,
                   generationMode,
+                  passageBased,
                 }),
               })
 
@@ -426,6 +428,7 @@ export function ContentUploader({ subjects, grades }: Props) {
             requestedTypes,
             targetCognitiveLevel,
             customInstructions,
+            passageBased,
           }),
         })
 
@@ -694,7 +697,23 @@ export function ContentUploader({ subjects, grades }: Props) {
                 <p className="text-[10px] text-muted-foreground mt-1">اكتب أي تعليمات إضافية وسيلتزم بها المحرك الذكي</p>
               </div>
 
-              <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center justify-between gap-2 border-t border-slate-100 pt-3">
+                <div>
+                  <label className="text-xs font-semibold block text-indigo-950 flex items-center gap-1">
+                    <Sparkles className="w-3.5 h-3.5 text-indigo-600 animate-pulse" />
+                    أسئلة قائمة على قطع ونصوص مشتركة
+                  </label>
+                  <p className="text-[10px] text-muted-foreground">تجميع الأسئلة حول قطع فهم، نصوص، أو قواعد نحوية</p>
+                </div>
+                <input 
+                  type="checkbox"
+                  checked={passageBased}
+                  onChange={e => setPassageBased(e.target.checked)}
+                  className="w-4 h-4 accent-primary cursor-pointer"
+                />
+              </div>
+
+              <div className="flex items-center justify-between gap-2 border-t border-slate-100 pt-3">
                 <div>
                   <label className="text-xs font-semibold block">التجزئة التلقائية (Chunks)</label>
                   <p className="text-[10px] text-muted-foreground">تقسيم الملف لتفادي أعطال AI</p>
@@ -716,7 +735,7 @@ export function ContentUploader({ subjects, grades }: Props) {
                     type="checkbox"
                     checked={isChunked}
                     onChange={e => setIsChunked(e.target.checked)}
-                    className="w-4 h-4 accent-primary"
+                    className="w-4 h-4 accent-primary cursor-pointer"
                   />
                 </div>
               </div>
