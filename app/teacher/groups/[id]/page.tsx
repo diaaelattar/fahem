@@ -6,7 +6,8 @@ import Link from 'next/link'
 import { AddStudentForm } from './AddStudentForm'
 import { SessionsTab } from './SessionsTab'
 
-export default async function GroupDetailPage({ params }: { params: { id: string } }) {
+export default async function GroupDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   const profile = await getCurrentProfile()
   const supabase = createClient()
 
@@ -14,7 +15,7 @@ export default async function GroupDetailPage({ params }: { params: { id: string
   const { data: group } = await supabase
     .from('student_groups')
     .select('*, grades(name_ar)')
-    .eq('id', params.id)
+    .eq('id', id)
     .eq('teacher_id', profile.id)
     .single()
 
@@ -31,7 +32,7 @@ export default async function GroupDetailPage({ params }: { params: { id: string
         profiles(full_name, email, avatar_url)
       )
     `)
-    .eq('group_id', params.id)
+    .eq('group_id', id)
     .eq('status', 'active')
     .order('joined_at', { ascending: false })
 
@@ -39,14 +40,14 @@ export default async function GroupDetailPage({ params }: { params: { id: string
   const { data: exams } = await supabase
     .from('exams')
     .select('id, title, is_published, created_at, questions_count, attempts_count, avg_score')
-    .eq('group_id', params.id)
+    .eq('group_id', id)
     .order('created_at', { ascending: false })
 
   // Fetch sessions for this group
   const { data: sessions } = await supabase
     .from('group_sessions')
     .select('*')
-    .eq('group_id', params.id)
+    .eq('group_id', id)
     .order('scheduled_at', { ascending: false })
 
   // Stats
@@ -202,7 +203,7 @@ export default async function GroupDetailPage({ params }: { params: { id: string
                       <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${exam.is_published ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
                         {exam.is_published ? 'منشور' : 'مسودة'}
                       </span>
-                      <Link href={`/teacher/reports?exam_id=${exam.id}&group_id=${params.id}`}
+                      <Link href={`/teacher/reports?exam_id=${exam.id}&group_id=${id}`}
                         className="text-xs text-indigo-600 hover:text-indigo-800 font-bold">
                         النتائج
                       </Link>
