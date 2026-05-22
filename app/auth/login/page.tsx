@@ -40,7 +40,34 @@ export default function LoginPage() {
         return
       }
 
-      router.push('/student/dashboard')
+      // ✅ Fetch user role and redirect to the correct dashboard
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { setError('حدث خطأ غير متوقع.'); return }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+      if (profile?.role === 'admin') {
+        router.push('/admin/dashboard')
+      } else if (profile?.role === 'teacher') {
+        router.push('/teacher/dashboard')
+      } else {
+        // student or no profile yet
+        const { data: student } = await supabase
+          .from('students')
+          .select('grade_id')
+          .eq('id', user.id)
+          .maybeSingle()
+        
+        if (!student?.grade_id) {
+          router.push('/student/onboarding')
+        } else {
+          router.push('/student/dashboard')
+        }
+      }
     } catch {
       setError('حدث خطأ غير متوقع.')
     } finally {

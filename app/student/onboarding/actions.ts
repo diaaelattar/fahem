@@ -35,10 +35,11 @@ export async function saveStudentGradeAction(
 
   if (studentError) throw new Error(studentError.message)
 
-  // 4. Award first-login XP
-  await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/xp/award`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ userId, amount: 10, reason: 'أول تسجيل دخول 🎉' })
+  // 4. Award first-login XP (run database RPC directly to avoid fetch hanging/deadlock and unauthorized error)
+  await supabaseAdmin.rpc('award_xp', {
+    p_student_id: userId,
+    p_amount: 10,
+    p_reason: 'أول تسجيل دخول 🎉',
+    p_reference: null
   }).catch(() => {})
 }
