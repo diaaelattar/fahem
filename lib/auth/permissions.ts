@@ -2,7 +2,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 
-export type UserRole = 'admin' | 'student'
+export type UserRole = 'admin' | 'student' | 'teacher'
 
 export async function getCurrentUser() {
   const supabase = createClient()
@@ -45,9 +45,17 @@ export async function requireStudent() {
   return profile
 }
 
+export async function requireTeacher() {
+  const profile = await getCurrentProfile()
+  if (!profile) redirect('/auth/login')
+  if (profile.role !== 'teacher') redirect('/student/dashboard')
+  return profile
+}
+
 export function canAccessRoute(role: UserRole, path: string): boolean {
   const adminRoutes = ['/admin']
   const studentRoutes = ['/student']
+  const teacherRoutes = ['/teacher']
 
   if (adminRoutes.some(r => path.startsWith(r))) {
     return role === 'admin'
@@ -55,5 +63,9 @@ export function canAccessRoute(role: UserRole, path: string): boolean {
   if (studentRoutes.some(r => path.startsWith(r))) {
     return role === 'student'
   }
+  if (teacherRoutes.some(r => path.startsWith(r))) {
+    return role === 'teacher'
+  }
   return true
 }
+

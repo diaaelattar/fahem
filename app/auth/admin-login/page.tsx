@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Brain, Eye, EyeOff, Loader2, AlertCircle, Shield } from 'lucide-react'
+import { Logo } from '@/components/shared/Logo'
 
 export default function AdminLoginPage() {
   const router = useRouter()
@@ -46,14 +47,12 @@ export default function AdminLoginPage() {
     <div className="min-h-screen bg-hero-pattern flex items-center justify-center p-4" dir="rtl">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link href="/" className="inline-flex flex-col items-center gap-2 text-white">
-            <div className="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur border border-white/20 flex items-center justify-center">
-              <Shield className="w-9 h-9 text-yellow-300" />
-            </div>
-            <div className="text-2xl font-display font-bold">لوحة الإدارة</div>
-            <div className="text-blue-200 text-sm">استباق مصر — دخول المسؤولين</div>
+          <Link href="/" className="inline-block group">
+            <Logo variant="vertical" size="lg" light />
+            <div className="text-blue-200 text-sm mt-3 font-semibold">بوابة المسؤولين والأدمن</div>
           </Link>
         </div>
+
 
         <div className="bg-white rounded-3xl shadow-2xl p-8">
           <h1 className="text-xl font-display font-bold text-center mb-6">دخول المسؤول</h1>

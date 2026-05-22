@@ -1,6 +1,24 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+// دالة مساعدة لنسخ الكوكيز المحدثة من supabaseResponse إلى استجابة إعادة التوجيه
+// تمنع هذه الدالة فقدان الجلسة عند استخدام NextResponse.redirect
+function redirectWithCookies(request: NextRequest, targetUrl: string, supabaseResponse: NextResponse) {
+  const redirectResponse = NextResponse.redirect(new URL(targetUrl, request.url))
+  supabaseResponse.cookies.getAll().forEach(cookie => {
+    redirectResponse.cookies.set(cookie.name, cookie.value, {
+      path: cookie.path,
+      domain: cookie.domain,
+      maxAge: cookie.maxAge,
+      expires: cookie.expires,
+      secure: cookie.secure,
+      httpOnly: cookie.httpOnly,
+      sameSite: cookie.sameSite,
+    })
+  })
+  return redirectResponse
+}
+
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
@@ -26,7 +44,7 @@ export async function middleware(request: NextRequest) {
 
   // إذا لم يكن مسجلاً وحاول الوصول لمسار محمي
   if (!user && (pathname.startsWith('/admin') || pathname.startsWith('/student') || pathname.startsWith('/teacher'))) {
-    return NextResponse.redirect(new URL('/auth/login', request.url))
+    return redirectWithCookies(request, '/auth/login', supabaseResponse)
   }
 
   // إذا كان مسجلاً، تحقق من الدور
@@ -41,22 +59,22 @@ export async function middleware(request: NextRequest) {
       if (pathname === '/student/onboarding') {
         return supabaseResponse
       }
-      return NextResponse.redirect(new URL('/student/onboarding', request.url))
+      return redirectWithCookies(request, '/student/onboarding', supabaseResponse)
     }
 
     // المدير يحاول الوصول لمسار الطالب أو المعلم
     if (profile.role === 'admin' && (pathname.startsWith('/student') || pathname.startsWith('/teacher'))) {
-      return NextResponse.redirect(new URL('/admin/dashboard', request.url))
+      return redirectWithCookies(request, '/admin/dashboard', supabaseResponse)
     }
 
     // الطالب يحاول الوصول لمسار المدير أو المعلم
     if (profile.role === 'student' && (pathname.startsWith('/admin') || pathname.startsWith('/teacher'))) {
-      return NextResponse.redirect(new URL('/student/dashboard', request.url))
+      return redirectWithCookies(request, '/student/dashboard', supabaseResponse)
     }
 
     // المعلم يحاول الوصول لمسار المدير أو الطالب
     if (profile.role === 'teacher' && (pathname.startsWith('/admin') || pathname.startsWith('/student'))) {
-      return NextResponse.redirect(new URL('/teacher/dashboard', request.url))
+      return redirectWithCookies(request, '/teacher/dashboard', supabaseResponse)
     }
 
     // Smart Barrier: فحص اختيار الصف للطالب
@@ -72,12 +90,12 @@ export async function middleware(request: NextRequest) {
 
       if (!hasGrade && !isOnboardingPage) {
         // طالب لم يختر صفه ويحاول الدخول لأي صفحة أخرى → أعده للتسجيل
-        return NextResponse.redirect(new URL('/student/onboarding', request.url))
+        return redirectWithCookies(request, '/student/onboarding', supabaseResponse)
       }
       
       if (hasGrade && isOnboardingPage) {
         // طالب اختار صفه بالفعل ويحاول الدخول لصفحة التسجيل → أعده للرئيسية
-        return NextResponse.redirect(new URL('/student/dashboard', request.url))
+        return redirectWithCookies(request, '/student/dashboard', supabaseResponse)
       }
     }
   }
@@ -91,11 +109,11 @@ export async function middleware(request: NextRequest) {
       .single()
 
     if (profile?.role === 'admin') {
-      return NextResponse.redirect(new URL('/admin/dashboard', request.url))
+      return redirectWithCookies(request, '/admin/dashboard', supabaseResponse)
     } else if (profile?.role === 'teacher') {
-      return NextResponse.redirect(new URL('/teacher/dashboard', request.url))
+      return redirectWithCookies(request, '/teacher/dashboard', supabaseResponse)
     } else if (profile?.role === 'student') {
-      return NextResponse.redirect(new URL('/student/dashboard', request.url))
+      return redirectWithCookies(request, '/student/dashboard', supabaseResponse)
     }
   }
 
@@ -107,3 +125,4 @@ export const config = {
     '/((?!_next/static|_next/image|favicon.ico|api/webhooks|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
+

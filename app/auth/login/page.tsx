@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { Brain, Loader2, Swords, Trophy, Zap, Mail, Lock, ArrowRight } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { Logo } from '@/components/shared/Logo'
 
 export default function LoginPage() {
   const supabase = createClient()
@@ -107,14 +108,12 @@ export default function LoginPage() {
 
         {/* Logo */}
         <div className="text-center mb-8">
-          <Link href="/" className="inline-flex flex-col items-center gap-3 text-white group">
-            <div className="w-24 h-24 bg-white rounded-3xl p-1 shadow-2xl flex items-center justify-center group-hover:scale-105 transition-transform border border-white/20">
-              <img src="/logo.png" alt="استباق مصر فاهم" className="w-full h-full object-contain" />
-            </div>
-            <div className="text-3xl font-display font-bold">استباق مصر</div>
-            <div className="text-blue-200 text-sm">منصة التدريب والتحديات للمرحلة الإعدادية</div>
+          <Link href="/" className="inline-block group">
+            <Logo variant="vertical" size="lg" light />
+            <div className="text-blue-200 text-sm mt-3 font-medium">منصة التدريب والتحديات للمرحلة الإعدادية</div>
           </Link>
         </div>
+
 
         {/* Card */}
         <div className="bg-white rounded-3xl shadow-2xl overflow-hidden">
