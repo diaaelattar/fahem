@@ -8,7 +8,7 @@ export const runtime = 'nodejs'
 // يرفع الصورة لـ Supabase Storage ثم يحدث حقل question_image_url في الـ questions table
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
 
     // التحقق من أن المستخدم مشرف
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
 // يحذف الصورة ويمسح حقل question_image_url
 export async function DELETE(request: NextRequest) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'غير مصرح' }, { status: 401 })
 

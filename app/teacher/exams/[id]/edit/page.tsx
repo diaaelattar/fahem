@@ -8,7 +8,7 @@ import { notFound } from 'next/navigation'
 export const dynamic = 'force-dynamic'
 
 export default async function EditTeacherExamPage({ params }: { params: { id: string } }) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const profile = await getCurrentProfile()
 
   // Fetch exam data to edit

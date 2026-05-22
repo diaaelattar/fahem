@@ -4,7 +4,7 @@ import { BarChart3, Users, TrendingUp, CheckCircle, Clock, Download, AlertTriang
 
 export default async function AdminReportsPage() {
   await requireAdmin()
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const { data: stats } = await supabase.rpc('get_admin_dashboard_stats')
 

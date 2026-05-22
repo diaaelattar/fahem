@@ -74,7 +74,7 @@ const ALL_ACHIEVEMENTS = [
 
 export default async function AchievementsPage() {
   const profile = await requireStudent()
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // جلب الإنجازات المكتسبة
   const { data: earned } = await supabase
@@ -114,8 +114,7 @@ export default async function AchievementsPage() {
   if ((masteredCount || 0) >= 5 && !earnedCodes.has('wrong_review_5')) toAward.push('wrong_review_5')
 
   if (toAward.length > 0) {
-    const supabaseAdmin = createClient()
-    await (supabaseAdmin.from('student_achievements') as any).insert(
+    await supabase.from('student_achievements').insert(
       toAward.map(code => ({ student_id: profile.id, achievement_code: code }))
     )
     toAward.forEach(code => earnedCodes.add(code))

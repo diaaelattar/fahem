@@ -12,7 +12,7 @@ export default async function CurriculumPage({
   searchParams: { tab?: string; grade?: string; subject?: string }
 }) {
   await requireAdmin()
-  const supabase = createClient()
+  const supabase = await createClient()
   const activeTab = searchParams.tab || 'structure'
 
   // جلب الهيكل الهرمي

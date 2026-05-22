@@ -9,7 +9,7 @@ export async function startExamAction(formData: FormData) {
   if (!examId) throw new Error('Exam ID is required')
 
   const profile = await requireStudent()
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // 1. التحقق من إمكانية بدء الاختبار مرة أخرى (أمان)
   const { data: canAttempt } = await (supabase.rpc as any)('can_attempt_exam', { p_exam_id: examId })

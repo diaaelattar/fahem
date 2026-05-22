@@ -5,7 +5,7 @@ import Link from 'next/link'
 
 export default async function TeacherExamsPage() {
   const profile = await getCurrentProfile()
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Fetch teacher's exams
   const { data: exams } = await supabase

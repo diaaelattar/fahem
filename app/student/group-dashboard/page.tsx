@@ -8,7 +8,7 @@ export const revalidate = 0
 
 export default async function StudentGroupDashboardPage() {
   const profile = await requireStudent()
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // 1. Fetch student info
   const { data: student } = await supabase

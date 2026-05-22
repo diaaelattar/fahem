@@ -184,7 +184,9 @@ export default function OnboardingPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
       await saveStudentGradeAction(user.id, selectedGrade, selectedEduType)
-      router.push('/student/dashboard')
+      // استخدام window.location.href بدلاً من router.push لإجبار المتصفح على تحديث كامل
+      // يضمن مزامنة كوكيز الجلسة وتحديث حالة الطالب مع الـ middleware والـ Server Components
+      window.location.href = '/student/dashboard'
     } catch (err: any) {
       alert('حدث خطأ: ' + err.message)
       setLoading(false)

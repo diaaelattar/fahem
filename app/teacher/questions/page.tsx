@@ -25,7 +25,7 @@ export default async function TeacherQuestionsPage({ searchParams }: { searchPar
   const profile = await getCurrentProfile()
   if (!profile || profile.role !== 'teacher') redirect('/auth/login')
 
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const [
     { data: grades },

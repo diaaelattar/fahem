@@ -14,7 +14,7 @@ export default async function PrintQuestionPage({ params, searchParams }: PrintP
   const profile = await getCurrentProfile()
   if (!profile || profile.role !== 'teacher') redirect('/auth/login')
 
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // دعم طباعة سؤال واحد أو مجموعة أسئلة
   const ids = searchParams.ids

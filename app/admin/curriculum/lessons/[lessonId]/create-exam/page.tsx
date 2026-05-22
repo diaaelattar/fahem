@@ -12,7 +12,7 @@ interface Props { params: { lessonId: string } }
 
 export default async function CreateExamFromLessonPage({ params }: Props) {
   await requireAdmin()
-  const supabase = createClient()
+  const supabase = await createClient()
   const lessonId = parseInt(params.lessonId, 10)
   if (isNaN(lessonId)) notFound()
 

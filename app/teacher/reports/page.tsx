@@ -5,7 +5,7 @@ import Link from 'next/link'
 
 export default async function TeacherReportsPage({ searchParams }: { searchParams: { exam_id?: string, group_id?: string } }) {
   const profile = await getCurrentProfile()
-  const supabase = createClient()
+  const supabase = await createClient()
   
   const selectedExamId = searchParams.exam_id
   const selectedGroupId = searchParams.group_id

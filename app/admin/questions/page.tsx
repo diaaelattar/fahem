@@ -22,7 +22,7 @@ export const revalidate = 0
 
 export default async function QuestionsPage({ searchParams }: { searchParams: SearchParams }) {
   await requireAdmin()
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // ─── جلب بيانات الفلاتر (متسلسلة حسب الاختيارات) ───
   const [

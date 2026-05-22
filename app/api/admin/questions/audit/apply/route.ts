@@ -6,7 +6,7 @@ const VALID_BLOOM = ['remember', 'understand', 'apply', 'analyze', 'evaluate', '
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'غير مصرح' }, { status: 401 })
 

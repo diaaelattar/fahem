@@ -4,7 +4,7 @@ import { Users, ClipboardList, HelpCircle, TrendingUp, FileText, CheckCircle, Cl
 
 export default async function AdminDashboardPage() {
   await requireAdmin()
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const now = new Date()
   const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()

@@ -18,7 +18,7 @@ export async function POST(req: Request) {
     }
 
     // 1. Check Auth
-    const supabase = createClient()
+    const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
       return NextResponse.json({ error: 'يجب تسجيل الدخول أولاً' }, { status: 401 })

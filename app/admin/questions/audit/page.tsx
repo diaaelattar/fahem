@@ -15,7 +15,7 @@ interface SearchParams {
 
 export default async function QuestionAuditPage({ searchParams }: { searchParams: SearchParams }) {
   await requireAdmin()
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Fetch filter lists
   const [{ data: subjects }, { data: grades }] = await Promise.all([

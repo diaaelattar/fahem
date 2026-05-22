@@ -9,7 +9,7 @@ import { WrongAnswersClient } from '@/components/student/WrongAnswersClient'
 
 export default async function WrongAnswersPage() {
   const profile = await requireStudent()
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // جلب كل الإجابات الخاطئة مع بيانات الأسئلة
   // (إذا الجدول غير موجود بعد، يُرجع مصفوفة فارغة بهدوء)

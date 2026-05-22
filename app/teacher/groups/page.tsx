@@ -6,7 +6,7 @@ import { GroupsClient } from './GroupsClient'
 
 export default async function TeacherGroupsPage() {
   const profile = await getCurrentProfile()
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const { data: groups } = await supabase
     .from('student_groups')

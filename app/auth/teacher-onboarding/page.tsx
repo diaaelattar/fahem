@@ -13,7 +13,7 @@ export default async function TeacherOnboardingPage() {
     redirect('/auth/login')
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: teacher } = await supabase.from('teachers').select('subject_id').eq('id', profile.id).single()
 
   if (teacher?.subject_id) {

@@ -8,7 +8,7 @@ import { Award, BookOpen } from 'lucide-react'
 
 export default async function CertificatesPage() {
   const profile = await requireStudent()
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // جلب المحاولات الناجحة فقط
   const { data: passedAttempts } = await supabase

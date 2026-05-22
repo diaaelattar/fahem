@@ -12,7 +12,7 @@ interface Props { params: { unitId: string } }
 
 export default async function PracticeUnitPage({ params }: Props) {
   const profile = await requireStudent()
-  const supabase = createClient()
+  const supabase = await createClient()
   const unitId = parseInt(params.unitId, 10)
   if (isNaN(unitId)) notFound()
 

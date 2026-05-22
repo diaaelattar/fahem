@@ -14,7 +14,7 @@ interface Props {
 
 export default async function PracticeExamPage({ params }: Props) {
   const profile = await requireStudent()
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // جلب بيانات الاختبار
   const { data: exam } = await supabase

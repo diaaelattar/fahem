@@ -10,7 +10,7 @@ interface Props {
 
 export default async function StartExamPage({ params }: Props) {
   const profile = await requireStudent()
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // التحقق من إمكانية بدء الاختبار
   const { data: canAttempt } = await (supabase.rpc as any)('can_attempt_exam', { p_exam_id: params.id })

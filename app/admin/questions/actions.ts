@@ -17,7 +17,7 @@ export async function bulkDeleteQuestionsAction(ids: string[]) {
     // التأكد من صلاحيات الإدارة أولاً
     await requireAdmin()
     
-    const supabase = createClient()
+    const supabase = await createClient()
     
     const { error } = await supabase
       .from('questions')

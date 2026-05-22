@@ -4,12 +4,10 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { Brain, Loader2, Swords, Trophy, Zap, Mail, Lock, ArrowRight } from 'lucide-react'
-import { useRouter } from 'next/navigation'
 import { Logo } from '@/components/shared/Logo'
 
 export default function LoginPage() {
   const supabase = createClient()
-  const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState('')
@@ -51,13 +49,12 @@ export default function LoginPage() {
         .eq('id', user.id)
         .maybeSingle()
 
-      // Refresh to synchronize cookies/session with Server Components
-      router.refresh()
-
+      // ── استخدام window.location.href بدلاً من router.push لإجبار المتصفح ──
+      // على تحديث كامل يضمن مزامنة كوكيز الجلسة مع الـ middleware
       if (profile?.role === 'admin') {
-        router.push('/admin/dashboard')
+        window.location.href = '/admin/dashboard'
       } else if (profile?.role === 'teacher') {
-        router.push('/teacher/dashboard')
+        window.location.href = '/teacher/dashboard'
       } else if (profile?.role === 'student') {
         const { data: student } = await supabase
           .from('students')
@@ -66,9 +63,9 @@ export default function LoginPage() {
           .maybeSingle()
         
         if (!student?.grade_id) {
-          router.push('/student/onboarding')
+          window.location.href = '/student/onboarding'
         } else {
-          router.push('/student/dashboard')
+          window.location.href = '/student/dashboard'
         }
       } else {
         setError('حسابك غير مكتمل أو غير مسجل كطالب/معلم.')

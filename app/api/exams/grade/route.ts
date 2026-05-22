@@ -124,7 +124,7 @@ const checkAnswer = (studentAns: string, correctAns: string, type: string): bool
 
 export async function POST(req: NextRequest) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     
     if (!user) {

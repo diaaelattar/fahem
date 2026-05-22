@@ -5,7 +5,7 @@ import Link from 'next/link'
 
 export default async function TeacherDashboard() {
   const profile = await getCurrentProfile()
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Fetch teacher's groups and total students
   const { data: groups } = await supabase

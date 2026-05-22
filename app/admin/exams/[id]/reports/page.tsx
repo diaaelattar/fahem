@@ -14,7 +14,7 @@ interface Props {
 
 export default async function ExamReportPage({ params }: Props) {
   await requireAdmin()
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const [{ data: rawExam }, { data: rawAttempts }] = await Promise.all([
     supabase

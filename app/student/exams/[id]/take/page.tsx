@@ -16,7 +16,7 @@ interface Props {
 
 export default async function TakeExamPage({ params, searchParams }: Props) {
   const profile = await requireStudent()
-  const supabase = createClient()
+  const supabase = await createClient()
   const attemptId = searchParams.attemptId
 
   // إذا لم يكن هناك attemptId، أعد للشاشة الأولى

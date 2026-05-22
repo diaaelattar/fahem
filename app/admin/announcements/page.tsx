@@ -10,7 +10,7 @@ export const revalidate = 0
 
 export default async function AdminAnnouncementsPage() {
   await requireAdmin()
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Fetch all announcements sorted by display_order, then created_at
   const { data: announcements } = await supabase

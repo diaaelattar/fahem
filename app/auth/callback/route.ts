@@ -6,12 +6,12 @@ export async function GET(request: Request) {
   const code = searchParams.get('code')
 
   if (code) {
-    const supabase = createClient()
+    const supabase = await createClient()
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
-        // Check if profile exists
+        // تحقق إذا كان البروفايل موجوداً
         const { data: profile } = await supabase
           .from('profiles')
           .select('role')
@@ -23,7 +23,7 @@ export async function GET(request: Request) {
         }
 
         if (profile?.role === 'student') {
-          // Check if student has grade set (onboarding complete)
+          // تحقق إذا اختار الطالب صفه (onboarding مكتمل)
           const { data: student } = await supabase
             .from('students')
             .select('grade_id')
@@ -40,7 +40,7 @@ export async function GET(request: Request) {
           return NextResponse.redirect(`${origin}/teacher/dashboard`)
         }
 
-        // Brand new Google user — create profile
+        // مستخدم Google جديد — إنشاء بروفايل
         const fullName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'مستخدم'
         const avatarUrl = user.user_metadata?.avatar_url || null
         const requestedRole = searchParams.get('role') === 'teacher' ? 'teacher' : 'student'

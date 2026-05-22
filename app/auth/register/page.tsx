@@ -5,12 +5,10 @@ import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 
 import { Brain, Loader2, Mail, Lock, User, ArrowRight } from 'lucide-react'
-import { useRouter } from 'next/navigation'
 import { Logo } from '@/components/shared/Logo'
 
 export default function RegisterPage() {
   const supabase = createClient()
-  const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [fullName, setFullName] = useState('')
@@ -88,16 +86,13 @@ export default function RegisterPage() {
         return
       }
 
-      // 2. Create Profile and corresponding record
+      // 2. إنشاء البروفايل والسجل المرتبط
       await supabase.from('profiles').upsert({
         id: authData.user.id,
         email: email,
         full_name: fullName,
         role: role,
       })
-
-      // Refresh to synchronize cookies/session with Server Components
-      router.refresh()
 
       if (role === 'student') {
         await supabase.from('students').upsert({
@@ -106,13 +101,14 @@ export default function RegisterPage() {
           level: 1,
           streak_days: 0,
         })
-        router.push('/student/onboarding')
+        // window.location.href يُجبر المتصفح على تحديث كامل لمزامنة الكوكيز مع الـ middleware
+        window.location.href = '/student/onboarding'
       } else if (role === 'teacher') {
         await supabase.from('teachers').upsert({
           id: authData.user.id,
-          subscription_status: 'premium' // Free/Premium for now
+          subscription_status: 'premium'
         })
-        router.push('/teacher/dashboard')
+        window.location.href = '/teacher/dashboard'
       }
 
     } catch (err: any) {

@@ -14,7 +14,7 @@ export async function createAnnouncementAction(formData: {
   displayOrder?: number
 }) {
   await requireAdmin()
-  const supabase = createClient()
+  const supabase = await createClient()
 
   if (!formData.title.trim()) throw new Error('العنوان مطلوب')
   if (!formData.body.trim()) throw new Error('محتوى الإعلان مطلوب')
@@ -51,7 +51,7 @@ export async function updateAnnouncementAction(
   }
 ) {
   await requireAdmin()
-  const supabase = createClient()
+  const supabase = await createClient()
 
   if (!formData.title.trim()) throw new Error('العنوان مطلوب')
   if (!formData.body.trim()) throw new Error('محتوى الإعلان مطلوب')
@@ -80,7 +80,7 @@ export async function updateAnnouncementAction(
 
 export async function deleteAnnouncementAction(id: string) {
   await requireAdmin()
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const { error } = await supabase
     .from('platform_announcements')
@@ -98,7 +98,7 @@ export async function deleteAnnouncementAction(id: string) {
 
 export async function toggleAnnouncementActiveAction(id: string, isActive: boolean) {
   await requireAdmin()
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const { error } = await supabase
     .from('platform_announcements')

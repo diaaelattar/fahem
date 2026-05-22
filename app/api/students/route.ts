@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function POST(req: NextRequest) {
   try {
     // 1. التحقق أن المنفذ مدير
-    const supabase = createClient()
+    const supabase = await createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
 // PUT — تعديل بيانات طالب
 export async function PUT(req: NextRequest) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     const { data: profileRaw } = await supabase

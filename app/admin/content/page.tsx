@@ -4,7 +4,7 @@ import { ContentUploader } from '@/components/admin/ContentUploader'
 
 export default async function ContentPage() {
   await requireAdmin()
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const [{ data: subjects }, { data: grades }] = await Promise.all([
     supabase.from('subjects').select('id, name_ar, icon').order('name_ar'),

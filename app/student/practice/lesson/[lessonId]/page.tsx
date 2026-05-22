@@ -13,7 +13,7 @@ interface Props { params: { lessonId: string } }
 
 export default async function PracticeLessonPage({ params }: Props) {
   const profile = await requireStudent()
-  const supabase = createClient()
+  const supabase = await createClient()
   const lessonId = parseInt(params.lessonId, 10)
   if (isNaN(lessonId)) notFound()
 

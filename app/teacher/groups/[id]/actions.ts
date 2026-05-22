@@ -11,7 +11,7 @@ export async function addStudentToGroupAction(
   registerDetails?: { fullName: string; email?: string; parentPhone?: string }
 ) {
   const profile = await getCurrentProfile()
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Verify group ownership
   const { data: group } = await supabase
@@ -150,7 +150,7 @@ export async function createSessionAction(
   }
 ) {
   const profile = await getCurrentProfile()
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // التحقق من ملكية المعلم للمجموعة
   const { data: group } = await supabase
@@ -186,7 +186,7 @@ export async function createSessionAction(
 
 export async function deleteSessionAction(sessionId: string, groupId: string) {
   const profile = await getCurrentProfile()
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // التحقق من ملكية المعلم للحصة عبر المجموعة
   const { data: session } = await supabase
@@ -223,7 +223,7 @@ export async function saveAttendanceAction(
   }>
 ) {
   const profile = await getCurrentProfile()
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // التحقق من ملكية المعلم عبر الحصة والمجموعة
   const { data: session } = await supabase

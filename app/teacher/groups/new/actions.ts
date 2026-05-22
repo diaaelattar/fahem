@@ -20,7 +20,7 @@ export async function createGroupAction(formData: FormData) {
   // Generate a random 6-character uppercase invite code
   const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase()
 
-  const supabase = createClient()
+  const supabase = await createClient()
   
   const { data, error } = await supabase.from('student_groups').insert({
     teacher_id: profile.id,

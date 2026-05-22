@@ -20,7 +20,7 @@ interface Props {
 
 export default async function ResultDetailPage({ params }: Props) {
   const profile = await requireStudent()
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Get auth user ID directly for reliable comparison
   const { data: { user: authUser } } = await supabase.auth.getUser()

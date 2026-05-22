@@ -12,7 +12,7 @@ export async function joinGroupAction(formData: FormData) {
     throw new Error('يرجى إدخال كود الدعوة')
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // 1. Find the group by invite code
   const { data: group, error: groupError } = await supabase

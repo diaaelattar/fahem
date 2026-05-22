@@ -7,7 +7,7 @@ import { TeacherVerifyActions } from './TeacherVerifyActions'
 
 export default async function AdminTeacherDetailPage({ params }: { params: { id: string } }) {
   await requireAdmin()
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const { data: teacher } = await supabase
     .from('teachers')

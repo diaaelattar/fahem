@@ -20,7 +20,10 @@ function redirectWithCookies(request: NextRequest, targetUrl: string, supabaseRe
 }
 
 export async function middleware(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request })
+  // ── نبدأ بـ response تحمل headers الـ request الأصلي ──────────────────────
+  let supabaseResponse = NextResponse.next({
+    request: { headers: request.headers },
+  })
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -29,9 +32,13 @@ export async function middleware(request: NextRequest) {
       cookies: {
         getAll() { return request.cookies.getAll() },
         setAll(cookiesToSet: any[]) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+          // ── الخطوة 1: حدّث كوكيز الـ request حتى يراها الكود التالي في نفس الطلب
+          cookiesToSet.forEach(({ name, value }: any) => request.cookies.set(name, value))
+          // ── الخطوة 2: أنشئ response جديدة تحمل الـ request المحدّث (مع الـ cookies الجديدة في headers)
+          //    هذا يضمن أن Server Components تستقبل الـ session المحدّثة
           supabaseResponse = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }) =>
+          // ── الخطوة 3: اكتب الكوكيز على الـ response حتى تصل للمتصفح (Set-Cookie header)
+          cookiesToSet.forEach(({ name, value, options }: any) =>
             supabaseResponse.cookies.set(name, value, options)
           )
         },

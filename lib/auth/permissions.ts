@@ -5,14 +5,14 @@ import { redirect } from 'next/navigation'
 export type UserRole = 'admin' | 'student' | 'teacher'
 
 export async function getCurrentUser() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user }, error } = await supabase.auth.getUser()
   if (error || !user) return null
   return user
 }
 
 export async function getCurrentProfile() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 

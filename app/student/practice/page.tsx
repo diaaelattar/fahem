@@ -8,7 +8,7 @@ import Link from 'next/link'
 
 export default async function PracticeCenterPage() {
   const profile = await requireStudent()
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // جلب بيانات الطالب
   const { data: student } = await supabase

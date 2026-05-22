@@ -8,7 +8,7 @@ import { getCurrentProfile } from '@/lib/auth/permissions'
 export const dynamic = 'force-dynamic'
 
 export default async function NewTeacherExamPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const profile = await getCurrentProfile()
 
   const [

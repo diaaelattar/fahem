@@ -14,7 +14,7 @@ export default async function VIPPlansPage() {
     redirect('/auth/login')
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
   
   // Fetch active plans
   const { data: plans } = await supabase

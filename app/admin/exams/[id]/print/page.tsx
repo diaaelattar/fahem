@@ -5,7 +5,7 @@ import { PrintExamClient } from '@/components/admin/PrintExamClient'
 export const dynamic = 'force-dynamic'
 
 export default async function PrintExamPage({ params }: { params: { id: string } }) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // 1. Fetch exam details
   const { data: exam } = await supabase

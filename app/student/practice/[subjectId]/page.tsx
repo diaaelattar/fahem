@@ -15,7 +15,7 @@ interface Props {
 
 export default async function PracticeSubjectPage({ params }: Props) {
   const profile = await requireStudent()
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // معرف المادة (عدد صحيح)
   const subjectIdNum = parseInt(params.subjectId, 10)

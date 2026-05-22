@@ -4,7 +4,7 @@ import { Clock, BookOpen, Lock, CheckCircle } from 'lucide-react'
 
 export default async function StudentExamsPage() {
   const profile = await requireStudent()
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const { data: student } = await supabase.from('students').select('grade_id').eq('id', profile.id).single()
 

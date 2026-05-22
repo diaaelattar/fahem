@@ -4,7 +4,7 @@ import { ClipboardList, Users, Clock, CheckCircle, Eye, EyeOff, Plus } from 'luc
 
 export default async function ExamsPage() {
   await requireAdmin()
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const { data: exams } = await supabase
     .from('exams')

@@ -12,7 +12,7 @@ import { Printer, Eye } from 'lucide-react'
 export const dynamic = 'force-dynamic'
 
 export default async function EditExamPage({ params }: { params: { id: string } }) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const [
     { data: exam },

@@ -5,7 +5,7 @@ import Link from 'next/link'
 
 export default async function StudentResultsPage() {
   const profile = await requireStudent()
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const { data: attempts } = await supabase
     .from('exam_attempts')

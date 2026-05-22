@@ -5,7 +5,7 @@ import { ExamInterface } from '@/components/student/ExamInterface'
 export const dynamic = 'force-dynamic'
 
 export default async function AdminExamPreviewPage({ params }: { params: { id: string } }) {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // جلب بيانات الاختبار
   const { data: exam } = await supabase

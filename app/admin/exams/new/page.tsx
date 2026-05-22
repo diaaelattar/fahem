@@ -8,7 +8,7 @@ import Link from 'next/link'
 export const dynamic = 'force-dynamic'
 
 export default async function NewExamPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const [
     { data: subjects },

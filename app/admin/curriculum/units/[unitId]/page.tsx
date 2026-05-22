@@ -12,7 +12,7 @@ interface Props { params: { unitId: string } }
 
 export default async function UnitDetailPage({ params }: Props) {
   await requireAdmin()
-  const supabase = createClient()
+  const supabase = await createClient()
   const unitId = parseInt(params.unitId, 10)
 
   // جلب الوحدة

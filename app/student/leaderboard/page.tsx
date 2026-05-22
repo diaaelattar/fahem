@@ -14,7 +14,7 @@ const MEDAL_STYLES = [
 ]
 
 export default async function LeaderboardPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/auth/login')
 

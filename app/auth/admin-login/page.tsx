@@ -1,14 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { Brain, Eye, EyeOff, Loader2, AlertCircle, Shield } from 'lucide-react'
+import { Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react'
 import { Logo } from '@/components/shared/Logo'
 
 export default function AdminLoginPage() {
-  const router = useRouter()
   const supabase = createClient()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -27,15 +25,20 @@ export default function AdminLoginPage() {
         return
       }
       const { data: { user } } = await supabase.auth.getUser()
-      const { data: profileRaw } = await supabase.from('profiles').select('role').eq('id', user!.id).maybeSingle()
+      const { data: profileRaw } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user!.id)
+        .maybeSingle()
       const profile = profileRaw as any
       if (profile?.role !== 'admin') {
         await supabase.auth.signOut()
         setError('هذه الصفحة مخصصة لمسؤولي النظام فقط')
         return
       }
-      router.refresh()
-      router.push('/admin/dashboard')
+      // استخدام window.location.href لإجبار المتصفح على تحديث كامل
+      // يضمن مزامنة كوكيز الجلسة مع الـ middleware قبل تحميل لوحة الإدارة
+      window.location.href = '/admin/dashboard'
     } catch {
       setError('حدث خطأ غير متوقع. حاول مجدداً')
     } finally {
@@ -53,24 +56,36 @@ export default function AdminLoginPage() {
           </Link>
         </div>
 
-
         <div className="bg-white rounded-3xl shadow-2xl p-8">
           <h1 className="text-xl font-display font-bold text-center mb-6">دخول المسؤول</h1>
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label className="text-sm font-semibold block mb-1.5">البريد الإلكتروني</label>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)} required
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                required
                 placeholder="admin@istabaq.eg"
-                className="w-full px-4 py-3 border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all" />
+                className="w-full px-4 py-3 border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+              />
             </div>
             <div>
               <label className="text-sm font-semibold block mb-1.5">كلمة المرور</label>
               <div className="relative">
-                <input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} required
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  required
                   placeholder="••••••••"
-                  className="w-full px-4 py-3 border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary pr-4 pl-12" />
-                <button type="button" onClick={() => setShowPassword(!showPassword)}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                  className="w-full px-4 py-3 border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary pr-4 pl-12"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
@@ -80,13 +95,16 @@ export default function AdminLoginPage() {
                 <AlertCircle className="w-4 h-4 shrink-0" />{error}
               </div>
             )}
-            <button type="submit" disabled={loading}
-              className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-3.5 rounded-xl transition-all disabled:opacity-60 flex items-center justify-center gap-2">
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-3.5 rounded-xl transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+            >
               {loading ? <><Loader2 className="w-5 h-5 animate-spin" />جاري الدخول...</> : 'دخول لوحة الإدارة'}
             </button>
           </form>
           <div className="mt-5 text-center">
-            <Link href="/auth/login" className="text-sm text-primary hover:underline">← دخول الطلاب</Link>
+            <Link href="/auth/login" className="text-sm text-primary hover:underline">← دخول الطلاب والمعلمين</Link>
           </div>
         </div>
       </div>

@@ -8,7 +8,7 @@ import { SessionsTab } from './SessionsTab'
 
 export default async function GroupDetailPage({ params }: { params: { id: string } }) {
   const profile = await getCurrentProfile()
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Fetch group + verify ownership
   const { data: group } = await supabase

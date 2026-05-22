@@ -22,7 +22,7 @@ export async function updateTeacherQuestionAction(id: string, data: {
     return { error: 'غير مصرح لك' }
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // التحقق من ملكية السؤال
   const { data: question, error: fetchError } = await (supabase
@@ -56,7 +56,7 @@ export async function deleteTeacherQuestionAction(id: string) {
     return { error: 'غير مصرح لك' }
   }
 
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // التحقق من ملكية السؤال
   const { data: question, error: fetchError } = await (supabase

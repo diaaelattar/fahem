@@ -17,7 +17,7 @@ const LEVEL_NAMES: Record<number, string> = {
 
 export default async function StudentDashboardPage() {
   const profile = await requireStudent()
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Fetch active subscription first for redirect check
   const { data: subscription } = await supabase

@@ -12,7 +12,7 @@ interface Props {
 
 export default async function EditStudentPage({ params }: Props) {
   await requireAdmin()
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const [
     { data: student },
