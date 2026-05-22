@@ -16,7 +16,7 @@ export async function GET(request: Request) {
           .from('profiles')
           .select('role')
           .eq('id', user.id)
-          .single()
+          .maybeSingle()
 
         if (profile?.role === 'admin') {
           return NextResponse.redirect(`${origin}/admin/dashboard`)
@@ -28,12 +28,16 @@ export async function GET(request: Request) {
             .from('students')
             .select('grade_id')
             .eq('id', user.id)
-            .single()
+            .maybeSingle()
 
           if (!student?.grade_id) {
             return NextResponse.redirect(`${origin}/student/onboarding`)
           }
           return NextResponse.redirect(`${origin}/student/dashboard`)
+        }
+
+        if (profile?.role === 'teacher') {
+          return NextResponse.redirect(`${origin}/teacher/dashboard`)
         }
 
         // Brand new Google user — create profile

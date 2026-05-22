@@ -18,8 +18,8 @@ export default function ResetPasswordPage() {
   useEffect(() => {
     // Check if the user has an active session from the recovery link
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
+      const { data: { user }, error } = await supabase.auth.getUser()
+      if (error || !user) {
         setError('رابط الاستعادة غير صالح أو منتهي الصلاحية. يرجى طلب رابط جديد.')
       }
     }
@@ -54,9 +54,25 @@ export default function ResetPasswordPage() {
 
       setSuccess(true)
       
+      const { data: { user } } = await supabase.auth.getUser()
+      const { data: profile } = user ? await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .maybeSingle() : { data: null }
+
+      // Refresh to synchronize cookies/session with Server Components
+      router.refresh()
+      
       // Redirect after 3 seconds
       setTimeout(() => {
-        router.push('/student/dashboard')
+        if (profile?.role === 'admin') {
+          router.push('/admin/dashboard')
+        } else if (profile?.role === 'teacher') {
+          router.push('/teacher/dashboard')
+        } else {
+          router.push('/student/dashboard')
+        }
       }, 3000)
 
     } catch {

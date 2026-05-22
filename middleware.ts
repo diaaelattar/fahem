@@ -42,71 +42,87 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   const pathname = request.nextUrl.pathname
 
-  // إذا لم يكن مسجلاً وحاول الوصول لمسار محمي
-  if (!user && (pathname.startsWith('/admin') || pathname.startsWith('/student') || pathname.startsWith('/teacher'))) {
+  const isAdminRoute   = pathname.startsWith('/admin')
+  const isStudentRoute = pathname.startsWith('/student')
+  const isTeacherRoute = pathname.startsWith('/teacher')
+  const isProtectedRoute = isAdminRoute || isStudentRoute || isTeacherRoute
+
+  // ── 1. غير مسجل يحاول الوصول لمسار محمي → صفحة الدخول ──────────────────
+  if (!user && isProtectedRoute) {
     return redirectWithCookies(request, '/auth/login', supabaseResponse)
   }
 
-  // إذا كان مسجلاً، تحقق من الدور
-  if (user && (pathname.startsWith('/admin') || pathname.startsWith('/student') || pathname.startsWith('/teacher'))) {
-    const { data: profile } = await supabase
+  // ── 2. مسجل يحاول الوصول لمسار محمي → تحقق من الدور ──────────────────────
+  if (user && isProtectedRoute) {
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', user.id)
       .single()
 
+    // خطأ في قاعدة البيانات (ليس "لا توجد نتائج") → اترك الصفحة تتعامل معه
+    if (profileError && profileError.code !== 'PGRST116') {
+      return supabaseResponse
+    }
+
+    // لا يوجد بروفايل أصلاً (مستخدم جديد)
     if (!profile) {
-      if (pathname === '/student/onboarding') {
-        return supabaseResponse
+      // أدمن أو معلم بدون بروفايل → صفحة الدخول (وليس الـ Onboarding)
+      if (isAdminRoute || isTeacherRoute) {
+        return redirectWithCookies(request, '/auth/login', supabaseResponse)
       }
+      // طالب بدون بروفايل → onboarding
+      if (pathname === '/student/onboarding') return supabaseResponse
       return redirectWithCookies(request, '/student/onboarding', supabaseResponse)
     }
 
-    // المدير يحاول الوصول لمسار الطالب أو المعلم
-    if (profile.role === 'admin' && (pathname.startsWith('/student') || pathname.startsWith('/teacher'))) {
+    // ── حماية المسارات بحسب الدور ─────────────────────────────────────────
+
+    // الأدمن يحاول الدخول لمسار طالب أو معلم → لوحة الأدمن
+    if (profile.role === 'admin' && (isStudentRoute || isTeacherRoute)) {
       return redirectWithCookies(request, '/admin/dashboard', supabaseResponse)
     }
 
-    // الطالب يحاول الوصول لمسار المدير أو المعلم
-    if (profile.role === 'student' && (pathname.startsWith('/admin') || pathname.startsWith('/teacher'))) {
-      return redirectWithCookies(request, '/student/dashboard', supabaseResponse)
-    }
-
-    // المعلم يحاول الوصول لمسار المدير أو الطالب
-    if (profile.role === 'teacher' && (pathname.startsWith('/admin') || pathname.startsWith('/student'))) {
+    // المعلم يحاول الدخول لمسار أدمن أو طالب → لوحة المعلم
+    if (profile.role === 'teacher' && (isAdminRoute || isStudentRoute)) {
       return redirectWithCookies(request, '/teacher/dashboard', supabaseResponse)
     }
 
-    // Smart Barrier: فحص اختيار الصف للطالب
-    if (profile.role === 'student' && pathname.startsWith('/student')) {
+    // الطالب يحاول الدخول لمسار أدمن أو معلم → لوحة الطالب
+    if (profile.role === 'student' && (isAdminRoute || isTeacherRoute)) {
+      return redirectWithCookies(request, '/student/dashboard', supabaseResponse)
+    }
+
+    // ── فحص اختيار الصف للطالب ──────────────────────────────────────────────
+    if (profile.role === 'student' && isStudentRoute) {
       const { data: student } = await supabase
         .from('students')
         .select('grade_id')
         .eq('id', user.id)
-        .single()
-      
+        .maybeSingle()
+
       const hasGrade = !!student?.grade_id
       const isOnboardingPage = pathname === '/student/onboarding'
 
       if (!hasGrade && !isOnboardingPage) {
-        // طالب لم يختر صفه ويحاول الدخول لأي صفحة أخرى → أعده للتسجيل
+        // طالب لم يختر صفه → Onboarding
         return redirectWithCookies(request, '/student/onboarding', supabaseResponse)
       }
-      
+
       if (hasGrade && isOnboardingPage) {
-        // طالب اختار صفه بالفعل ويحاول الدخول لصفحة التسجيل → أعده للرئيسية
+        // طالب اختار صفه بالفعل ويحاول الدخول للـ Onboarding → Dashboard
         return redirectWithCookies(request, '/student/dashboard', supabaseResponse)
       }
     }
   }
 
-  // إعادة توجيه المستخدم المسجل من الصفحة الرئيسية
+  // ── 3. المستخدم المسجل على الصفحة الرئيسية → وجهه للوحة التحكم ──────────
   if (user && pathname === '/') {
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', user.id)
-      .single()
+      .maybeSingle()
 
     if (profile?.role === 'admin') {
       return redirectWithCookies(request, '/admin/dashboard', supabaseResponse)
@@ -125,4 +141,3 @@ export const config = {
     '/((?!_next/static|_next/image|favicon.ico|api/webhooks|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
-

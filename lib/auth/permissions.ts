@@ -20,7 +20,7 @@ export async function getCurrentProfile() {
     .from('profiles')
     .select('*')
     .eq('id', user.id)
-    .single()
+    .maybeSingle()
 
   return profile
 }
@@ -34,21 +34,27 @@ export async function requireAuth() {
 export async function requireAdmin() {
   const profile = await getCurrentProfile()
   if (!profile) redirect('/auth/login')
-  if (profile.role !== 'admin') redirect('/student/dashboard')
+  if (profile.role === 'student') redirect('/student/dashboard')
+  if (profile.role === 'teacher') redirect('/teacher/dashboard')
+  if (profile.role !== 'admin') redirect('/auth/login')
   return profile
 }
 
 export async function requireStudent() {
   const profile = await getCurrentProfile()
   if (!profile) redirect('/auth/login')
-  if (profile.role !== 'student') redirect('/admin/dashboard')
+  if (profile.role === 'admin') redirect('/admin/dashboard')
+  if (profile.role === 'teacher') redirect('/teacher/dashboard')
+  if (profile.role !== 'student') redirect('/auth/login')
   return profile
 }
 
 export async function requireTeacher() {
   const profile = await getCurrentProfile()
   if (!profile) redirect('/auth/login')
-  if (profile.role !== 'teacher') redirect('/student/dashboard')
+  if (profile.role === 'admin') redirect('/admin/dashboard')
+  if (profile.role === 'student') redirect('/student/dashboard')
+  if (profile.role !== 'teacher') redirect('/auth/login')
   return profile
 }
 
@@ -68,4 +74,3 @@ export function canAccessRoute(role: UserRole, path: string): boolean {
   }
   return true
 }
-

@@ -49,14 +49,16 @@ export default function LoginPage() {
         .from('profiles')
         .select('role')
         .eq('id', user.id)
-        .single()
+        .maybeSingle()
+
+      // Refresh to synchronize cookies/session with Server Components
+      router.refresh()
 
       if (profile?.role === 'admin') {
         router.push('/admin/dashboard')
       } else if (profile?.role === 'teacher') {
         router.push('/teacher/dashboard')
-      } else {
-        // student or no profile yet
+      } else if (profile?.role === 'student') {
         const { data: student } = await supabase
           .from('students')
           .select('grade_id')
@@ -68,6 +70,8 @@ export default function LoginPage() {
         } else {
           router.push('/student/dashboard')
         }
+      } else {
+        setError('حسابك غير مكتمل أو غير مسجل كطالب/معلم.')
       }
     } catch {
       setError('حدث خطأ غير متوقع.')

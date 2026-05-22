@@ -27,15 +27,15 @@ export default function AdminLoginPage() {
         return
       }
       const { data: { user } } = await supabase.auth.getUser()
-      const { data: profileRaw } = await supabase.from('profiles').select('role').eq('id', user!.id).single()
+      const { data: profileRaw } = await supabase.from('profiles').select('role').eq('id', user!.id).maybeSingle()
       const profile = profileRaw as any
       if (profile?.role !== 'admin') {
         await supabase.auth.signOut()
         setError('هذه الصفحة مخصصة لمسؤولي النظام فقط')
         return
       }
-      router.push('/admin/dashboard')
       router.refresh()
+      router.push('/admin/dashboard')
     } catch {
       setError('حدث خطأ غير متوقع. حاول مجدداً')
     } finally {

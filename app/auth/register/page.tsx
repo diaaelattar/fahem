@@ -96,6 +96,9 @@ export default function RegisterPage() {
         role: role,
       })
 
+      // Refresh to synchronize cookies/session with Server Components
+      router.refresh()
+
       if (role === 'student') {
         await supabase.from('students').upsert({
           id: authData.user.id,
