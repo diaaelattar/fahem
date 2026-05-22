@@ -127,7 +127,8 @@ export async function addStudentToGroupAction(
     .insert({
       group_id: groupId,
       student_id: studentId,
-      status: 'active'
+      status: 'active',
+      source: 'teacher_added'
     })
 
   if (insertError) {

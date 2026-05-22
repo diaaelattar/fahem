@@ -12,13 +12,19 @@ export function QuestionsListClient({
   TYPE_LABELS,
   DIFF_COLORS,
   BLOOM_LABELS,
-  STATUS_STYLES
+  STATUS_STYLES,
+  basePath = '/admin/questions',
+  showApprovalActions = true,
+  showPrintButton = false,
 }: { 
   questions: any[],
   TYPE_LABELS: any,
   DIFF_COLORS: any,
   BLOOM_LABELS: any,
-  STATUS_STYLES: any
+  STATUS_STYLES: any,
+  basePath?: string,
+  showApprovalActions?: boolean,
+  showPrintButton?: boolean,
 }) {
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [isDeleting, setIsDeleting] = useState(false)
@@ -206,13 +212,24 @@ export function QuestionsListClient({
 
                         {/* أزرار التحكم */}
                         <div className="flex flex-row md:flex-col items-center md:items-end gap-2 shrink-0 border-t md:border-t-0 md:border-r border-slate-100 pt-3 md:pt-0 md:pr-4 mt-3 md:mt-0 w-full md:w-auto">
-                          <QuestionApprovalButtons questionId={q.id} currentStatus={q.status || 'draft'} />
+                          {showApprovalActions && (
+                            <QuestionApprovalButtons questionId={q.id} currentStatus={q.status || 'draft'} />
+                          )}
                           <a
-                            href={`/admin/questions/${q.id}`}
+                            href={`${basePath}/${q.id}`}
                             className="text-xs text-primary bg-primary/5 hover:bg-primary/10 px-3 py-1.5 rounded-lg transition-colors font-bold mr-auto md:mr-0"
                           >
                             تعديل السؤال
                           </a>
+                          {showPrintButton && (
+                            <a
+                              href={`${basePath}/${q.id}/print`}
+                              target="_blank"
+                              className="text-xs text-slate-600 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg transition-colors font-bold"
+                            >
+                              🖨️ طباعة
+                            </a>
+                          )}
                         </div>
                       </div>
                     </div>

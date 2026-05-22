@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireStudent } from '@/lib/auth/permissions'
+import { redirect } from 'next/navigation'
 import {
   ClipboardList, TrendingUp, Clock, Award, ArrowLeft,
   Zap, Sparkles, Dumbbell, AlertCircle, Swords, Trophy,
@@ -17,6 +18,34 @@ const LEVEL_NAMES: Record<number, string> = {
 export default async function StudentDashboardPage() {
   const profile = await requireStudent()
   const supabase = createClient()
+
+  // Fetch active subscription first for redirect check
+  const { data: subscription } = await supabase
+    .from('student_subscriptions')
+    .select('*, subscription_plans(name_ar)')
+    .eq('student_id', profile.id)
+    .eq('status', 'active')
+    .gte('end_date', new Date().toISOString())
+    .order('end_date', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  // Fetch student's groups for redirect check
+  const { data: studentGroups } = await supabase
+    .from('group_students')
+    .select('group_id, student_groups(name_ar)')
+    .eq('student_id', profile.id)
+    .eq('status', 'active')
+
+  // Check if student is group-only (has active groups, no active subscription, and has temporary email)
+  const isGroupOnlyStudent = 
+    (studentGroups && studentGroups.length > 0) &&
+    !subscription &&
+    (profile.email?.endsWith('@istabaq-temp.com') || false)
+
+  if (isGroupOnlyStudent) {
+    redirect('/student/group-dashboard')
+  }
 
   const { data: student } = await supabase
     .from('students')
@@ -72,13 +101,6 @@ export default async function StudentDashboardPage() {
     .eq('grade_id', student?.grade_id || 0)
     .limit(4)
 
-  // Fetch student's groups
-  const { data: studentGroups } = await supabase
-    .from('group_students')
-    .select('group_id, student_groups(name_ar)')
-    .eq('student_id', profile.id)
-    .eq('status', 'active')
-
   const groupIds = studentGroups?.map((g: any) => g.group_id) || []
 
   // Fetch exams from these groups
@@ -112,16 +134,7 @@ export default async function StudentDashboardPage() {
     .order('completed_at', { ascending: false })
     .limit(3)
 
-  // Fetch active subscription
-  const { data: subscription } = await supabase
-    .from('student_subscriptions')
-    .select('*, subscription_plans(name_ar)')
-    .eq('student_id', profile.id)
-    .eq('status', 'active')
-    .gte('end_date', new Date().toISOString())
-    .order('end_date', { ascending: false })
-    .limit(1)
-    .single()
+  // subscription is already fetched at the top of the page
 
   // Fetch Bloom's Taxonomy Stats
   const { data: bloomStats } = await (supabase.rpc as any)('get_student_bloom_stats', { p_student_id: profile.id })

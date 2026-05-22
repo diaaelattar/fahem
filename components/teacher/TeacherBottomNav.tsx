@@ -6,13 +6,15 @@ import {
   LayoutDashboard, 
   Users, 
   FileText, 
-  BarChart
+  BarChart,
+  HelpCircle
 } from 'lucide-react'
 
 const MENU_ITEMS = [
   { href: '/teacher/dashboard', label: 'الرئيسية', icon: LayoutDashboard },
   { href: '/teacher/groups', label: 'مجموعاتي', icon: Users },
   { href: '/teacher/exams', label: 'الاختبارات', icon: FileText },
+  { href: '/teacher/questions', label: 'الأسئلة', icon: HelpCircle },
   { href: '/teacher/reports', label: 'التقارير', icon: BarChart },
 ]
 

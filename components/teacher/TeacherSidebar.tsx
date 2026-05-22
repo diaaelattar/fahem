@@ -8,13 +8,15 @@ import {
   FileText, 
   BarChart, 
   Settings,
-  BrainCircuit
+  BrainCircuit,
+  HelpCircle
 } from 'lucide-react'
 
 const MENU_ITEMS = [
   { href: '/teacher/dashboard', label: 'لوحة التحكم', icon: LayoutDashboard },
   { href: '/teacher/groups', label: 'مجموعاتي', icon: Users },
   { href: '/teacher/exams', label: 'الاختبارات', icon: FileText },
+  { href: '/teacher/questions', label: 'بنك الأسئلة', icon: HelpCircle },
   { href: '/teacher/reports', label: 'تقارير الأداء', icon: BarChart },
   { href: '/teacher/settings', label: 'الإعدادات', icon: Settings },
 ]
