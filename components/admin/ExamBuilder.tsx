@@ -143,6 +143,7 @@ export function ExamBuilder({ subjects, grades, semesters, units, lessons, examI
       if (!user) throw new Error('غير مسجل الدخول')
 
       const examData = {
+        admin_id: user.id,
         title: form.title.trim(),
         description: form.description.trim() || null,
         subject_id: parseInt(form.subjectId),
