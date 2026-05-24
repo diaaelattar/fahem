@@ -17,7 +17,14 @@ export function TeacherVerifyActions({ teacherId, isVerified, isActive }: {
 
   const update = async (data: Partial<{ is_verified: boolean; is_active: boolean }>) => {
     setLoading(true)
-    const { error } = await supabase.from('teachers').update(data).eq('id', teacherId)
+    let error;
+    if (data.is_active !== undefined) {
+      const { error: err } = await supabase.from('profiles').update({ is_active: data.is_active }).eq('id', teacherId)
+      error = err
+    } else if (data.is_verified !== undefined) {
+      const { error: err } = await supabase.from('teachers').update({ is_verified: data.is_verified }).eq('id', teacherId)
+      error = err
+    }
     setLoading(false)
     if (error) { toast.error(error.message); return }
     toast.success('تم التحديث بنجاح')

@@ -29,7 +29,7 @@ export default function AdminTeachersPage() {
   useEffect(() => {
     async function load() {
       const [teachersRes, subjectsRes] = await Promise.all([
-        supabase.from('teachers').select('id, subject_id, is_verified, is_active, created_at, profiles(full_name, email, avatar_url), subjects(name_ar, icon)').order('created_at', { ascending: false }),
+        supabase.from('teachers').select('id, subject_id, is_verified, created_at, profiles(full_name, email, avatar_url, is_active), subjects!teachers_subject_id_fkey(name_ar, icon)').order('created_at', { ascending: false }),
         supabase.from('subjects').select('id, name_ar, icon').order('name_ar'),
       ])
       const raw = (teachersRes.data || []) as any[]
@@ -38,7 +38,7 @@ export default function AdminTeachersPage() {
           supabase.from('student_groups').select('id', { count: 'exact', head: true }).eq('teacher_id', t.id),
           supabase.from('exams').select('id', { count: 'exact', head: true }).eq('teacher_id', t.id),
         ])
-        return { ...t, groups_count: g.count || 0, exams_count: e.count || 0 }
+        return { ...t, is_active: t.profiles?.is_active ?? true, groups_count: g.count || 0, exams_count: e.count || 0 }
       }))
       setTeachers(enriched)
       setSubjects(subjectsRes.data || [])
@@ -65,7 +65,7 @@ export default function AdminTeachersPage() {
     setTeachers(prev => prev.map(t => t.id === id ? { ...t, is_verified: !cur } : t))
   }
   const toggleActive = async (id: string, cur: boolean) => {
-    await supabase.from('teachers').update({ is_active: !cur }).eq('id', id)
+    await supabase.from('profiles').update({ is_active: !cur }).eq('id', id)
     setTeachers(prev => prev.map(t => t.id === id ? { ...t, is_active: !cur } : t))
   }
 

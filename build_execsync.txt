@@ -1,0 +1,139 @@
+
+> istabaq-egypt@0.1.0 build
+> next build
+
+  ▲ Next.js 14.2.18
+  - Environments: .env.local
+
+   Creating an optimized production build ...
+ ✓ (pwa) Compiling for server...
+ ✓ (pwa) Compiling for server...
+ ✓ (pwa) Compiling for client (static)...
+ ○ (pwa) Service worker: C:\Users\diaa_elattar\Downloads\istabaq-egypt-complete\istabaq-egypt\public\sw.js
+ ○ (pwa)   URL: /sw.js
+ ○ (pwa)   Scope: /
+ ✓ Compiled successfully
+   Skipping validation of types
+   Skipping linting
+   Collecting page data ...
+   Generating static pages (0/71) ...
+   Generating static pages (17/71) 
+   Generating static pages (35/71) 
+   Generating static pages (53/71) 
+ ✓ Generating static pages (71/71)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                           Size     First Load JS
+┌ ○ /                                                 208 B          96.7 kB
+├ ○ /_not-found                                       168 B          89.9 kB
+├ ƒ /admin/announcements                              208 B          96.7 kB
+├ ƒ /admin/announcements/[id]                         3.83 kB         171 kB
+├ ƒ /admin/announcements/new                          3.68 kB         110 kB
+├ ƒ /admin/content                                    206 kB          433 kB
+├ ƒ /admin/curriculum                                 208 B          96.7 kB
+├ ƒ /admin/curriculum/lessons/[lessonId]              3.21 kB         161 kB
+├ ƒ /admin/curriculum/lessons/[lessonId]/create-exam  2.71 kB         161 kB
+├ ƒ /admin/curriculum/units/[unitId]                  2.03 kB         160 kB
+├ ƒ /admin/curriculum/units/[unitId]/edit             3.34 kB         155 kB
+├ ƒ /admin/curriculum/units/new                       2.87 kB         154 kB
+├ ƒ /admin/dashboard                                  168 B          89.9 kB
+├ ƒ /admin/exams                                      168 B          89.9 kB
+├ ƒ /admin/exams/[id]                                 1.89 kB         174 kB
+├ ƒ /admin/exams/[id]/preview                         197 B           243 kB
+├ ƒ /admin/exams/[id]/print                           7.24 kB         172 kB
+├ ƒ /admin/exams/[id]/reports                         5.34 kB         241 kB
+├ ƒ /admin/exams/batch                                4.5 kB          156 kB
+├ ƒ /admin/exams/new                                  199 B           172 kB
+├ ƒ /admin/questions                                  162 B           249 kB
+├ ƒ /admin/questions/[id]                             5.35 kB         234 kB
+├ ƒ /admin/questions/audit                            9.75 kB         191 kB
+├ ƒ /admin/questions/new                              121 kB          275 kB
+├ ƒ /admin/reports                                    168 B          89.9 kB
+├ ƒ /admin/settings                                   4.08 kB         156 kB
+├ ƒ /admin/students                                   4.07 kB         162 kB
+├ ƒ /admin/students/[id]                              3.95 kB        93.6 kB
+├ ƒ /admin/students/new                               4.11 kB         156 kB
+├ ƒ /admin/teachers                                   3.67 kB         162 kB
+├ ƒ /admin/teachers/[id]                              1.61 kB         169 kB
+├ ƒ /admin/teachers/new                               2.44 kB         170 kB
+├ ƒ /api/admin/create-teacher                         0 B                0 B
+├ ƒ /api/admin/exams/batch                            0 B                0 B
+├ ƒ /api/admin/questions/[id]                         0 B                0 B
+├ ƒ /api/admin/questions/audit                        0 B                0 B
+├ ƒ /api/admin/questions/audit/apply                  0 B                0 B
+├ ƒ /api/ai/explain-question                          0 B                0 B
+├ ƒ /api/ai/generate-questions                        0 B                0 B
+├ ƒ /api/ai/generate-summary                          0 B                0 B
+├ ƒ /api/ai/grade                                     0 B                0 B
+├ ƒ /api/ai/grade-image                               0 B                0 B
+├ ƒ /api/ai/transcribe                                0 B                0 B
+├ ƒ /api/challenges/[id]/submit                       0 B                0 B
+├ ƒ /api/challenges/find                              0 B                0 B
+├ ƒ /api/checkout/paymob                              0 B                0 B
+├ ƒ /api/documents/create                             0 B                0 B
+├ ƒ /api/exams/delete                                 0 B                0 B
+├ ƒ /api/exams/grade                                  0 B                0 B
+├ ƒ /api/questions/upload-image                       0 B                0 B
+├ ƒ /api/student/plans                                0 B                0 B
+├ ƒ /api/student/subscribe                            0 B                0 B
+├ ƒ /api/student/subscription-status                  0 B                0 B
+├ ƒ /api/students                                     0 B                0 B
+├ ƒ /api/upload-token                                 0 B                0 B
+├ ƒ /api/webhooks/paymob                              0 B                0 B
+├ ƒ /api/xp/award                                     0 B                0 B
+├ ○ /auth/admin-login                                 3.29 kB         162 kB
+├ ƒ /auth/callback                                    0 B                0 B
+├ ○ /auth/forgot-password                             2.52 kB         161 kB
+├ ○ /auth/login                                       5.13 kB         163 kB
+├ ○ /auth/register                                    4.73 kB         163 kB
+├ ○ /auth/reset-password                              2.74 kB         161 kB
+├ ƒ /auth/teacher-onboarding                          1.58 kB         153 kB
+├ ƒ /student/achievements                             168 B          89.9 kB
+├ ƒ /student/certificates                             3.47 kB        93.2 kB
+├ ƒ /student/challenges                               6.24 kB         281 kB
+├ ƒ /student/dashboard                                99.8 kB         235 kB
+├ ƒ /student/exams                                    168 B          89.9 kB
+├ ƒ /student/exams/[id]                               614 B          90.3 kB
+├ ƒ /student/exams/[id]/start                         168 B          89.9 kB
+├ ƒ /student/exams/[id]/take                          1.5 kB          244 kB
+├ ƒ /student/group-dashboard                          6.7 kB          103 kB
+├ ƒ /student/join-group                               2.54 kB        99.1 kB
+├ ƒ /student/leaderboard                              168 B          89.9 kB
+├ ƒ /student/onboarding                               5.56 kB         157 kB
+├ ƒ /student/practice                                 208 B          96.7 kB
+├ ƒ /student/practice/[subjectId]                     215 B           243 kB
+├ ƒ /student/practice/exam/[examId]                   215 B           243 kB
+├ ƒ /student/practice/lesson/[lessonId]               1.09 kB         243 kB
+├ ƒ /student/practice/unit/[unitId]                   215 B           243 kB
+├ ƒ /student/practice/wrong-answers                   6.16 kB         240 kB
+├ ƒ /student/premium                                  3.6 kB          103 kB
+├ ƒ /student/profile                                  2.94 kB         164 kB
+├ ƒ /student/results                                  208 B          96.7 kB
+├ ƒ /student/results/[id]                             4.41 kB         238 kB
+├ ƒ /student/test-playground                          7.13 kB         211 kB
+├ ƒ /student/vip                                      1.49 kB          98 kB
+├ ƒ /student/vip/callback                             2.06 kB        98.6 kB
+├ ƒ /teacher/dashboard                                208 B          96.7 kB
+├ ƒ /teacher/exams                                    208 B          96.7 kB
+├ ƒ /teacher/exams/[id]/edit                          154 B           173 kB
+├ ƒ /teacher/exams/new                                153 B           173 kB
+├ ƒ /teacher/groups                                   2.9 kB          109 kB
+├ ƒ /teacher/groups/[id]                              6.68 kB         113 kB
+├ ƒ /teacher/groups/[id]/edit                         2.51 kB         170 kB
+├ ƒ /teacher/groups/new                               2.17 kB         170 kB
+├ ƒ /teacher/questions                                162 B           249 kB
+├ ƒ /teacher/questions/[id]                           5.42 kB         234 kB
+├ ƒ /teacher/questions/[id]/print                     2.42 kB         167 kB
+└ ƒ /teacher/reports                                  208 B          96.7 kB
++ First Load JS shared by all                         89.7 kB
+  ├ chunks/1430-569d816833ef745c.js                   34 kB
+  ├ chunks/fd9d1056-4834a10a2370b93b.js               53.6 kB
+  └ other shared chunks (total)                       2.02 kB
+
+
+ƒ Middleware                                          80 kB
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

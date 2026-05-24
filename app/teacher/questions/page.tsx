@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentProfile } from '@/lib/auth/permissions'
 import { redirect } from 'next/navigation'
-import { HelpCircle, X, BookOpen, GraduationCap, Calendar, Layers, FileText } from 'lucide-react'
+import { HelpCircle, X, BookOpen, GraduationCap, Calendar, Layers, FileText, Lock } from 'lucide-react'
 import { QuestionsListClient } from '@/components/admin/QuestionsListClient'
 import Link from 'next/link'
 
@@ -9,7 +9,6 @@ interface SearchParams {
   type?: string
   difficulty?: string
   grade?: string
-  subject?: string
   semester?: string
   unit?: string
   lesson?: string
@@ -27,22 +26,30 @@ export default async function TeacherQuestionsPage({ searchParams }: { searchPar
 
   const supabase = await createClient()
 
+  // ── جلب مادة المعلم ──
+  const { data: teacherData } = await supabase
+    .from('teachers')
+    .select('subject_id, subjects(name_ar, icon)')
+    .eq('id', profile.id)
+    .single()
+
+  const teacherSubjectId = teacherData?.subject_id ?? null
+  const teacherSubject = teacherData?.subjects as unknown as { name_ar: string; icon: string } | null
+
   const [
     { data: grades },
-    { data: subjects },
     { data: semesters },
   ] = await Promise.all([
     supabase.from('grades').select('id, name_ar, grade_number').order('grade_number'),
-    supabase.from('subjects').select('id, name_ar, icon').order('name_ar'),
     supabase.from('semesters').select('id, name_ar').order('sort_order'),
   ])
 
-  const { data: units } = searchParams.grade && searchParams.subject
+  const { data: units } = searchParams.grade && teacherSubjectId
     ? await supabase
         .from('units')
         .select('id, name_ar')
         .eq('grade_id', searchParams.grade)
-        .eq('subject_id', searchParams.subject)
+        .eq('subject_id', teacherSubjectId)
         .order('sort_order')
     : { data: null }
 
@@ -70,7 +77,12 @@ export default async function TeacherQuestionsPage({ searchParams }: { searchPar
     .order('created_at', { ascending: false })
     .limit(limit) as any)
 
-  // فلتر: أسئلتي فقط أو كل الأسئلة المعتمدة
+  // ── فلتر المادة: دائماً مقيّد بمادة المعلم ──
+  if (teacherSubjectId) {
+    query = query.eq('subject_id', teacherSubjectId)
+  }
+
+  // فلتر: أسئلتي فقط أو كل الأسئلة
   if (showMineOnly) {
     query = query.eq('teacher_id', profile.id)
   }
@@ -78,7 +90,6 @@ export default async function TeacherQuestionsPage({ searchParams }: { searchPar
   if (searchParams.type)       query = query.eq('question_type', searchParams.type)
   if (searchParams.difficulty) query = query.eq('difficulty_level', searchParams.difficulty)
   if (searchParams.grade)      query = query.eq('grade_id', searchParams.grade)
-  if (searchParams.subject)    query = query.eq('subject_id', searchParams.subject)
   if (searchParams.semester)   query = query.eq('semester_id', searchParams.semester)
   if (searchParams.unit)       query = query.eq('unit_id', searchParams.unit)
   if (searchParams.lesson)     query = query.eq('lesson_id', searchParams.lesson)
@@ -120,7 +131,7 @@ export default async function TeacherQuestionsPage({ searchParams }: { searchPar
   function buildHref(key: string, value: string, extra?: Record<string, string | undefined>) {
     const p = new URLSearchParams()
     const current = searchParams as Record<string, string | undefined>
-    for (const k of ['type','difficulty','grade','subject','semester','unit','lesson','bloom','limit','mine']) {
+    for (const k of ['type','difficulty','grade','semester','unit','lesson','bloom','limit','mine']) {
       if (current[k]) p.set(k, current[k]!)
     }
     if (extra) {
@@ -174,6 +185,27 @@ export default async function TeacherQuestionsPage({ searchParams }: { searchPar
         </div>
       </div>
 
+      {/* ── بانر المادة المقيّدة ── */}
+      {teacherSubject && (
+        <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-2xl px-5 py-3.5">
+          <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
+            <Lock className="w-4 h-4 text-emerald-600" />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-emerald-800">
+              📚 يعرض أسئلة مادة:{' '}
+              <span className="text-emerald-700">
+                {teacherSubject.icon} {teacherSubject.name_ar}
+              </span>{' '}
+              فقط
+            </p>
+            <p className="text-xs text-emerald-600 mt-0.5">
+              يتم عرض الأسئلة المرتبطة بمادتك الدراسية تلقائياً
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* ── منظومة الفلترة التعليمية ── */}
       <div className="bg-white rounded-2xl border border-border overflow-hidden shadow-sm">
 
@@ -189,7 +221,7 @@ export default async function TeacherQuestionsPage({ searchParams }: { searchPar
             {(grades as any[])?.map(g => (
               <a
                 key={g.id}
-                href={buildHref('grade', String(g.id), { subject: undefined, semester: undefined, unit: undefined, lesson: undefined })}
+                href={buildHref('grade', String(g.id), { semester: undefined, unit: undefined, lesson: undefined })}
                 className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${
                   isActive('grade', String(g.id))
                     ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
@@ -197,31 +229,6 @@ export default async function TeacherQuestionsPage({ searchParams }: { searchPar
                 }`}
               >
                 {g.name_ar}
-              </a>
-            ))}
-          </div>
-        </div>
-
-        {/* ── المادة الدراسية ── */}
-        <div className="p-4 border-b border-border/60">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
-              <BookOpen className="w-4 h-4 text-emerald-600" />
-            </div>
-            <span className="text-sm font-bold text-slate-700">المادة الدراسية</span>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {(subjects as any[])?.map(s => (
-              <a
-                key={s.id}
-                href={buildHref('subject', String(s.id), { unit: undefined, lesson: undefined })}
-                className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all flex items-center gap-1 ${
-                  isActive('subject', String(s.id))
-                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
-                    : 'border-border hover:border-emerald-300 hover:bg-emerald-50'
-                }`}
-              >
-                <span>{s.icon}</span> {s.name_ar}
               </a>
             ))}
           </div>

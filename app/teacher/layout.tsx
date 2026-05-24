@@ -13,10 +13,26 @@ export default async function TeacherLayout({ children }: { children: React.Reac
   }
 
   const supabase = await createClient()
-  const { data: teacher } = await supabase.from('teachers').select('subject_id').eq('id', profile.id).single()
+  const { data: teacher } = await supabase
+    .from('teachers')
+    .select('subject_id, is_verified, subscription_status, subscription_ends_at')
+    .eq('id', profile.id)
+    .single()
 
   if (!teacher?.subject_id) {
     redirect('/auth/teacher-onboarding')
+  }
+
+  // فحص انتهاء الفترة التجريبية
+  // إذا المعلم غير موثق ولديه تاريخ انتهاء تجربة وقد انتهى
+  const trialPath = '/teacher/trial-expired'
+  const pathname_check = true // سيتم فحص المسار في الـ middleware لاحقاً
+  if (
+    !teacher.is_verified &&
+    teacher.subscription_ends_at &&
+    new Date(teacher.subscription_ends_at) < new Date()
+  ) {
+    redirect(trialPath)
   }
 
   return (

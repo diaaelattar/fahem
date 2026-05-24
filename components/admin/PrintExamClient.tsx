@@ -224,33 +224,15 @@ export function PrintExamClient({ exam, questions }: { exam: any; questions: any
       )}
 
       {/* ─── A4 Print Container ─── */}
-      <div className="max-w-[210mm] mx-auto bg-white shadow-xl min-h-[297mm] print:shadow-none print:w-full print:max-w-none print:m-0">
-        <div className="print:border-[3px] print:border-double print:border-slate-800 min-h-[297mm] m-4 print:m-0 print:p-2">
-          <div className="print:border print:border-slate-800 min-h-full">
+      <div className="max-w-[210mm] mx-auto bg-white shadow-xl min-h-[297mm] print:min-h-0 print:shadow-none print:w-full print:max-w-none print:m-0">
+        <div className="min-h-[297mm] print:min-h-0 m-4 print:m-0 print:p-2">
+          <div className="min-h-full print:min-h-0">
 
             {/* Exam Header */}
-            <div className="p-6 border-b-4 border-double border-slate-800 flex justify-between items-start">
-              <div className="w-48"></div>
-              <div className="text-center space-y-3 flex-1 px-4">
-                <h1 className="text-3xl font-black text-slate-900 border-b-2 border-slate-800 inline-block pb-1 px-4">
-                  {exam.title}
-                </h1>
-                <p className="text-lg font-bold text-slate-800">
-                  المادة: {exam.subjects?.name_ar} | الصف: {exam.grades?.name_ar}
-                  {localSettings.academicYear && ` | العام الدراسي: ${localSettings.academicYear}`}
-                </p>
-                {(localSettings.teacherName || localSettings.classSection || localSettings.examDate) && (
-                  <p className="text-xs font-bold text-slate-600 mt-1">
-                    {localSettings.teacherName && `معلم المادة: ${localSettings.teacherName}`}
-                    {localSettings.classSection && ` | الشعبة: ${localSettings.classSection}`}
-                    {localSettings.examDate && ` | التاريخ: ${new Date(localSettings.examDate).toLocaleDateString('ar-EG', { day: 'numeric', month: 'long', year: 'numeric' })}`}
-                  </p>
-                )}
-              </div>
-              <div className="text-sm font-bold text-slate-800 border-2 border-slate-800 p-2 rounded-lg w-48 text-center space-y-2">
-                <p>الزمن: {exam.duration_minutes} دقيقة</p>
-                <p className="border-t border-slate-800 pt-1">الدرجة الكلية: {exam.total_points}</p>
-              </div>
+            <div className="p-6 border-b-4 border-double border-slate-800 flex justify-center items-center text-center">
+              <h1 className="text-3xl font-black text-slate-900 pb-1 px-4">
+                {exam.title}
+              </h1>
             </div>
 
             {/* Student row */}

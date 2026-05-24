@@ -11,7 +11,7 @@ export default async function AdminTeacherDetailPage({ params }: { params: { id:
 
   const { data: teacher } = await supabase
     .from('teachers')
-    .select('*, profiles(full_name, email, avatar_url, created_at), subjects(name_ar, icon)')
+    .select('*, profiles(full_name, email, avatar_url, created_at, is_active), subjects!teachers_subject_id_fkey(name_ar, icon)')
     .eq('id', params.id)
     .single()
 
@@ -54,13 +54,13 @@ export default async function AdminTeacherDetailPage({ params }: { params: { id:
                 <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${teacher.is_verified ? 'bg-emerald-400/30 text-emerald-100' : 'bg-orange-400/30 text-orange-100'}`}>
                   {teacher.is_verified ? '✓ موثّق' : '⏳ بانتظار التوثيق'}
                 </span>
-                <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${teacher.is_active ? 'bg-blue-400/30 text-blue-100' : 'bg-red-400/30 text-red-100'}`}>
-                  {teacher.is_active ? '● نشط' : '● موقوف'}
+                <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${(teacher.profiles as any)?.is_active ? 'bg-blue-400/30 text-blue-100' : 'bg-red-400/30 text-red-100'}`}>
+                  {(teacher.profiles as any)?.is_active ? '● نشط' : '● موقوف'}
                 </span>
               </div>
             </div>
           </div>
-          <TeacherVerifyActions teacherId={params.id} isVerified={teacher.is_verified} isActive={teacher.is_active} />
+          <TeacherVerifyActions teacherId={params.id} isVerified={teacher.is_verified} isActive={!!(teacher.profiles as any)?.is_active} />
         </div>
       </div>
 

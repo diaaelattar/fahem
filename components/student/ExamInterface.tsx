@@ -10,6 +10,7 @@ import { AIExplainButton } from '@/components/student/AIExplainButton'
 import { MathLiveInput } from '@/components/ui/MathLiveInput'
 import { Calculator } from 'lucide-react'
 import { HandwritingUploader } from '@/components/shared/HandwritingUploader'
+import { ExamProctoring } from '@/components/student/ExamProctoring'
 
 interface Question {
   id: string
@@ -528,6 +529,7 @@ export function ExamInterface({
 
   return (
     <div className="max-w-3xl mx-auto" dir={dir}>
+      {!isPreview && <ExamProctoring attemptId={attemptId} />}
       {/* Confirmation Dialog */}
       {showConfirm && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">

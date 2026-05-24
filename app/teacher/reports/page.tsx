@@ -2,6 +2,7 @@ import { getCurrentProfile } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import { BarChart, Users, FileText, CheckCircle, Target } from 'lucide-react'
 import Link from 'next/link'
+import { AnalyticsDashboard } from '@/components/teacher/AnalyticsDashboard'
 
 export default async function TeacherReportsPage({ searchParams }: { searchParams: { exam_id?: string, group_id?: string } }) {
   const profile = await getCurrentProfile()
@@ -30,10 +31,12 @@ export default async function TeacherReportsPage({ searchParams }: { searchParam
 
   // If an exam is selected, fetch attempts with exam total_points
   let attempts: any[] = []
+  let questionStats: any[] = []
+  
   if (selectedExamId) {
     const { data: fetchedAttempts } = await supabase
       .from('exam_attempts')
-      .select('*, students(profiles(full_name)), exams(total_points)')
+      .select('*, students(profiles(full_name)), exams(total_points), exam_proctoring_events(id, event_type)')
       .eq('exam_id', selectedExamId)
       .not('completed_at', 'is', null)
       .order('percentage', { ascending: false })
@@ -41,14 +44,56 @@ export default async function TeacherReportsPage({ searchParams }: { searchParam
     if (fetchedAttempts) {
       attempts = fetchedAttempts
     }
+
+    if (attempts.length > 0) {
+      // Fetch exam questions
+      const { data: examQs } = await supabase
+        .from('exam_questions')
+        .select('question_id, questions(question_text)')
+        .eq('exam_id', selectedExamId)
+
+      // Map question IDs to text
+      const questionTextMap = new Map<string, string>()
+      examQs?.forEach((eq: any) => {
+        if (eq.question_id && eq.questions?.question_text) {
+          questionTextMap.set(eq.question_id, eq.questions.question_text)
+        }
+      })
+
+      // Analyze attempts feedback
+      const statsMap = new Map<string, { incorrect: number; total: number }>()
+      attempts.forEach((attempt: any) => {
+        const feedback = attempt.feedback || {}
+        Object.keys(feedback).forEach((qId) => {
+          const item = feedback[qId]
+          if (typeof item === 'object' && item !== null) {
+            const current = statsMap.get(qId) || { incorrect: 0, total: 0 }
+            current.total++
+            if (item.is_correct === false) {
+              current.incorrect++
+            }
+            statsMap.set(qId, current)
+          }
+        })
+      })
+
+      // Compile stats array
+      questionStats = Array.from(statsMap.entries())
+        .map(([qId, s]) => {
+          const text = questionTextMap.get(qId) || 'سؤال غير معروف'
+          const failure_rate = s.total > 0 ? (s.incorrect / s.total) * 100 : 0
+          return {
+            question_text: text,
+            failure_rate,
+            total_attempts: s.total
+          }
+        })
+        .sort((a, b) => b.failure_rate - a.failure_rate)
+    }
   }
 
-  const averageScore = attempts.length > 0
-    ? Math.round(attempts.reduce((sum: number, a: any) => sum + (a.percentage || 0), 0) / attempts.length)
-    : 0
-
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 animate-fade-in" dir="rtl">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-black text-slate-800 flex items-center gap-2">
@@ -103,42 +148,12 @@ export default async function TeacherReportsPage({ searchParams }: { searchParam
       {/* Results view */}
       {selectedExamId ? (
         <div className="space-y-6">
-          {/* Quick Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-white rounded-2xl p-6 border border-border shadow-sm flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
-                <Users className="w-6 h-6 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-xs text-slate-500 font-bold">عدد المحاولات</p>
-                <p className="text-2xl font-black text-slate-800">{attempts.length}</p>
-              </div>
-            </div>
-            <div className="bg-white rounded-2xl p-6 border border-border shadow-sm flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center shrink-0">
-                <Target className="w-6 h-6 text-emerald-600" />
-              </div>
-              <div>
-                <p className="text-xs text-slate-500 font-bold">متوسط الدرجات</p>
-                <p className="text-2xl font-black text-slate-800">{averageScore}%</p>
-              </div>
-            </div>
-            <div className="bg-white rounded-2xl p-6 border border-border shadow-sm flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-indigo-50 flex items-center justify-center shrink-0">
-                <CheckCircle className="w-6 h-6 text-indigo-600" />
-              </div>
-              <div>
-                <p className="text-xs text-slate-500 font-bold">أعلى درجة</p>
-                <p className="text-2xl font-black text-slate-800">
-                  {attempts.length > 0 ? Math.max(...attempts.map((a: any) => a.percentage || 0)) : 0}%
-                </p>
-              </div>
-            </div>
-          </div>
+          {/* Analytics charts and metrics */}
+          <AnalyticsDashboard attempts={attempts} questionStats={questionStats} />
 
           {/* Table */}
           <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden">
-            <div className="p-5 border-b border-border">
+            <div className="p-5 border-b border-border flex justify-between items-center">
               <h3 className="font-bold text-slate-800">نتائج الطلاب بالتفصيل</h3>
             </div>
             {attempts.length > 0 ? (
@@ -150,6 +165,7 @@ export default async function TeacherReportsPage({ searchParams }: { searchParam
                       <th className="p-4 font-bold">تاريخ الاختبار</th>
                       <th className="p-4 font-bold">الدرجة النهائية</th>
                       <th className="p-4 font-bold">النسبة المئوية</th>
+                      <th className="p-4 font-bold">المراقبة ورصد الغش</th>
                       <th className="p-4 font-bold">الحالة</th>
                     </tr>
                   </thead>
@@ -173,6 +189,16 @@ export default async function TeacherReportsPage({ searchParams }: { searchParam
                           }`}>
                             {Math.round(attempt.percentage || 0)}%
                           </span>
+                        </td>
+                        <td className="p-4 text-sm font-medium">
+                          {(() => {
+                            const violations = attempt.exam_proctoring_events?.length || 0
+                            return violations === 0 ? (
+                              <span className="text-emerald-600 font-bold">✅ سليم (0)</span>
+                            ) : (
+                              <span className="text-rose-600 font-bold font-mono">⚠️ مخالفة ({violations})</span>
+                            )
+                          })()}
                         </td>
                         <td className="p-4">
                           <span className={`text-xs font-bold ${attempt.is_passed ? 'text-emerald-600' : 'text-rose-500'}`}>

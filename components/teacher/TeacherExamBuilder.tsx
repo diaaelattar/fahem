@@ -6,9 +6,11 @@ import { createClient } from '@/lib/supabase/client'
 import {
   Loader2, Save, Eye, CheckCircle, ChevronLeft, ChevronRight, BarChart2, Users
 } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { AutoSelectModal } from '@/components/admin/AutoSelectModal'
 import { ExamBuilderSettings } from '@/components/admin/ExamBuilderSettings'
 import { QuestionBankPanel } from '@/components/admin/QuestionBankPanel'
+import { AIQuestionGeneratorModal } from '@/components/teacher/AIQuestionGeneratorModal'
 import type { QuestionItem, SelectedQuestion, ExamBuilderProps, ExamFormState } from '@/components/admin/ExamBuilderTypes'
 import { DEFAULT_FORM, DIFF_AR, DIFF_COLOR } from '@/components/admin/ExamBuilderTypes'
 
@@ -62,6 +64,7 @@ export function TeacherExamBuilder({
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
   const [isAutoSelectOpen, setIsAutoSelectOpen] = useState(false)
+  const [isAIModalOpen, setIsAIModalOpen] = useState(false)
 
   const totalPoints = selectedQuestions.reduce((s, q) => s + (q.points_override ?? q.points), 0)
 
@@ -112,15 +115,22 @@ export function TeacherExamBuilder({
   }, [examId])
 
   const addQuestion = (q: QuestionItem) => {
-    if (selectedQuestions.find(s => s.id === q.id)) return
-    setSelectedQuestions(prev => [...prev, { ...q, order: prev.length + 1 }])
+    if (selectedQuestions.find(sq => sq.id === q.id)) return
+    setSelectedQuestions(prev => [...prev, { ...q, order: prev.length + 1, points_override: q.points }])
+  }
+
+  const addAIQuestions = (questions: any[]) => {
+    setSelectedQuestions(prev => [
+      ...prev, 
+      ...questions.map((q, i) => ({ ...q, order: prev.length + i + 1, points_override: q.points }))
+    ])
   }
 
   const handleAutoAdd = (newQs: QuestionItem[]) => {
     setSelectedQuestions(prev => {
       const ids = new Set(prev.map(q => q.id))
       const toAdd = newQs.filter(q => !ids.has(q.id))
-      return [...prev, ...toAdd.map((q, i) => ({ ...q, order: prev.length + i + 1 }))]
+      return [...prev, ...toAdd.map((q, i) => ({ ...q, order: prev.length + i + 1, points_override: q.points }))]
     })
   }
 
@@ -261,87 +271,113 @@ export function TeacherExamBuilder({
         </span>
       </div>
 
-      {/* ══ Step 1 ══ */}
-      {step === 1 && (
-        <ExamBuilderSettings
-          form={form} onChange={setForm}
-          subjects={subjects} grades={grades}
-          semesters={semesters} units={units} lessons={lessons}
-          groups={groups} totalPoints={totalPoints}
-          lockedSubjectId={teacherSubjectId}
-        />
-      )}
+      <AnimatePresence mode="wait">
+        {/* ══ Step 1 ══ */}
+        {step === 1 && (
+          <motion.div
+            key="step-1"
+            initial={{ opacity: 0, x: 15 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -15 }}
+            transition={{ duration: 0.2 }}
+          >
+            <ExamBuilderSettings
+              form={form} onChange={setForm}
+              subjects={subjects} grades={grades}
+              semesters={semesters} units={units} lessons={lessons}
+              groups={groups} totalPoints={totalPoints}
+              lockedSubjectId={teacherSubjectId}
+            />
+          </motion.div>
+        )}
 
-      {/* ══ Step 2 ══ */}
-      {step === 2 && (
-        <QuestionBankPanel
-          form={form} onFormChange={setForm}
-          bankQuestions={bankQuestions}
-          selectedQuestions={selectedQuestions}
-          loading={loadingQ}
-          onAdd={addQuestion}
-          onRemove={removeQuestion}
-          onUpdatePoints={(id, pts) => setSelectedQuestions(prev => prev.map(q => q.id === id ? { ...q, points_override: pts } : q))}
-          onAutoSelect={() => setIsAutoSelectOpen(true)}
-        />
-      )}
+        {/* ══ Step 2 ══ */}
+        {step === 2 && (
+          <motion.div
+            key="step-2"
+            initial={{ opacity: 0, x: 15 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -15 }}
+            transition={{ duration: 0.2 }}
+          >
+            <QuestionBankPanel
+              form={form} onFormChange={setForm}
+              bankQuestions={bankQuestions}
+              selectedQuestions={selectedQuestions}
+              loading={loadingQ}
+              onAdd={addQuestion}
+              onRemove={removeQuestion}
+              onUpdatePoints={(id, pts) => setSelectedQuestions(prev => prev.map(q => q.id === id ? { ...q, points_override: pts } : q))}
+              onAutoSelect={() => setIsAutoSelectOpen(true)}
+              onAIGenerate={() => setIsAIModalOpen(true)}
+            />
+          </motion.div>
+        )}
 
-      {/* ══ Step 3 ══ */}
-      {step === 3 && (
-        <div className="space-y-5">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-8 h-8 rounded-full bg-indigo-600 text-white text-sm font-black flex items-center justify-center shadow-md">٣</div>
-            <div>
-              <h2 className="font-black text-slate-800 text-lg">مراجعة ونشر</h2>
-              <p className="text-sm text-slate-500">راجع ملخص الاختبار قبل الإرسال لمجموعتك</p>
-            </div>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-5">
-            <div className="bg-white rounded-2xl border border-border shadow-sm p-6 space-y-4">
-              <h3 className="font-bold text-slate-600 text-sm uppercase tracking-wider">ملخص الاختبار</h3>
-              {[
-                ['العنوان', form.title || '—'],
-                ['المادة', selectedSubject?.name_ar || '—'],
-                ['الصف', grades.find(g => g.id.toString() === form.gradeId)?.name_ar || '—'],
-                ['المجموعة', selectedGroup ? `👥 ${selectedGroup.name_ar}` : '—'],
-                ['المدة', `${form.duration} دقيقة`],
-                ['عدد الأسئلة', `${selectedQuestions.length} سؤال`],
-                ['الدرجة الكلية', `${totalPoints} درجة`],
-              ].map(([label, val]) => (
-                <div key={label} className="flex justify-between items-center py-2 border-b border-slate-100 last:border-0">
-                  <span className="text-sm text-slate-500 font-medium">{label}</span>
-                  <span className="text-sm font-bold text-slate-800">{val}</span>
-                </div>
-              ))}
-            </div>
-
-            <div className="bg-white rounded-2xl border border-border shadow-sm p-6">
-              <h3 className="font-bold text-slate-600 text-sm uppercase tracking-wider mb-4">توزيع الصعوبة</h3>
-              <div className="space-y-3">
-                {(['easy', 'medium', 'hard'] as const).map(d => {
-                  const count = diffCounts[d]
-                  const pct = selectedQuestions.length ? Math.round((count / selectedQuestions.length) * 100) : 0
-                  return (
-                    <div key={d}>
-                      <div className="flex justify-between text-xs font-bold mb-1">
-                        <span className={`px-2 py-0.5 rounded border ${DIFF_COLOR[d]}`}>{DIFF_AR[d]}</span>
-                        <span className="text-slate-500">{count} سؤال ({pct}%)</span>
-                      </div>
-                      <div className="w-full bg-slate-100 rounded-full h-2">
-                        <div
-                          className={`h-2 rounded-full ${d === 'easy' ? 'bg-emerald-400' : d === 'medium' ? 'bg-amber-400' : 'bg-red-400'}`}
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                    </div>
-                  )
-                })}
+        {/* ══ Step 3 ══ */}
+        {step === 3 && (
+          <motion.div
+            key="step-3"
+            initial={{ opacity: 0, x: 15 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -15 }}
+            transition={{ duration: 0.2 }}
+            className="space-y-5"
+          >
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-8 h-8 rounded-full bg-indigo-600 text-white text-sm font-black flex items-center justify-center shadow-md">٣</div>
+              <div>
+                <h2 className="font-black text-slate-800 text-lg">مراجعة ونشر</h2>
+                <p className="text-sm text-slate-500">راجع ملخص الاختبار قبل الإرسال لمجموعتك</p>
               </div>
             </div>
-          </div>
-        </div>
-      )}
+
+            <div className="grid md:grid-cols-2 gap-5">
+              <div className="bg-white rounded-2xl border border-border shadow-sm p-6 space-y-4">
+                <h3 className="font-bold text-slate-600 text-sm uppercase tracking-wider">ملخص الاختبار</h3>
+                {[
+                  ['العنوان', form.title || '—'],
+                  ['المادة', selectedSubject?.name_ar || '—'],
+                  ['الصف', grades.find(g => g.id.toString() === form.gradeId)?.name_ar || '—'],
+                  ['المجموعة', selectedGroup ? `👥 ${selectedGroup.name_ar}` : '—'],
+                  ['المدة', `${form.duration} دقيقة`],
+                  ['عدد الأسئلة', `${selectedQuestions.length} سؤال`],
+                  ['الدرجة الكلية', `${totalPoints} درجة`],
+                ].map(([label, val]) => (
+                  <div key={label} className="flex justify-between items-center py-2 border-b border-slate-100 last:border-0">
+                    <span className="text-sm text-slate-500 font-medium">{label}</span>
+                    <span className="text-sm font-bold text-slate-800">{val}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="bg-white rounded-2xl border border-border shadow-sm p-6">
+                <h3 className="font-bold text-slate-600 text-sm uppercase tracking-wider mb-4">توزيع الصعوبة</h3>
+                <div className="space-y-3">
+                  {(['easy', 'medium', 'hard'] as const).map(d => {
+                    const count = diffCounts[d]
+                    const pct = selectedQuestions.length ? Math.round((count / selectedQuestions.length) * 100) : 0
+                    return (
+                      <div key={d}>
+                        <div className="flex justify-between text-xs font-bold mb-1">
+                          <span className={`px-2 py-0.5 rounded border ${DIFF_COLOR[d]}`}>{DIFF_AR[d]}</span>
+                          <span className="text-slate-500">{count} سؤال ({pct}%)</span>
+                        </div>
+                        <div className="w-full bg-slate-100 rounded-full h-2">
+                          <div
+                            className={`h-2 rounded-full ${d === 'easy' ? 'bg-emerald-400' : d === 'medium' ? 'bg-amber-400' : 'bg-red-400'}`}
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ══ Error ══ */}
       {error && (
@@ -402,6 +438,15 @@ export function TeacherExamBuilder({
           availableQuestions={bankQuestions.filter(q => !selectedQuestions.find(s => s.id === q.id))}
           onAdd={handleAutoAdd}
           onClose={() => setIsAutoSelectOpen(false)}
+        />
+      )}
+
+      {isAIModalOpen && (
+        <AIQuestionGeneratorModal
+          onClose={() => setIsAIModalOpen(false)}
+          onAddQuestions={addAIQuestions}
+          subjectId={teacherSubjectId}
+          gradeId={form.gradeId}
         />
       )}
     </div>

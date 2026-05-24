@@ -64,7 +64,7 @@ export async function GET(request: Request) {
         } else {
           await supabase.from('teachers').upsert({
             id: user.id,
-            subscription_status: 'premium'
+            subscription_status: 'trial'
           })
           return NextResponse.redirect(`${origin}/teacher/dashboard`)
         }

@@ -35,6 +35,7 @@ interface Props {
   onRemove: (id: string) => void
   onAutoSelect: () => void
   onUpdatePoints?: (id: string, pts: number) => void
+  onAIGenerate?: () => void
 }
 
 function QuestionPreviewModal({ question, onClose }: { question: QuestionItem; onClose: () => void }) {
@@ -80,7 +81,7 @@ function QuestionPreviewModal({ question, onClose }: { question: QuestionItem; o
 }
 
 export function QuestionBankPanel({
-  form, onFormChange, bankQuestions, selectedQuestions, loading, onAdd, onRemove, onAutoSelect, onUpdatePoints
+  form, onFormChange, bankQuestions, selectedQuestions, loading, onAdd, onRemove, onAutoSelect, onUpdatePoints, onAIGenerate
 }: Props) {
   const [preview, setPreview] = useState<QuestionItem | null>(null)
   const [showFilters, setShowFilters] = useState(false)
@@ -342,6 +343,14 @@ export function QuestionBankPanel({
                 >
                   <Sparkles className="w-3.5 h-3.5" /> عشوائي
                 </button>
+                {onAIGenerate && (
+                  <button
+                    onClick={onAIGenerate}
+                    className="flex items-center gap-1.5 text-xs font-bold bg-indigo-600 text-white px-3 py-1.5 rounded-xl hover:bg-indigo-700 transition-colors shadow-sm"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-amber-300" /> توليد بالذكاء الاصطناعي
+                  </button>
+                )}
                 {selectedQuestions.length > 0 && (
                   <button
                     onClick={() => selectedQuestions.forEach(q => onRemove(q.id))}

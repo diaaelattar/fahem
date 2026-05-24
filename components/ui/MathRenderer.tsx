@@ -55,11 +55,59 @@ export const MathRenderer: React.FC<MathRendererProps> = ({ text, className = ''
       if (segment.startsWith('<i>') && segment.endsWith('</i>')) {
         return <i key={i}>{segment.slice(3, -4)}</i>;
       }
-      // معالجة النزول لسطر جديد (Newlines)
+      // معالجة النزول لسطر جديد (Newlines) والتعرف الذكي على الشعر
       if (segment.includes('\n')) {
+        const lines = segment.split('\n');
+        
+        // التحقق الذكي من أن النص هو شعر
+        // الشروط: أكثر من سطر، كل السطور طولها مناسب، لا تبدأ بترقيم، ولا تحتوي على إنجليزية
+        const nonEmptyLines = lines.filter(l => l.trim().length > 0);
+        const isLikelyPoetry = nonEmptyLines.length >= 2 && 
+                               nonEmptyLines.every(l => {
+                                  const t = l.trim();
+                                  // السطر أطول من 5 وأقصر من 80 حرف
+                                  return t.length >= 5 && t.length <= 80 && !/^[-*•\d]/.test(t) && !/[a-zA-Z]/.test(t);
+                               });
+
+        if (isLikelyPoetry) {
+          return (
+            <div key={i} className="my-4 space-y-2 text-center w-full">
+              {lines.map((line, j) => {
+                const trimmedLine = line.trim();
+                if (trimmedLine === '') return <div key={j} className="h-2"></div>;
+                
+                // التنسيق المتقابل إذا كان يحتوي على رمز فاصل بين الشطرين
+                const separator = trimmedLine.includes('*') ? '*' : 
+                                  trimmedLine.includes('=') ? '=' : 
+                                  trimmedLine.includes('...') ? '...' : null;
+                
+                if (separator) {
+                  const parts = trimmedLine.split(separator);
+                  if (parts.length === 2) {
+                    return (
+                      <div key={j} className="flex justify-between md:justify-center md:gap-24 w-full px-2 py-1">
+                        <span className="flex-1 text-right md:text-left text-lg font-bold text-slate-800 leading-loose">{parts[0].trim()}</span>
+                        <span className="flex-1 text-left md:text-right text-lg font-bold text-slate-800 leading-loose">{parts[1].trim()}</span>
+                      </div>
+                    );
+                  }
+                }
+
+                // التوسيط الافتراضي للأبيات
+                return (
+                  <div key={j} className="text-lg font-bold text-slate-800 leading-loose">
+                    {line}
+                  </div>
+                );
+              })}
+            </div>
+          )
+        }
+
+        // الإرجاع العادي للنصوص غير الشعرية
         return (
           <React.Fragment key={i}>
-            {segment.split('\n').map((line, j, arr) => (
+            {lines.map((line, j, arr) => (
               <React.Fragment key={j}>
                 {line}
                 {j < arr.length - 1 && <br />}

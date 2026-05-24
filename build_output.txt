@@ -1,0 +1,35 @@
+
+> istabaq-egypt@0.1.0 build
+> next build
+
+  ▲ Next.js 14.2.18
+  - Environments: .env.local
+
+   Creating an optimized production build ...
+ ✓ (pwa) Compiling for server...
+ ✓ (pwa) Compiling for server...
+ ✓ (pwa) Compiling for client (static)...
+ ○ (pwa) Service worker: C:\Users\diaa_elattar\Downloads\istabaq-egypt-complete\istabaq-egypt\public\sw.js
+ ○ (pwa)   URL: /sw.js
+ ○ (pwa)   Scope: /
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename 'C:\Users\diaa_elattar\Downloads\istabaq-egypt-complete\istabaq-egypt\.next\cache\webpack\client-production\11.pack_' -> 'C:\Users\diaa_elattar\Downloads\istabaq-egypt-complete\istabaq-egypt\.next\cache\webpack\client-production\11.pack'
+ ✓ Compiled successfully
+   Skipping validation of types
+   Skipping linting
+   Collecting page data ...
+
+> Build error occurred
+Error: ENOENT: no such file or directory, open 'C:\Users\diaa_elattar\Downloads\istabaq-egypt-complete\istabaq-egypt\.next\server\pages-manifest.json'
+    at async open (node:internal/fs/promises:640:25)
+    at async Object.readFile (node:internal/fs/promises:1283:14)
+    at async readManifest (C:\Users\diaa_elattar\Downloads\istabaq-egypt-complete\istabaq-egypt\node_modules\next\dist\build\index.js:164:23)
+    at async C:\Users\diaa_elattar\Downloads\istabaq-egypt-complete\istabaq-egypt\node_modules\next\dist\build\index.js:1039:35
+    at async Span.traceAsyncFn (C:\Users\diaa_elattar\Downloads\istabaq-egypt-complete\istabaq-egypt\node_modules\next\dist\trace\trace.js:154:20)
+    at async build (C:\Users\diaa_elattar\Downloads\istabaq-egypt-complete\istabaq-egypt\node_modules\next\dist\build\index.js:364:9) {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: 'C:\\Users\\diaa_elattar\\Downloads\\istabaq-egypt-complete\\istabaq-egypt\\.next\\server\\pages-manifest.json'
+}
+
+Process exited with code 1

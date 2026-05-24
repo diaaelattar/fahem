@@ -106,7 +106,7 @@ export default function RegisterPage() {
       } else if (role === 'teacher') {
         await supabase.from('teachers').upsert({
           id: authData.user.id,
-          subscription_status: 'premium'
+          subscription_status: 'trial'
         })
         window.location.href = '/teacher/dashboard'
       }
