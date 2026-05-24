@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Printer, Eye, EyeOff, LayoutList } from 'lucide-react'
 import { MathRenderer } from '@/components/ui/MathRenderer'
 
@@ -33,6 +33,45 @@ export function PrintExamClient({ exam, questions }: { exam: any; questions: any
   const [answerMode, setAnswerMode] = useState<AnswerMode>('none')
   const [showSectionHeaders, setShowSectionHeaders] = useState(true)
   const [hiddenQuestions, setHiddenQuestions] = useState<Set<string>>(new Set())
+
+  // --- Print Header Settings ---
+  const [localSettings, setLocalSettings] = useState({
+    directorate: '',
+    administration: '',
+    schoolName: '',
+    academicYear: '',
+    teacherName: '',
+    classSection: '',
+    examDate: '',
+  })
+
+  useEffect(() => {
+    const handleSettingsChange = (e: Event) => {
+      const customEvent = e as CustomEvent
+      if (customEvent.detail) {
+        setLocalSettings(customEvent.detail)
+      }
+    }
+    window.addEventListener('print-settings-changed', handleSettingsChange)
+
+    // Load initial from localStorage if available (fallback)
+    const stored = localStorage.getItem(`print_settings_exam_${exam.id}`)
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored)
+        setLocalSettings(prev => ({
+          ...prev,
+          teacherName: parsed.teacherName ?? '',
+          classSection: parsed.classSection ?? '',
+          examDate: parsed.examDate ?? '',
+        }))
+      } catch {}
+    }
+
+    return () => {
+      window.removeEventListener('print-settings-changed', handleSettingsChange)
+    }
+  }, [exam.id])
 
   const toggleQuestionVisibility = (qId: string) => {
     setHiddenQuestions(prev => {
@@ -191,18 +230,22 @@ export function PrintExamClient({ exam, questions }: { exam: any; questions: any
 
             {/* Exam Header */}
             <div className="p-6 border-b-4 border-double border-slate-800 flex justify-between items-start">
-              <div className="text-sm font-bold leading-relaxed text-slate-800 space-y-1">
-                <p>مديرية التربية والتعليم بـ .......................</p>
-                <p>إدارة ....................... التعليمية</p>
-                <p>مدرسة .......................</p>
-              </div>
+              <div className="w-48"></div>
               <div className="text-center space-y-3 flex-1 px-4">
                 <h1 className="text-3xl font-black text-slate-900 border-b-2 border-slate-800 inline-block pb-1 px-4">
                   {exam.title}
                 </h1>
                 <p className="text-lg font-bold text-slate-800">
                   المادة: {exam.subjects?.name_ar} | الصف: {exam.grades?.name_ar}
+                  {localSettings.academicYear && ` | العام الدراسي: ${localSettings.academicYear}`}
                 </p>
+                {(localSettings.teacherName || localSettings.classSection || localSettings.examDate) && (
+                  <p className="text-xs font-bold text-slate-600 mt-1">
+                    {localSettings.teacherName && `معلم المادة: ${localSettings.teacherName}`}
+                    {localSettings.classSection && ` | الشعبة: ${localSettings.classSection}`}
+                    {localSettings.examDate && ` | التاريخ: ${new Date(localSettings.examDate).toLocaleDateString('ar-EG', { day: 'numeric', month: 'long', year: 'numeric' })}`}
+                  </p>
+                )}
               </div>
               <div className="text-sm font-bold text-slate-800 border-2 border-slate-800 p-2 rounded-lg w-48 text-center space-y-2">
                 <p>الزمن: {exam.duration_minutes} دقيقة</p>
