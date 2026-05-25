@@ -150,6 +150,14 @@ export function PrintExamClient({ exam, questions }: { exam: any; questions: any
 
   return (
     <div className="min-h-screen bg-slate-100 p-8 print:p-0 print:bg-white" dir={dir}>
+      <style dangerouslySetInnerHTML={{__html: `
+        @media print {
+          @page { margin: 15mm; }
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .break-inside-avoid { page-break-inside: avoid; break-inside: avoid; }
+          .page-break-before { page-break-before: always; break-before: page; }
+        }
+      `}} />
 
       {/* ─── Control Bar (hidden when printing) ─── */}
       <div className="max-w-4xl mx-auto bg-white p-4 rounded-xl shadow-sm mb-4 print:hidden" dir="rtl">
@@ -224,16 +232,18 @@ export function PrintExamClient({ exam, questions }: { exam: any; questions: any
       )}
 
       {/* ─── A4 Print Container ─── */}
-      <div className="max-w-[210mm] mx-auto bg-white shadow-xl min-h-[297mm] print:min-h-0 print:shadow-none print:w-full print:max-w-none print:m-0">
-        <div className="min-h-[297mm] print:min-h-0 m-4 print:m-0 print:p-2">
-          <div className="min-h-full print:min-h-0">
+      <div className="max-w-[210mm] mx-auto bg-white shadow-xl print:shadow-none print:w-full print:max-w-none print:m-0">
+        <div className="p-8 print:p-0">
 
-            {/* Exam Header */}
-            <div className="p-6 border-b-4 border-double border-slate-800 flex justify-center items-center text-center">
-              <h1 className="text-3xl font-black text-slate-900 pb-1 px-4">
-                {exam.title}
-              </h1>
-            </div>
+          {/* Exam Header */}
+          <div className="mb-6 border-b-4 border-double border-slate-800 pb-4 text-center">
+            <h1 className="text-3xl font-black text-slate-900 pb-2">
+              {exam.title}
+            </h1>
+            <p className="text-sm font-bold text-slate-600">
+              المادة: {exam.subjects?.name_ar} | الزمن: {exam.duration_minutes} دقيقة | الدرجة الكلية: {exam.total_points}
+            </p>
+          </div>
 
             {/* Student row */}
             {answerMode === 'none' && (
@@ -383,7 +393,7 @@ export function PrintExamClient({ exam, questions }: { exam: any; questions: any
               })}
             </div>
 
-          </div>
+            </div>
         </div>
       </div>
     </div>
