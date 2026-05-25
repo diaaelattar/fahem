@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { CheckCircle, XCircle, ChevronLeft, ChevronRight, BookOpen, RotateCcw, Trophy } from 'lucide-react'
 import { MathRenderer } from '@/components/ui/MathRenderer'
+import { getSubjectDirection, getSubjectTextAlignClass } from '@/lib/utils/subject-formatting'
 
 interface WrongItem {
   id: string
@@ -170,9 +171,11 @@ export function WrongAnswersClient({ pendingQuestions, masteredCount, studentId 
   }
 
   const q = current?.questions
+  const dir = getSubjectDirection(q?.subjects?.name_ar)
+  const textAlign = getSubjectTextAlignClass(q?.subjects?.name_ar)
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" dir={dir}>
       {/* Session Stats */}
       <div className="flex items-center gap-4">
         <span className="text-sm text-muted-foreground">
@@ -213,12 +216,12 @@ export function WrongAnswersClient({ pendingQuestions, masteredCount, studentId 
         {q?.context_passage && (
           <div className="mb-6 bg-indigo-50/50 border border-indigo-100 rounded-2xl p-6 text-indigo-950 leading-relaxed italic relative">
             <div className="absolute top-0 right-6 -translate-y-1/2 bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded-full shadow-sm">القطعة المرجعية:</div>
-            <MathRenderer text={q.context_passage} className="text-lg" />
+            <MathRenderer text={q.context_passage} className={`text-lg ${textAlign}`} dir={dir} />
           </div>
         )}
 
         {/* Question Text */}
-        <MathRenderer text={q?.question_text || ''} className="text-xl font-bold mb-8 leading-relaxed" />
+        <MathRenderer text={q?.question_text || ''} className={`text-xl font-bold mb-8 leading-relaxed ${textAlign}`} dir={dir} />
 
         {/* MCQ Options */}
         {q?.question_type === 'mcq' && q?.options && (
@@ -226,7 +229,7 @@ export function WrongAnswersClient({ pendingQuestions, masteredCount, studentId 
             {q.options.map((opt: string, i: number) => {
               const isSelected = selected === opt
               const isCorrect = opt.trim().toLowerCase() === q.correct_answer?.trim().toLowerCase()
-              let cls = 'w-full text-right flex items-center gap-4 p-4 rounded-2xl border-2 transition-all font-medium cursor-pointer'
+              let cls = `w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all font-medium cursor-pointer ${textAlign}`
               if (!showAnswer) {
                 cls += isSelected ? ' border-primary bg-primary/5' : ' border-border hover:border-primary/40 hover:bg-muted/50'
               } else if (isCorrect) {
@@ -242,7 +245,7 @@ export function WrongAnswersClient({ pendingQuestions, masteredCount, studentId 
                     ${showAnswer && isCorrect ? 'bg-emerald-500 text-white' : showAnswer && isSelected && !isCorrect ? 'bg-rose-500 text-white' : 'bg-muted text-muted-foreground'}`}>
                     {['أ', 'ب', 'ج', 'د'][i]}
                   </span>
-                  <MathRenderer text={opt} className="flex-1 text-base" />
+                  <MathRenderer text={opt} className={`flex-1 text-base ${textAlign}`} dir={dir} />
                   {showAnswer && isCorrect && <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0" />}
                   {showAnswer && isSelected && !isCorrect && <XCircle className="w-5 h-5 text-rose-500 shrink-0" />}
                 </button>
@@ -285,6 +288,7 @@ export function WrongAnswersClient({ pendingQuestions, masteredCount, studentId 
                 className="w-full px-4 py-3 border-2 border-border rounded-xl text-base focus:outline-none focus:border-primary transition-colors"
                 autoFocus
                 disabled={isGrading}
+                dir={dir}
               />
             ) : (
               <textarea
@@ -294,6 +298,7 @@ export function WrongAnswersClient({ pendingQuestions, masteredCount, studentId 
                 className="w-full px-4 py-3 border-2 border-border rounded-xl text-base focus:outline-none focus:border-primary transition-colors resize-none h-32"
                 autoFocus
                 disabled={isGrading}
+                dir={dir}
               />
             )}
             <button onClick={handleFillSubmit} disabled={isGrading}
@@ -305,12 +310,12 @@ export function WrongAnswersClient({ pendingQuestions, masteredCount, studentId 
 
         {q?.question_type === 'fill_blank' && showAnswer && (
           <div className="space-y-3">
-            <div className={`px-4 py-3 rounded-xl border-2 font-bold ${selected === q.correct_answer ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-rose-400 bg-rose-50 text-rose-700'}`}>
-              إجابتك: {selected}
+            <div className={`px-4 py-3 rounded-xl border-2 font-bold flex items-center gap-2 ${selected === q.correct_answer ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-rose-400 bg-rose-50 text-rose-700'}`}>
+              <span className="shrink-0">إجابتك:</span> <MathRenderer text={selected || ''} dir={dir} />
             </div>
             {selected !== q.correct_answer && (
-              <div className="px-4 py-3 rounded-xl border-2 border-emerald-500 bg-emerald-50 text-emerald-700 font-bold">
-                الإجابة الصحيحة: {q.correct_answer}
+              <div className="px-4 py-3 rounded-xl border-2 border-emerald-500 bg-emerald-50 text-emerald-700 font-bold flex items-center gap-2">
+                <span className="shrink-0">الإجابة الصحيحة:</span> <MathRenderer text={q.correct_answer} dir={dir} />
               </div>
             )}
           </div>
@@ -332,7 +337,7 @@ export function WrongAnswersClient({ pendingQuestions, masteredCount, studentId 
             
             <div className="px-5 py-4 rounded-xl border-2 border-indigo-200 bg-indigo-50/50">
               <span className="font-bold text-indigo-800 block mb-2">الإجابة النموذجية:</span>
-              <MathRenderer text={q.correct_answer} className="text-sm text-indigo-900 leading-relaxed" />
+              <MathRenderer text={q.correct_answer} className={`text-sm text-indigo-900 leading-relaxed ${textAlign}`} dir={dir} />
             </div>
           </div>
         )}
@@ -341,7 +346,7 @@ export function WrongAnswersClient({ pendingQuestions, masteredCount, studentId 
         {showAnswer && q?.explanation && (
           <div className="mt-6 bg-gradient-to-r from-sky-50 to-indigo-50 border border-sky-200 rounded-2xl p-5">
             <h4 className="font-bold text-sky-800 text-sm mb-2">💡 الشرح والتحليل</h4>
-            <MathRenderer text={q.explanation} className="text-sm text-sky-900 leading-relaxed" />
+            <MathRenderer text={q.explanation} className={`text-sm text-sky-900 leading-relaxed ${textAlign}`} dir={dir} />
           </div>
         )}
       </div>

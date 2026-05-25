@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Plus, Check, Search, Sparkles, Eye, X, SlidersHorizontal } from 'lucide-react'
 import type { QuestionItem, SelectedQuestion, ExamFormState, FilterOption } from './ExamBuilderTypes'
 import { TYPE_AR, DIFF_AR, DIFF_COLOR, TYPE_COLOR } from './ExamBuilderTypes'
+import { getSubjectDirection, getSubjectTextAlignClass } from '@/lib/utils/subject-formatting'
 
 function groupQuestions<T extends { context_passage?: string | null }>(questionsList: T[]) {
   const groups: { passage: string | null; items: T[] }[] = []
@@ -38,7 +39,7 @@ interface Props {
   onAIGenerate?: () => void
 }
 
-function QuestionPreviewModal({ question, onClose }: { question: QuestionItem; onClose: () => void }) {
+function QuestionPreviewModal({ question, onClose, dir, textAlign }: { question: QuestionItem; onClose: () => void; dir: 'rtl'|'ltr'; textAlign: string }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={onClose}>
       <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 relative" onClick={e => e.stopPropagation()}>
@@ -57,18 +58,19 @@ function QuestionPreviewModal({ question, onClose }: { question: QuestionItem; o
           </span>
         </div>
         {question.context_passage && (
-          <div className="mb-4 p-3 bg-indigo-50 border border-indigo-100 rounded-xl text-sm text-indigo-800 font-medium italic">
+          <div className={`mb-4 p-3 bg-indigo-50 border border-indigo-100 rounded-xl text-sm text-indigo-800 font-medium italic ${textAlign}`} dir={dir}>
             القطعة: {question.context_passage}
           </div>
         )}
         <div
-          className="text-base font-semibold text-slate-800 leading-relaxed mb-4"
+          className={`text-base font-semibold text-slate-800 leading-relaxed mb-4 ${textAlign}`}
+          dir={dir}
           dangerouslySetInnerHTML={{ __html: question.question_text }}
         />
         {(question as any).options && (
           <div className="space-y-2">
             {(question as any).options.map((opt: any, i: number) => (
-              <div key={i} className={`p-3 rounded-xl text-sm border ${opt.is_correct ? 'bg-emerald-50 border-emerald-200 text-emerald-800 font-bold' : 'bg-slate-50 border-slate-200'}`}>
+              <div key={i} className={`p-3 rounded-xl text-sm border ${opt.is_correct ? 'bg-emerald-50 border-emerald-200 text-emerald-800 font-bold' : 'bg-slate-50 border-slate-200'} ${textAlign}`} dir={dir}>
                 {String.fromCharCode(65 + i)}. {opt.option_text}
                 {opt.is_correct && <span className="mr-2 text-emerald-600">✓</span>}
               </div>
@@ -94,6 +96,10 @@ export function QuestionBankPanel({
   const availableInBank = bankQuestions.filter(q => !selectedIds.has(q.id))
 
   const totalPoints = selectedQuestions.reduce((s, q) => s + (q.points_override ?? q.points), 0)
+
+  const subjectName = (bankQuestions[0] as any)?.subjects?.name_ar || (selectedQuestions[0] as any)?.subjects?.name_ar || ''
+  const subjectDir = getSubjectDirection(subjectName)
+  const textAlignClass = getSubjectTextAlignClass(subjectName)
 
   return (
     <div className="space-y-4">
@@ -205,8 +211,8 @@ export function QuestionBankPanel({
                   if (group.passage) {
                     return (
                       <div key={`bank-group-${groupIdx}`} className="p-3 bg-indigo-50/20 border-b border-indigo-100/50 space-y-3">
-                        <div className="p-3 bg-indigo-50/80 border border-indigo-100/80 rounded-xl text-xs text-indigo-950 leading-relaxed italic relative mt-1">
-                          <span className="absolute -top-2.5 right-3 bg-indigo-100 text-indigo-800 text-[9px] font-bold px-2 py-0.5 rounded-full border border-indigo-200">
+                        <div className={`p-3 bg-indigo-50/80 border border-indigo-100/80 rounded-xl text-xs text-indigo-950 leading-relaxed italic relative mt-1 ${textAlignClass}`} dir={subjectDir}>
+                          <span className={`absolute -top-2.5 ${subjectDir === 'rtl' ? 'right-3' : 'left-3'} bg-indigo-100 text-indigo-800 text-[9px] font-bold px-2 py-0.5 rounded-full border border-indigo-200`}>
                             القطعة المشتركة ({group.items.length} أسئلة متاحة)
                           </span>
                           {group.passage}
@@ -235,7 +241,8 @@ export function QuestionBankPanel({
                                   </div>
                                   {/* Text */}
                                   <p
-                                    className="text-sm font-medium text-slate-800 leading-relaxed line-clamp-2"
+                                    className={`text-sm font-medium text-slate-800 leading-relaxed line-clamp-2 ${textAlignClass}`}
+                                    dir={subjectDir}
                                     dangerouslySetInnerHTML={{ __html: q.question_text }}
                                   />
                                 </div>
@@ -286,7 +293,8 @@ export function QuestionBankPanel({
                             </div>
                             {/* Text */}
                             <p
-                              className="text-sm font-medium text-slate-800 leading-relaxed line-clamp-2"
+                              className={`text-sm font-medium text-slate-800 leading-relaxed line-clamp-2 ${textAlignClass}`}
+                              dir={subjectDir}
                               dangerouslySetInnerHTML={{ __html: q.question_text }}
                             />
                           </div>
@@ -379,8 +387,8 @@ export function QuestionBankPanel({
                   if (group.passage) {
                     return (
                       <div key={`selected-group-${groupIdx}`} className="p-3 bg-indigo-50/20 border-b border-indigo-100/50 space-y-3">
-                        <div className="p-3 bg-indigo-50/80 border border-indigo-100/80 rounded-xl text-xs text-indigo-950 leading-relaxed italic relative mt-1">
-                          <span className="absolute -top-2.5 right-3 bg-indigo-100 text-indigo-800 text-[9px] font-bold px-2 py-0.5 rounded-full border border-indigo-200">
+                        <div className={`p-3 bg-indigo-50/80 border border-indigo-100/80 rounded-xl text-xs text-indigo-950 leading-relaxed italic relative mt-1 ${textAlignClass}`} dir={subjectDir}>
+                          <span className={`absolute -top-2.5 ${subjectDir === 'rtl' ? 'right-3' : 'left-3'} bg-indigo-100 text-indigo-800 text-[9px] font-bold px-2 py-0.5 rounded-full border border-indigo-200`}>
                             القطعة المضافة للاختبار ({group.items.length} أسئلة)
                           </span>
                           {group.passage}
@@ -396,7 +404,8 @@ export function QuestionBankPanel({
                                   </span>
                                   <div className="flex-1 min-w-0">
                                     <p
-                                      className="text-sm font-medium text-slate-800 line-clamp-2 leading-snug mb-2"
+                                      className={`text-sm font-medium text-slate-800 line-clamp-2 leading-snug mb-2 ${textAlignClass}`}
+                                      dir={subjectDir}
                                       dangerouslySetInnerHTML={{ __html: q.question_text }}
                                     />
                                     <div className="flex items-center gap-2 flex-wrap">
@@ -439,7 +448,8 @@ export function QuestionBankPanel({
                             </span>
                             <div className="flex-1 min-w-0">
                               <p
-                                className="text-sm font-medium text-slate-800 line-clamp-2 leading-snug mb-2"
+                                className={`text-sm font-medium text-slate-800 line-clamp-2 leading-snug mb-2 ${textAlignClass}`}
+                                dir={subjectDir}
                                 dangerouslySetInnerHTML={{ __html: q.question_text }}
                               />
                               <div className="flex items-center gap-2 flex-wrap">
@@ -477,7 +487,7 @@ export function QuestionBankPanel({
       </div>
 
       {/* Preview Modal */}
-      {preview && <QuestionPreviewModal question={preview} onClose={() => setPreview(null)} />}
+      {preview && <QuestionPreviewModal question={preview} onClose={() => setPreview(null)} dir={subjectDir} textAlign={textAlignClass} />}
     </div>
   )
 }

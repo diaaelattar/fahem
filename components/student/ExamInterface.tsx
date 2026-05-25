@@ -11,6 +11,7 @@ import { MathLiveInput } from '@/components/ui/MathLiveInput'
 import { Calculator } from 'lucide-react'
 import { HandwritingUploader } from '@/components/shared/HandwritingUploader'
 import { ExamProctoring } from '@/components/student/ExamProctoring'
+import { getSubjectDirection, getSubjectTextAlignClass } from '@/lib/utils/subject-formatting'
 
 interface Question {
   id: string
@@ -36,43 +37,7 @@ interface ExamData {
   subjects?: { name_ar: string } | null
 }
 
-/**
- * Strip LaTeX blocks, math expressions, numbers, and operators from text
- * so that only meaningful language characters remain for direction detection.
- */
-const stripMathContent = (text: string): string => {
-  return text
-    // Remove LaTeX inline: \( ... \) and \[ ... \]
-    .replace(/\\[\[\(][\s\S]*?\\[\]\)]/g, ' ')
-    // Remove dollar-sign math: $...$ and $$...$$
-    .replace(/\$\$[\s\S]*?\$\$/g, ' ')
-    .replace(/\$[^$]*?\$/g, ' ')
-    // Remove common LaTeX commands
-    .replace(/\\[a-zA-Z]+\{[^}]*\}/g, ' ')
-    .replace(/\\[a-zA-Z]+/g, ' ')
-    // Remove digits, math operators, parentheses
-    .replace(/[0-9+\-*/=<>()\[\]{}^_.,%;:]/g, ' ')
-    .trim()
-}
 
-/** Check if text contains any Arabic character — used for short strings like subject names */
-const hasArabic = (text: string): boolean => /[\u0600-\u06FF]/.test(text)
-
-/**
- * Detect RTL from question text using ratio approach (for mixed-language math content).
- * Strips math function names (sin, cos, log…) before counting characters.
- * Returns true if Arabic chars ≥ 20% of remaining letter characters.
- */
-const detectRTLFromQuestionText = (text: string): boolean | null => {
-  let cleaned = stripMathContent(text)
-  // Also strip common math English words that are NOT language indicators
-  cleaned = cleaned.replace(/\b(sin|cos|tan|log|ln|lim|max|min|mod|det|sec|csc|cot|exp|sqrt|deg|var|let|if|in|at|of|to|cm|mm|km|kg|mg)\b/gi, ' ')
-  const arabicChars = (cleaned.match(/[\u0600-\u06FF]/g) || []).length
-  const latinChars = (cleaned.match(/[a-zA-Z]/g) || []).length
-  const total = arabicChars + latinChars
-  if (total < 5) return null // not enough meaningful data
-  return arabicChars / total >= 0.20
-}
 
 export function ExamInterface({
   exam,
@@ -112,31 +77,9 @@ export function ExamInterface({
 
   // --- Determine text direction ---
   const subjectName = exam.subjects?.name_ar || ''
-  const examTitle = exam.title || ''
-  let isRTL: boolean | null = null
-
-  if (hasArabic(subjectName)) {
-    isRTL = true   
-  } else if (subjectName.length > 1) {
-    isRTL = false  
-  }
-
-  if (isRTL === null) {
-    if (hasArabic(examTitle)) {
-      isRTL = true
-    } else if (examTitle.length > 1) {
-      isRTL = false
-    }
-  }
-
-  if (isRTL === null && questions.length > 0) {
-    const sampleText = questions.slice(0, 5).map((q: any) => q.question_text || '').join(' ')
-    isRTL = detectRTLFromQuestionText(sampleText)
-  }
-
-  if (isRTL === null) isRTL = true
-  const dir = isRTL ? 'rtl' : 'ltr'
-  const textAlign = isRTL ? 'text-right' : 'text-left'
+  const dir = getSubjectDirection(subjectName)
+  const isRTL = dir === 'rtl'
+  const textAlign = getSubjectTextAlignClass(subjectName)
 
   // Initialize store if empty
   useEffect(() => {
@@ -639,7 +582,7 @@ export function ExamInterface({
                     const isCorrectOpt = checkAnswer(opt, currentQ.correct_answer || '', 'mcq');
                     const showFeedback = exam.show_results_immediately && immediateFeedback[currentQ.id];
                     
-                    let btnClass = `answer-option w-full text-right ${isSelected ? 'selected' : ''}`;
+                    let btnClass = `answer-option w-full ${textAlign} ${isSelected ? 'selected' : ''}`;
                     if (showFeedback) {
                       if (isCorrectOpt) btnClass += ' !bg-green-100 !border-green-500 !text-green-800';
                       else if (isSelected) btnClass += ' !bg-red-100 !border-red-500 !text-red-800';
@@ -692,7 +635,7 @@ export function ExamInterface({
                     disabled={exam.show_results_immediately && immediateFeedback[currentQ.id]}
                     placeholder="اكتب إجابتك هنا..."
                     className="w-full px-4 py-3 border-2 border-border rounded-xl focus:border-primary focus:outline-none transition-colors"
-                    dir="ltr"
+                    dir={dir}
                   />
                   {exam.show_results_immediately && !immediateFeedback[currentQ.id] && answers[currentQ.id] && (
                     <button onClick={() => submitTextAnswer(currentQ.id)} className="mt-3 bg-primary text-white px-4 py-2 rounded-xl font-bold text-sm w-full sm:w-auto hover:bg-primary/90 transition-colors">
@@ -762,7 +705,7 @@ export function ExamInterface({
                           disabled={exam.show_results_immediately && immediateFeedback[currentQ.id]}
                           placeholder="اكتب إجابتك هنا بوضوح..."
                           className="w-full px-4 py-3 border-2 border-border rounded-xl focus:border-primary focus:outline-none transition-colors h-36 resize-none"
-                          dir="auto"
+                          dir={dir}
                         />
                       )}
 

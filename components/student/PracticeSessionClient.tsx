@@ -10,6 +10,7 @@ import { MathRenderer } from '@/components/ui/MathRenderer'
 import { MathKeyboard } from '@/components/ui/MathKeyboard'
 import { AIExplainButton } from '@/components/student/AIExplainButton'
 import { MathLiveInput } from '@/components/ui/MathLiveInput'
+import { getSubjectDirection, getSubjectTextAlignClass } from '@/lib/utils/subject-formatting'
 
 interface Question {
   id: string
@@ -44,6 +45,9 @@ export function PracticeSessionClient({ questions, subject, studentId }: Props) 
   const [streak, setStreak] = useState(0)
   const [maxStreak, setMaxStreak] = useState(0)
   const [showMath, setShowMath] = useState(false)
+
+  const dir = getSubjectDirection(subject?.name_ar)
+  const textAlign = getSubjectTextAlignClass(subject?.name_ar)
 
   // Reset math when question changes
   useEffect(() => {
@@ -316,7 +320,7 @@ export function PracticeSessionClient({ questions, subject, studentId }: Props) 
     normalizeArabic(opt) === normalizeArabic(current.correct_answer)
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" dir={dir}>
       {/* Progress Bar + Stats */}
       <div className="flex items-center gap-4">
         <span className="text-sm font-bold text-muted-foreground whitespace-nowrap">
@@ -355,12 +359,12 @@ export function PracticeSessionClient({ questions, subject, studentId }: Props) 
         {current.context_passage && (
           <div className="mb-6 bg-indigo-50/50 border border-indigo-100 rounded-2xl p-6 text-indigo-950 leading-relaxed italic relative">
             <div className="absolute top-0 right-6 -translate-y-1/2 bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded-full shadow-sm">اقرأ القطعة التالية:</div>
-            <MathRenderer text={current.context_passage} className="text-lg" />
+            <MathRenderer text={current.context_passage} className={`text-lg ${textAlign}`} dir={dir} />
           </div>
         )}
 
         {/* Question Text */}
-        <MathRenderer text={current.question_text} className="text-xl font-bold mb-4 leading-relaxed" />
+        <MathRenderer text={current.question_text} className={`text-xl font-bold mb-4 leading-relaxed ${textAlign}`} dir={dir} />
 
         {/* Question Image */}
         {current.question_image_url && (
@@ -379,7 +383,7 @@ export function PracticeSessionClient({ questions, subject, studentId }: Props) 
             {current.options.map((opt, i) => {
               const isSelected = selected === opt
               const correct = isCorrectAnswer(opt)
-              let cls = 'w-full text-right flex items-center gap-4 p-4 rounded-2xl border-2 transition-all font-medium'
+              let cls = `w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all font-medium ${textAlign}`
               if (!showAnswer) {
                 cls += isSelected ? ' border-primary bg-primary/5 cursor-default' : ' border-border hover:border-primary/40 hover:bg-muted/50 cursor-pointer'
               } else if (correct) {
@@ -395,7 +399,7 @@ export function PracticeSessionClient({ questions, subject, studentId }: Props) 
                     ${showAnswer && correct ? 'bg-emerald-500 text-white' : showAnswer && isSelected && !correct ? 'bg-rose-500 text-white' : 'bg-muted text-muted-foreground'}`}>
                     {['أ', 'ب', 'ج', 'د'][i]}
                   </span>
-                  <MathRenderer text={opt} className="flex-1 text-base" />
+                  <MathRenderer text={opt} className={`flex-1 text-base ${textAlign}`} dir={dir} />
                   {showAnswer && correct && <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0" />}
                   {showAnswer && isSelected && !correct && <XCircle className="w-5 h-5 text-rose-500 shrink-0" />}
                 </button>
@@ -463,7 +467,7 @@ export function PracticeSessionClient({ questions, subject, studentId }: Props) 
                 className="w-full px-4 py-3 border-2 border-border rounded-xl text-base focus:outline-none focus:border-primary transition-colors"
                 autoFocus
                 disabled={isGrading}
-                dir="auto"
+                dir={dir}
               />
             ) : (
               <div className="relative">
@@ -474,7 +478,7 @@ export function PracticeSessionClient({ questions, subject, studentId }: Props) 
                   className="w-full px-4 py-3 border-2 border-border rounded-xl text-base focus:outline-none focus:border-primary transition-colors resize-none h-32"
                   autoFocus
                   disabled={isGrading || isTranscribing}
-                  dir="auto"
+                  dir={dir}
                 />
                 
                 {/* Audio Recording Button */}
@@ -523,12 +527,12 @@ export function PracticeSessionClient({ questions, subject, studentId }: Props) 
           <div className="space-y-3">
             <div className={`px-4 py-3 rounded-xl border-2 font-bold flex items-center gap-2 ${isCorrectAnswer(selected || '') ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-rose-400 bg-rose-50 text-rose-700'}`}>
               <span className="shrink-0">إجابتك:</span> 
-              <MathRenderer text={selected || ''} />
+              <MathRenderer text={selected || ''} dir={dir} />
             </div>
             {!isCorrectAnswer(selected || '') && (
               <div className="px-4 py-3 rounded-xl border-2 border-emerald-500 bg-emerald-50 text-emerald-700 font-bold flex items-center gap-2">
                 <span className="shrink-0">الإجابة الصحيحة:</span> 
-                <MathRenderer text={current.correct_answer} />
+                <MathRenderer text={current.correct_answer} dir={dir} />
               </div>
             )}
           </div>
@@ -550,7 +554,7 @@ export function PracticeSessionClient({ questions, subject, studentId }: Props) 
             
             <div className="px-5 py-4 rounded-xl border-2 border-indigo-200 bg-indigo-50/50">
               <span className="font-bold text-indigo-800 block mb-2">الإجابة النموذجية:</span>
-              <MathRenderer text={current.correct_answer} className="text-sm text-indigo-900 leading-relaxed" />
+              <MathRenderer text={current.correct_answer} className={`text-sm text-indigo-900 leading-relaxed ${textAlign}`} dir={dir} />
             </div>
           </div>
         )}
@@ -561,7 +565,7 @@ export function PracticeSessionClient({ questions, subject, studentId }: Props) 
             <h4 className="font-bold text-sky-800 text-sm mb-2 flex items-center gap-2">
               <Zap className="w-4 h-4" /> شرح الإجابة
             </h4>
-            <MathRenderer text={current.explanation} className="text-sm text-sky-900 leading-relaxed" />
+            <MathRenderer text={current.explanation} className={`text-sm text-sky-900 leading-relaxed ${textAlign}`} dir={dir} />
           </div>
         )}
       </div>

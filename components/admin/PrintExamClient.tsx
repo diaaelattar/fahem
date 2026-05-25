@@ -4,28 +4,7 @@ import { useState, useEffect } from 'react'
 import { Printer, Eye, EyeOff, LayoutList } from 'lucide-react'
 import { MathRenderer } from '@/components/ui/MathRenderer'
 
-const stripMathContent = (text: string): string => {
-  return text
-    .replace(/\\[\[\(][\s\S]*?\\[\]\)]/g, ' ')
-    .replace(/\$\$[\s\S]*?\$\$/g, ' ')
-    .replace(/\$[^$]*?\$/g, ' ')
-    .replace(/\\[a-zA-Z]+\{[^}]*\}/g, ' ')
-    .replace(/\\[a-zA-Z]+/g, ' ')
-    .replace(/[0-9+\-*/=<>()\[\]{}^_.,%;:]/g, ' ')
-    .trim()
-}
-
-const hasArabic = (text: string): boolean => /[\u0600-\u06FF]/.test(text)
-
-const detectRTLFromQuestionText = (text: string): boolean | null => {
-  let cleaned = stripMathContent(text)
-  cleaned = cleaned.replace(/\b(sin|cos|tan|log|ln|lim|max|min|mod|det|sec|csc|cot|exp|sqrt|deg|var|let|if|in|at|of|to|cm|mm|km|kg|mg)\b/gi, ' ')
-  const arabicChars = (cleaned.match(/[\u0600-\u06FF]/g) || []).length
-  const latinChars = (cleaned.match(/[a-zA-Z]/g) || []).length
-  const total = arabicChars + latinChars
-  if (total < 5) return null
-  return arabicChars / total >= 0.20
-}
+import { getSubjectDirection, getSubjectTextAlignClass } from '@/lib/utils/subject-formatting'
 
 export type AnswerMode = 'none' | 'short' | 'full'
 
@@ -84,26 +63,9 @@ export function PrintExamClient({ exam, questions }: { exam: any; questions: any
 
   // --- Direction detection ---
   const subjectName = exam.subjects?.name_ar || ''
-  const examTitle = exam.title || ''
-  let isRTL: boolean | null = null
-
-  if (hasArabic(subjectName)) isRTL = true
-  else if (subjectName.length > 1) isRTL = false
-
-  if (isRTL === null) {
-    if (hasArabic(examTitle)) isRTL = true
-    else if (examTitle.length > 1) isRTL = false
-  }
-
-  if (isRTL === null && questions.length > 0) {
-    const sampleText = questions.slice(0, 5).map((q: any) => q.question_text || '').join(' ')
-    isRTL = detectRTLFromQuestionText(sampleText)
-  }
-
-  if (isRTL === null) isRTL = true
-
-  const dir = isRTL ? 'rtl' : 'ltr'
-  const textAlign = isRTL ? 'text-right' : 'text-left'
+  const dir = getSubjectDirection(subjectName)
+  const isRTL = dir === 'rtl'
+  const textAlign = getSubjectTextAlignClass(subjectName)
 
   const handlePrint = () => window.print()
 

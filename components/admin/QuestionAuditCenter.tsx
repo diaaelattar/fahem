@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import { Wand2, CheckCircle2, AlertTriangle, Search, Loader2, RefreshCcw, Sparkles, ChevronDown, ChevronUp, XCircle, Filter, Pencil } from 'lucide-react'
 import { MathRenderer } from '@/components/ui/MathRenderer'
 import { toast } from 'sonner'
+import { getSubjectDirection, getSubjectTextAlignClass } from '@/lib/utils/subject-formatting'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect } from 'react'
 
@@ -241,8 +242,11 @@ export function QuestionAuditCenter({ initialQuestions, subjects, grades, active
               result.audit_status === 'critical_error' ? 'border-red-300' : 'border-blue-300'
             : isSelected ? 'border-violet-400 ring-1 ring-violet-200' : 'border-border'
 
+          const dir = getSubjectDirection(q?.subjects?.name_ar)
+          const textAlign = getSubjectTextAlignClass(q?.subjects?.name_ar)
+
           return (
-            <div key={q.id} className={`bg-white rounded-2xl border transition-all overflow-hidden shadow-sm ${statusColor}`}>
+            <div key={q.id} className={`bg-white rounded-2xl border transition-all overflow-hidden shadow-sm ${statusColor}`} dir={dir}>
               {/* Card Header */}
               <div className="p-4 flex items-start gap-3">
                 <input
@@ -283,8 +287,8 @@ export function QuestionAuditCenter({ initialQuestions, subjects, grades, active
                     )}
                   </div>
                   {/* Question Text */}
-                  <div className="text-sm font-medium leading-relaxed line-clamp-2">
-                    <MathRenderer text={q.question_text} />
+                  <div className={`text-sm font-medium leading-relaxed line-clamp-2 ${textAlign}`}>
+                    <MathRenderer text={q.question_text} dir={dir} />
                   </div>
                   <div className="flex items-center gap-3 mt-1.5 text-[11px] text-muted-foreground">
                     {q.grades?.name_ar && <span>📚 {q.grades.name_ar}</span>}
@@ -329,7 +333,7 @@ export function QuestionAuditCenter({ initialQuestions, subjects, grades, active
                             'flex-col' // bottom (default)
                           }`}>
                             <div className="flex-1">
-                              <MathRenderer text={q.question_text} className="text-sm leading-relaxed" />
+                              <MathRenderer text={q.question_text} className={`text-sm leading-relaxed ${textAlign}`} dir={dir} />
                             </div>
                             {q.question_image_url && (
                               <div className={`rounded-lg overflow-hidden border border-slate-200 bg-slate-50 shrink-0 ${
@@ -350,22 +354,22 @@ export function QuestionAuditCenter({ initialQuestions, subjects, grades, active
                             {q.options.map((opt: string, i: number) => (
                               <div key={i} className={`text-xs p-2 rounded-lg flex items-center gap-2 border ${opt === q.correct_answer ? 'bg-green-50 border-green-200 font-bold text-green-800' : 'bg-slate-50 border-slate-100 text-slate-600'}`}>
                                 <span className="w-5 h-5 bg-white border rounded flex items-center justify-center text-[10px] shrink-0">{['أ','ب','ج','د'][i]}</span>
-                                <MathRenderer text={opt} />
+                                <MathRenderer text={opt} dir={dir} className={textAlign} />
                               </div>
                             ))}
                           </div>
                         )}
                         <div>
                           <p className="text-[10px] font-bold text-slate-400 mb-1 uppercase">الإجابة الصحيحة</p>
-                          <p className="text-xs font-bold text-green-700 bg-green-50 p-2 rounded-lg border border-green-100">
-                            <MathRenderer text={q.correct_answer} />
+                          <p className={`text-xs font-bold text-green-700 bg-green-50 p-2 rounded-lg border border-green-100 ${textAlign}`}>
+                            <MathRenderer text={q.correct_answer} dir={dir} />
                           </p>
                         </div>
                         {q.explanation && (
                           <div>
                             <p className="text-[10px] font-bold text-slate-400 mb-1 uppercase">التفسير</p>
-                            <div className="text-xs text-slate-600 italic leading-relaxed">
-                              <MathRenderer text={q.explanation} />
+                            <div className={`text-xs text-slate-600 italic leading-relaxed ${textAlign}`}>
+                              <MathRenderer text={q.explanation} dir={dir} />
                             </div>
                           </div>
                         )}
@@ -475,10 +479,11 @@ export function QuestionAuditCenter({ initialQuestions, subjects, grades, active
                                       onChange={e => updateSuggestion(q.id, 'question_text', e.target.value)}
                                       className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-200 outline-none resize-y"
                                       rows={3}
+                                      dir={getSubjectDirection(q.subjects?.name_ar)}
                                     />
                                     <div className="flex items-center justify-between gap-2 mt-1.5">
-                                      <div className="flex-1 p-2 bg-white rounded border border-slate-100 text-sm overflow-x-auto">
-                                        <MathRenderer text={result.suggestions.question_text} />
+                                      <div className={`flex-1 p-2 bg-white rounded border border-slate-100 text-sm overflow-x-auto ${getSubjectTextAlignClass(q.subjects?.name_ar)}`}>
+                                        <MathRenderer text={result.suggestions.question_text} dir={getSubjectDirection(q.subjects?.name_ar)} />
                                       </div>
                                       <button
                                         onClick={() => runAudit(q.id, true, result.suggestions.question_text)}
@@ -506,8 +511,8 @@ export function QuestionAuditCenter({ initialQuestions, subjects, grades, active
                                               newOpts[i] = e.target.value;
                                               updateSuggestion(q.id, 'options', newOpts);
                                             }}
-                                            className="flex-1 px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-200 outline-none font-mono"
-                                            dir="ltr"
+                                            className={`flex-1 px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-200 outline-none font-mono ${getSubjectTextAlignClass(q.subjects?.name_ar)}`}
+                                            dir={getSubjectDirection(q.subjects?.name_ar)}
                                           />
                                         </div>
                                       ))}
@@ -517,8 +522,8 @@ export function QuestionAuditCenter({ initialQuestions, subjects, grades, active
                                           type="text"
                                           value={result.suggestions.correct_answer}
                                           onChange={e => updateSuggestion(q.id, 'correct_answer', e.target.value)}
-                                          className="w-full px-3 py-1.5 text-sm border border-green-200 bg-green-50 rounded-lg focus:ring-2 focus:ring-green-400 outline-none font-mono text-green-800"
-                                          dir="ltr"
+                                          className={`w-full px-3 py-1.5 text-sm border border-green-200 bg-green-50 rounded-lg focus:ring-2 focus:ring-green-400 outline-none font-mono text-green-800 ${getSubjectTextAlignClass(q.subjects?.name_ar)}`}
+                                          dir={getSubjectDirection(q.subjects?.name_ar)}
                                         />
                                       </div>
                                     </div>
@@ -531,6 +536,7 @@ export function QuestionAuditCenter({ initialQuestions, subjects, grades, active
                                       onChange={e => updateSuggestion(q.id, 'explanation', e.target.value)}
                                       className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-200 outline-none resize-y"
                                       rows={3}
+                                      dir={getSubjectDirection(q.subjects?.name_ar)}
                                     />
                                   </div>
                                 </div>
@@ -538,8 +544,8 @@ export function QuestionAuditCenter({ initialQuestions, subjects, grades, active
                                 <>
                                   <div>
                                     <p className="text-[10px] font-bold text-violet-500 mb-1 uppercase">النص المقترح</p>
-                                    <div className="text-sm leading-relaxed bg-violet-50/50 p-3 rounded-lg border border-violet-100">
-                                      <MathRenderer text={result.suggestions.question_text} />
+                                    <div className={`text-sm leading-relaxed bg-violet-50/50 p-3 rounded-lg border border-violet-100 ${textAlign}`}>
+                                      <MathRenderer text={result.suggestions.question_text} dir={dir} />
                                     </div>
                                   </div>
 
@@ -549,7 +555,7 @@ export function QuestionAuditCenter({ initialQuestions, subjects, grades, active
                                       {result.suggestions.options.map((opt: string, i: number) => (
                                         <div key={i} className={`text-xs p-2 rounded-lg flex items-center gap-2 border ${opt === result.suggestions.correct_answer ? 'bg-green-100 border-green-300 font-bold text-green-900' : 'bg-slate-50 border-slate-100 text-slate-600'}`}>
                                           <span className="w-5 h-5 bg-white border rounded flex items-center justify-center text-[10px] shrink-0">{['أ','ب','ج','د'][i]}</span>
-                                          <MathRenderer text={opt} />
+                                          <MathRenderer text={opt} dir={dir} className={textAlign} />
                                         </div>
                                       ))}
                                     </div>
@@ -557,8 +563,8 @@ export function QuestionAuditCenter({ initialQuestions, subjects, grades, active
 
                                   <div>
                                     <p className="text-[10px] font-bold text-violet-500 mb-1 uppercase">التفسير المقترح</p>
-                                    <div className="text-xs text-slate-700 bg-blue-50 p-3 rounded-lg border border-blue-100 leading-relaxed">
-                                      <MathRenderer text={result.suggestions.explanation} />
+                                    <div className={`text-xs text-slate-700 bg-blue-50 p-3 rounded-lg border border-blue-100 leading-relaxed ${textAlign}`}>
+                                      <MathRenderer text={result.suggestions.explanation} dir={dir} />
                                     </div>
                                   </div>
                                 </>
