@@ -8,6 +8,8 @@ import { getSubjectDirection, getSubjectTextAlignClass } from '@/lib/utils/subje
 
 export type AnswerMode = 'none' | 'short' | 'full'
 
+interface PassageBlock { passage: string | null; questions: any[] }
+
 export function PrintExamClient({ exam, questions }: { exam: any; questions: any[] }) {
   const [answerMode, setAnswerMode] = useState<AnswerMode>('none')
   const [showSectionHeaders, setShowSectionHeaders] = useState(true)
@@ -87,7 +89,6 @@ export function PrintExamClient({ exam, questions }: { exam: any; questions: any
 
   const questionTypeTitles = isRTL ? questionTypeTitlesAR : questionTypeTitlesEN
 
-  interface PassageBlock { passage: string | null; questions: any[] }
   const typeOrder = ['mcq', 'true_false', 'fill_blank', 'correction', 'essay']
   const groupedByType: Record<string, PassageBlock[]> = {}
 
