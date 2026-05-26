@@ -29,13 +29,34 @@ interface Props {
     show_watermark?: boolean
   }
   subjectName: string
+  allSubjects?: { id: number; name_ar: string }[]
 }
 
 const inputCls = 'w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition placeholder:text-slate-400'
 const labelCls = 'block text-sm font-bold text-slate-700 mb-1.5'
 
-export function TeacherSettingsClient({ profile, teacher, subjectName }: Props) {
+export function TeacherSettingsClient({ profile, teacher, subjectName, allSubjects }: Props) {
   const supabase = createClient()
+
+  /* ── Subject State ── */
+  const [selectedSubjectId, setSelectedSubjectId] = useState(teacher.subject_id?.toString() || '')
+  const [subjectSaving, setSubjectSaving] = useState(false)
+  const [subjectMsg, setSubjectMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
+
+  const updateSubject = async (newSubjectId: string) => {
+    setSelectedSubjectId(newSubjectId)
+    if (!newSubjectId) return
+    setSubjectSaving(true)
+    setSubjectMsg(null)
+    const { error } = await supabase.from('teachers').update({ subject_id: parseInt(newSubjectId) }).eq('id', profile.id)
+    setSubjectSaving(false)
+    if (error) {
+      setSubjectMsg({ type: 'err', text: 'فشل حفظ المادة: ' + error.message })
+    } else {
+      setSubjectMsg({ type: 'ok', text: 'تم تحديث المادة بنجاح ✓' })
+      setTimeout(() => setSubjectMsg(null), 3000)
+    }
+  }
 
   /* ── Print Settings State ── */
   const [print, setPrint] = useState({
@@ -166,7 +187,26 @@ export function TeacherSettingsClient({ profile, teacher, subjectName }: Props) 
           </div>
           <div>
             <label className={labelCls}>المادة الدراسية</label>
-            <input className={inputCls} value={subjectName || '—'} disabled />
+            {allSubjects && allSubjects.length > 0 ? (
+              <div className="space-y-2">
+                <select
+                  className={inputCls}
+                  value={selectedSubjectId}
+                  onChange={e => updateSubject(e.target.value)}
+                  disabled={subjectSaving}
+                >
+                  <option value="">-- اختر المادة --</option>
+                  {allSubjects.map(s => <option key={s.id} value={s.id}>{s.name_ar}</option>)}
+                </select>
+                {subjectMsg && (
+                  <div className={`text-xs font-bold ${subjectMsg.type === 'ok' ? 'text-emerald-600' : 'text-red-600'}`}>
+                    {subjectMsg.text}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <input className={inputCls} value={subjectName || '—'} disabled />
+            )}
           </div>
           <div>
             <label className={labelCls}>حالة الاشتراك</label>
@@ -228,19 +268,19 @@ export function TeacherSettingsClient({ profile, teacher, subjectName }: Props) 
                 <h3 className="font-bold text-slate-700 flex items-center gap-2">🏢 البيانات الرسمية</h3>
                 <div>
                   <label className={labelCls}>مديرية التربية والتعليم</label>
-                  <input className={inputCls} placeholder="مثال: القاهرة" value={print.directorate} onChange={e => setPrint(p => ({ ...p, directorate: e.target.value }))} />
+                  <input className={inputCls} autoComplete="off" placeholder="مثال: القاهرة" value={print.directorate} onChange={e => setPrint(p => ({ ...p, directorate: e.target.value }))} />
                 </div>
                 <div>
                   <label className={labelCls}>الإدارة التعليمية</label>
-                  <input className={inputCls} placeholder="مثال: مصر الجديدة" value={print.administration} onChange={e => setPrint(p => ({ ...p, administration: e.target.value }))} />
+                  <input className={inputCls} autoComplete="off" placeholder="مثال: مصر الجديدة" value={print.administration} onChange={e => setPrint(p => ({ ...p, administration: e.target.value }))} />
                 </div>
                 <div>
                   <label className={labelCls}>اسم المدرسة</label>
-                  <input className={inputCls} placeholder="مثال: مدرسة النور الثانوية" value={print.schoolName} onChange={e => setPrint(p => ({ ...p, schoolName: e.target.value }))} />
+                  <input className={inputCls} autoComplete="off" placeholder="مثال: مدرسة النور الثانوية" value={print.schoolName} onChange={e => setPrint(p => ({ ...p, schoolName: e.target.value }))} />
                 </div>
                 <div>
                   <label className={labelCls}>العام الدراسي</label>
-                  <input className={inputCls} placeholder="مثال: 2024 / 2025" value={print.academicYear} onChange={e => setPrint(p => ({ ...p, academicYear: e.target.value }))} />
+                  <input className={inputCls} autoComplete="off" placeholder="مثال: 2024 / 2025" value={print.academicYear} onChange={e => setPrint(p => ({ ...p, academicYear: e.target.value }))} />
                 </div>
               </div>
             )}
@@ -251,19 +291,19 @@ export function TeacherSettingsClient({ profile, teacher, subjectName }: Props) 
                 <h3 className="font-bold text-indigo-800 flex items-center gap-2">👨‍🏫 البيانات الشخصية</h3>
                 <div>
                   <label className={labelCls}>اسم الشهرة للمعلم</label>
-                  <input className={inputCls} placeholder="مثال: أ. أحمد علي" value={print.displayName} onChange={e => setPrint(p => ({ ...p, displayName: e.target.value }))} />
+                  <input className={inputCls} autoComplete="off" placeholder="مثال: أ. أحمد علي" value={print.displayName} onChange={e => setPrint(p => ({ ...p, displayName: e.target.value }))} />
                 </div>
                 <div>
                   <label className={labelCls}>اللقب / الصفة الوظيفية</label>
-                  <input className={inputCls} placeholder="مثال: خبير تدريس الفيزياء" value={print.title} onChange={e => setPrint(p => ({ ...p, title: e.target.value }))} />
+                  <input className={inputCls} autoComplete="off" placeholder="مثال: خبير تدريس الفيزياء" value={print.title} onChange={e => setPrint(p => ({ ...p, title: e.target.value }))} />
                 </div>
                 <div>
                   <label className={labelCls}>رقم الهاتف</label>
-                  <input className={inputCls} placeholder="مثال: 01012345678" value={print.phone} onChange={e => setPrint(p => ({ ...p, phone: e.target.value }))} dir="ltr" />
+                  <input className={inputCls} autoComplete="off" placeholder="مثال: 01012345678" value={print.phone} onChange={e => setPrint(p => ({ ...p, phone: e.target.value }))} dir="ltr" />
                 </div>
                 <div>
                   <label className={labelCls}>وسائل التواصل (اختياري)</label>
-                  <input className={inputCls} placeholder="مثال: Youtube: Physics With Ahmed" value={print.social} onChange={e => setPrint(p => ({ ...p, social: e.target.value }))} />
+                  <input className={inputCls} autoComplete="off" placeholder="مثال: Youtube: Physics With Ahmed" value={print.social} onChange={e => setPrint(p => ({ ...p, social: e.target.value }))} />
                 </div>
               </div>
             )}

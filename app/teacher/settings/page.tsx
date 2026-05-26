@@ -19,11 +19,14 @@ export default async function TeacherSettingsPage() {
     ? await supabase.from('subjects').select('name_ar').eq('id', teacher.subject_id).single()
     : { data: null }
 
+  const { data: subjects } = await supabase.from('subjects').select('id, name_ar').order('name_ar')
+
   return (
     <TeacherSettingsClient
       profile={profile}
       teacher={teacher || {}}
       subjectName={subject?.name_ar || ''}
+      allSubjects={subjects || []}
     />
   )
 }
