@@ -41,3 +41,12 @@ supabase/.temp
 
 # Testing
 coverage/
+
+# Debug & temp files
+*.log
+build_*.txt
+tsc_output*.txt
+capture_logs.js
+*.tmp
+New Text Document.*
+
