@@ -90,7 +90,7 @@ export function PrintExamClient({ exam, questions }: { exam: any; questions: any
   const questionTypeTitles = isRTL ? questionTypeTitlesAR : questionTypeTitlesEN
 
   const typeOrder = ['mcq', 'true_false', 'fill_blank', 'correction', 'essay']
-  const groupedByType: Record<string, PassageBlock[]> = {}
+  const groupedByType: { [key: string]: PassageBlock[] } = {}
 
   for (const q of questions) {
     if (hiddenQuestions.has(q.id)) continue
@@ -356,7 +356,6 @@ export function PrintExamClient({ exam, questions }: { exam: any; questions: any
               })}
             </div>
 
-            </div>
         </div>
       </div>
     </div>
