@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
-
-export const runtime = 'edge'
+import { checkAIQuota } from '@/lib/security/rate-limiter'
 
 const MODELS = ['gemini-2.5-flash', 'gemini-flash-latest']
 
@@ -41,6 +40,18 @@ export async function POST(req: NextRequest) {
       .single()
     if (profile?.role !== 'admin') {
       return NextResponse.json({ error: 'صلاحيات غير كافية' }, { status: 403 })
+    }
+
+    // ── فحص كوتا الذكاء الاصطناعي للمسؤول ───────────────────────────
+    const quota = await checkAIQuota(user.id, '/api/ai/generate-summary')
+    if (!quota.allowed) {
+      return NextResponse.json(
+        {
+          error: quota.message || 'تجاوزت الحد اليومي لاستخدام الذكاء الاصطناعي',
+          quota: { limit: quota.limit, usage: quota.usage, remaining: quota.remaining },
+        },
+        { status: 429 }
+      )
     }
 
     const { lessonId } = await req.json()

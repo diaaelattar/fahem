@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import { checkAIQuota } from '@/lib/security/rate-limiter'
 
-export const runtime = 'edge'
+export const runtime = 'nodejs'
 
 const MODELS = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.0-flash']
 
@@ -25,6 +26,18 @@ export async function POST(req: NextRequest) {
     } = await supabase.auth.getUser()
     if (!user) {
       return NextResponse.json({ error: 'غير مصرح' }, { status: 401 })
+    }
+
+    // ── فحص كوتا الذكاء الاصطناعي اليومية ─────────────────────────────────
+    const quota = await checkAIQuota(user.id, '/api/ai/explain-question')
+    if (!quota.allowed) {
+      return NextResponse.json(
+        {
+          error: quota.message || 'تجاوزت الحد اليومي لاستخدام الذكاء الاصطناعي',
+          quota: { limit: quota.limit, usage: quota.usage, remaining: quota.remaining },
+        },
+        { status: 429 }
+      )
     }
 
     const {

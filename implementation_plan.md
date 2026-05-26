@@ -1,120 +1,86 @@
-# خطة تطوير بنك الأسئلة وإعدادات طباعة المعلم (الترويسة والشخصية والعلامة المائية)
+# خطة التحسين والإتقان والتنظيف — مشروع فاهم
 
-تهدف هذه الخطة إلى إعادة تصميم وتطوير صفحة **بنك الأسئلة** للمعلم لتوفير تجربة فرز متكاملة وقدرة عالية على تكوين الاختبارات، وتطوير **صفحة الإعدادات** لدعم رأس اختبار (ترويسة) شخصي، رفع اللوجو الخاص، ووضع علامة مائية (وسم) لحماية حقوق المعلم على اختباراته.
-
----
-
-## 🛠️ التعديلات المقترحة (Proposed Changes)
-
-سنقوم بتقسيم التطوير إلى مكونين رئيسيين:
-
-### 1. بنك الأسئلة (Question Bank) والتصفية الهرمية
-
-**الهدف:** عرض أسئلة تخصص المعلم فقط، وتوفير تصفية متسلسلة هرمية: **الصف الدراسي ← الفصل الدراسي (الترم) ← الوحدة الدراسية ← الدرس**، مع إمكانية تحديد الأسئلة المفرزة وتكوين اختبار جديد بها مباشرة.
-
-#### [MODIFY] [page.tsx](file:///c:/Users/diaa_elattar/Downloads/istabaq-egypt-complete/istabaq-egypt/app/teacher/questions/page.tsx)
-
-- **تقييد مادة المعلم:** التحقق من وجود مادة للمعلم؛ وفي حال لم يقم باختيار مادتة الدراسية (مثل الحسابات الجديدة)، يتم توجيهه تلقائياً لصفحة الإعدادات أو Onboarding لاختيار مادة.
-- **تحسين التصفية الهرمية:**
-  - تعديل جلب الوحدات (`units`) ليتم فرزها بناءً على الصف الدراسي **والفصل الدراسي** معاً لضمان عدم تداخل وحدات الترم الأول والثاني.
-  - ضبط الروابط التفاعلية: عند تغيير "الصف الدراسي"، يتم إعادة ضبط (Reset) قيم الترم، والوحدة، والدرس. وعند تغيير "الترم"، يتم إعادة ضبط الوحدة والدرس تجنباً لأي تعارض منطقي.
-- **التكامل مع التحديد المتعدد:**
-  - تمرير خاصية `basePath="/teacher/questions"` للمكون المشترك `QuestionsListClient`.
-
-#### [MODIFY] [QuestionsListClient.tsx](file:///c:/Users/diaa_elattar/Downloads/istabaq-egypt-complete/istabaq-egypt/components/admin/QuestionsListClient.tsx)
-
-- **شريط تكوين الاختبار العائم:**
-  - عند وجود تحديد (`selectedIds.length > 0`) وفي حال كان المسار تابع للمعلم (`basePath.includes('/teacher')`):
-    - إخفاء خيار الحذف الجماعي (الخاص بالأدمن).
-    - إظهار شريط عائم مميز باللون البنفسجي يحتوي على زر: **"📝 تكوين اختبار من الأسئلة المحددة ({العدد})"**.
-  - **آلية العمل:** عند النقر عليه:
-    1. يتم جلب تفاصيل كامل الأسئلة المحددة.
-    2. تُحفظ الأسئلة بالكامل في `sessionStorage` تحت مفتاح `'pre_selected_exam_questions'`.
-    3. يتم تحويل المعلم فوراً إلى صفحة إنشاء اختبار جديد `/teacher/exams/new`.
-
-#### [MODIFY] [TeacherExamBuilder.tsx](file:///c:/Users/diaa_elattar/Downloads/istabaq-egypt-complete/istabaq-egypt/components/teacher/TeacherExamBuilder.tsx)
-
-- **استقبال الأسئلة المحددة مسبقاً:**
-  - في دالة التهيئة (`useState` الأولي لـ `selectedQuestions`):
-    - التحقق من وجود بيانات مخزنة في `sessionStorage.getItem('pre_selected_exam_questions')`.
-    - إذا وُجدت، يتم تحميلها تلقائياً كـ `selectedQuestions` بأسلوب مرتب وتلقائي، وحذف المفتاح من `sessionStorage` للتنظيف.
-    - فتح المعلم تلقائياً على خطوة "إعدادات الاختبار" مع تعبئة الأسئلة خلف الكواليس أو نقله لخطوة المراجعة مباشرة لتسريع العملية!
+خطة شاملة لتنظيف المستودع (Repository)، توحيد الملفات التجريبية، وتحسين جودة الكود العام للمشروع.
 
 ---
 
-### 2. إعدادات المعلم المتقدمة والترويسة الشخصية
+## User Review Required
 
-**الهدف:** منح المعلم القدرة الكاملة على تخصيص ورقة الطباعة، بالاختيار بين الترويسة الرسمية (مديرية/إدارة/مدرسة) أو الترويسة الشخصية (اسمه/اللقب/رقم الهاتف/وسائل التواصل)، أو الدمج بينهما، مع دعم رفع لوجو خاص وكتابة علامة مائية (Watermark) مائلة على كامل صفحات الاختبار.
-
-#### [NEW] [20260530000003_teacher_personal_settings.sql](file:///c:/Users/diaa_elattar/Downloads/istabaq-egypt-complete/istabaq-egypt/supabase/migrations/20260530000003_teacher_personal_settings.sql)
-
-إنشاء هجرة قاعدة البيانات لإضافة الأعمدة التالية لجدول المعلمين `teachers`:
-
-```sql
-ALTER TABLE public.teachers
-  ADD COLUMN IF NOT EXISTS print_header_type TEXT DEFAULT 'official',  -- 'official' (رسمي), 'personal' (شخصي), 'both' (دمج)
-  ADD COLUMN IF NOT EXISTS teacher_display_name TEXT,                  -- الاسم الشخصي على الترويسة
-  ADD COLUMN IF NOT EXISTS teacher_title TEXT,                         -- اللقب (مثال: معلم خبير الفيزياء)
-  ADD COLUMN IF NOT EXISTS teacher_phone TEXT,                         -- رقم موبايل للتواصل على الترويسة
-  ADD COLUMN IF NOT EXISTS teacher_social TEXT,                        -- يوتيوب / فيسبوك
-  ADD COLUMN IF NOT EXISTS teacher_logo_url TEXT,                      -- رابط اللوجو الشخصي
-  ADD COLUMN IF NOT EXISTS teacher_watermark_text TEXT,                -- نص العلامة المائية (الوسم)
-  ADD COLUMN IF NOT EXISTS show_watermark BOOLEAN DEFAULT false;       -- تفعيل العلامة المائية
-```
-
-#### [MODIFY] [TeacherSettingsClient.tsx](file:///c:/Users/diaa_elattar/Downloads/istabaq-egypt-complete/istabaq-egypt/components/teacher/TeacherSettingsClient.tsx)
-
-- **إضافة قسم تخصيص رأس ورقة الاختبار (الترويسة واللوجو والوسم):**
-  - **نوع الترويسة (Header Type):** أزرار اختيار بصرية جذابة لاختيار (رسمي وزارة / شخصي خاص / دمج رسمي + شخصي).
-  - **البيانات الشخصية:** حقول مخصصة لاسم الشهرة للمعلم، اللقب الوظيفي، رقم الهاتف، والروابط.
-  - **رفع اللوجو الشخصي (Custom Logo):**
-    - زر رفع ملف يدعم سحب وإفلات الصور.
-    - رفع الصورة إلى حزمة Supabase Storage (`documents` تحت مجلد `/teacher_logos`) وحفظ الرابط العام المباشر.
-  - **العلامة المائية والوسم (Watermark & Brand):**
-    - حقل لكتابة نص العلامة المائية المائلة (مثال: "سلسلة الاستباق - أ. أحمد علي").
-    - مفتاح تبديل (Toggle Switch) لتفعيل/تعطيل إظهارها في الطباعة.
-  - **المعاينة الحية الفورية (Live Header Preview):**
-    - صندوق تفاعلي بحدود مقطعة يعرض للمعلم بشكل حي ومباشر كيف سيبدو رأس ورقة امتحانه عند الطباعة قبل أن يقوم بالحفظ!
-
-#### [MODIFY] [TeacherPrintSettingsBar.tsx](file:///c:/Users/diaa_elattar/Downloads/istabaq-egypt-complete/istabaq-egypt/components/teacher/TeacherPrintSettingsBar.tsx)
-
-- تعديل المكون لتمرير وبث الخيارات الجديدة لـ `PrintExamClient` عبر الـ Custom Event مثل `print_header_type` و `teacher_logo_url` و `show_watermark` و `teacher_watermark_text` وغيرها.
-
-#### [MODIFY] [PrintExamClient.tsx](file:///c:/Users/diaa_elattar/Downloads/istabaq-egypt-complete/istabaq-egypt/components/admin/PrintExamClient.tsx)
-
-تحديث محرك الطباعة لترجمة اختيارات المعلم بشكل استثنائي وفني:
-
-- **تصميم الترويسة الجديدة (The New Premium Header Layout):**
-  - استخدام جدول ترويسة ذو 3 أعمدة (أو مرن) متوافق تماماً مع مقاييس الطباعة المصرية A4:
-    - **الجانب الأيمن:**
-      - في حال "الرسمي": مديرية التربية والتعليم / الإدارة التعليمية / اسم المدرسة.
-      - في حال "الشخصي": اسم المعلم المكتوب / اللقب والصفة / رقم الهاتف وقناة التواصل.
-      - في حال "الدمج": دمج ذكي للبيانات في خطوط متناسقة.
-    - **الوسط:**
-      - إظهار اللوجو المرفوع للمعلم بحجم متناسق (مثلاً `max-h-16`) بدقة ووضوح، وفي حال عدم وجود لوجو يتم وضع لوجو المنصة الافتراضي أو تفريغ المساحة.
-      - عنوان الاختبار والترم أسفله مباشرة.
-    - **الجانب الأيسر:**
-      - العام الدراسي، مدة الامتحان، الدرجة الكلية، المجموعة/الفصل، وتاريخ الامتحان.
-- **العلامة المائية المائلة (Diagonal Watermark CSS):**
-  - إذا كان خيار تفعيل العلامة المائية مفعلاً (`show_watermark`):
-    - حقن كود CSS مخصص للطباعة لعرض علامة مائية بنص الوسم الخاص بالمعلم بشكل مائل بزاوية (-35 درجة) ولون رمادي باهت جداً (`text-slate-900/4%` أو مشابه) في خلفية ورقة الامتحان، يتكرر في كل صفحة مطبوعة دون حجب نصوص الأسئلة، مما يمنع تصوير أو نسخ مجهود المعلم بدون حقه الأدبي.
+> [!IMPORTANT]
+> يرجى مراجعة الخطوات التالية لـ **المرحلة صفر** و **المرحلة الأولى**:
+> - سيتم حذف الملفات المؤقتة تماماً من الـ Git (`build_log.txt`, `tsc_output.txt`, إلخ).
+> - سيتم حذف مجلد `scratch/` الذي يحتوي على 83 ملف تجريبي لتنظيف الـ Repo (أو نقله لـ Branch منفصل إن أردت الاحتفاظ به للتاريخ). سنقترح حذفه من `main` مباشرة.
+> - سيتم نقل ملفات الاختبار والأدوات الفردية الموجودة في الـ root إلى مجلدي `scripts/tests/` و `scripts/tools/` لتوحيدها.
 
 ---
 
-## 🧪 خطة التحقق والضمان (Verification Plan)
+## Open Questions
 
-### الاختبارات المؤتمتة ومطابقة الأجهزة (Automated & Manual Checking)
+> [!NOTE]
+> هل تفضل الاحتفاظ ببعض السكربتات المعينة من مجلد `scratch/` أم نقوم بحذف المجلد بالكامل من الفرع الرئيسي `main`؟ (نحن نقترح حذف مجلد `scratch/` بالكامل لتنظيف الـ codebase).
 
-1. **تكامل بنك الأسئلة:**
-   - الدخول كمعلم والتحقق من أن الأسئلة مقتصرة بالكامل على مادة التخصص فقط.
-   - التحقق من سلسلة الفلترة الهرمية: اختيار الصف العاشر ← اختيار الترم الأول ← يظهر فقط وحدات الترم الأول للصف العاشر ← اختيار وحدة ← يظهر دروسها فقط.
-   - تحديد 3 أسئلة عشوائية ثم الضغط على "تكوين اختبار" والتحقق من الانتقال المباشر لـ `/teacher/exams/new` مع تحميل الأسئلة الـ 3 المحددة تلقائياً في الجدول.
+---
 
-2. **اختبارات الطباعة والمعاينة الحية:**
-   - التوجه لصفحة الإعدادات وتعبئة الخيارات الرسمية والشخصية وتفعيل العلامة المائية.
-   - تجربة رفع لوجو شخصي والتحقق من نجاح الرفع وظهوره في المعاينة الحية الفورية بالصفحة.
-   - فتح أي اختبار والضغط على "طباعة PDF"، والتحقق من:
-     - انعكاس نوع الترويسة المحدد (رسمي، شخصي، أو دمج).
-     - ظهور اللوجو الشخصي المرفوع في مركز الترويسة بدقة.
-     - ظهور العلامة المائية المائلة بنص المعلم في الخلفية بشكل متناسق ومطبوع.
-     - توافق التنسيقات عند الطباعة الفعلية وتحويلها إلى ملف PDF.
+## Proposed Changes
+
+### Component 1: المرحلة صفر — التنظيف الفوري (Immediate Cleanup)
+
+تنظيف الملفات المؤقتة والملفات التاريخية والمسودات من الفرع الرئيسي.
+
+#### [DELETE] [build_log.txt](file:///c:/Users/diaa_elattar/Downloads/istabaq-egypt-complete/istabaq-egypt/build_log.txt)
+#### [DELETE] [build_execsync.txt](file:///c:/Users/diaa_elattar/Downloads/istabaq-egypt-complete/istabaq-egypt/build_execsync.txt)
+#### [DELETE] [build_output.txt](file:///c:/Users/diaa_elattar/Downloads/istabaq-egypt-complete/istabaq-egypt/build_output.txt)
+#### [DELETE] [tsc_output.txt](file:///c:/Users/diaa_elattar/Downloads/istabaq-egypt-complete/istabaq-egypt/tsc_output.txt)
+#### [DELETE] [tsc_output2.txt](file:///c:/Users/diaa_elattar/Downloads/istabaq-egypt-complete/istabaq-egypt/tsc_output2.txt)
+#### [DELETE] [capture_logs.js](file:///c:/Users/diaa_elattar/Downloads/istabaq-egypt-complete/istabaq-egypt/capture_logs.js)
+#### [DELETE] [New Text Document.html](file:///c:/Users/diaa_elattar/Downloads/istabaq-egypt-complete/istabaq-egypt/New%20Text%20Document.html)
+#### [DELETE] [scratch/](file:///c:/Users/diaa_elattar/Downloads/istabaq-egypt-complete/istabaq-egypt/scratch)
+#### [DELETE] [istabaq-egypt-v2/](file:///c:/Users/diaa_elattar/Downloads/istabaq-egypt-complete/istabaq-egypt/istabaq-egypt-v2)
+#### [DELETE] [istabaq-new-pages/](file:///c:/Users/diaa_elattar/Downloads/istabaq-egypt-complete/istabaq-egypt/istabaq-new-pages)
+
+#### [MODIFY] [.gitignore](file:///c:/Users/diaa_elattar/Downloads/istabaq-egypt-complete/istabaq-egypt/.gitignore)
+تحديث ملف التجاهل لمنع رفع الملفات المؤقتة مستقبلاً.
+
+---
+
+### Component 2: توحيد ملفات الاختبار والأدوات اليدوية (CLEANUP-4)
+
+نقل الملفات الفردية المتفرقة في الـ root إلى مجلدات منظمة داخل `scripts/`.
+
+#### [NEW] [scripts/tests/](file:///c:/Users/diaa_elattar/Downloads/istabaq-egypt-complete/istabaq-egypt/scripts/tests)
+#### [NEW] [scripts/tools/](file:///c:/Users/diaa_elattar/Downloads/istabaq-egypt-complete/istabaq-egypt/scripts/tools)
+
+سيتم نقل الملفات كالتالي:
+- `test-*.mjs` -> `scripts/tests/test-*.mjs`
+- `inspect-*.mjs` -> `scripts/tests/inspect-*.mjs`
+- `fetch_page.mjs` -> `scripts/tests/fetch_page.mjs`
+- `fix-*.mjs` -> `scripts/tools/fix-*.mjs`
+- `approve-all.mjs` -> `scripts/tools/approve-all.mjs`
+- `check-*.mjs` -> `scripts/tools/check-*.mjs`
+- `create-bucket.mjs` / `create-bucket.ts` / `create-student-answers-bucket.mjs` -> `scripts/tools/`
+- `storage-policy.mjs` / `review-truefalse.mjs` -> `scripts/tools/`
+
+---
+
+### Component 3: المرحلة الأولى — جودة الكود (Code Quality Setup)
+
+تثبيت وإعداد أدوات جودة الكود للتأكد من خلوه من الأخطاء وثبات التنسيق.
+
+#### [MODIFY] [package.json](file:///c:/Users/diaa_elattar/Downloads/istabaq-egypt-complete/istabaq-egypt/package.json)
+إضافة سكربتات التشغيل للـ Prettier و ESLint والـ TypeScript check.
+
+#### [NEW] [.prettierrc](file:///c:/Users/diaa_elattar/Downloads/istabaq-egypt-complete/istabaq-egypt/.prettierrc)
+إنشاء ملف إعدادات Prettier لتنسيق الكود تلقائياً.
+
+#### [MODIFY] [.eslintrc.json](file:///c:/Users/diaa_elattar/Downloads/istabaq-egypt-complete/istabaq-egypt/.eslintrc.json) أو ملف إعدادات ESLint لتفعيل القواعد الصارمة.
+
+---
+
+## Verification Plan
+
+### Automated Tests
+- تشغيل `git status` للتأكد من إزالة ونقل جميع الملفات المستهدفة بنجاح.
+- تشغيل `npm run lint` للتأكد من عمل أدوات التفتيش بعد التعديل.
+
+### Manual Verification
+- التحقق من هيكل المجلدات الجديد وخلو الـ root من الفوضى الحالية.

@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { checkIPRateLimit } from '@/lib/security/rate-limiter'
 
 // دالة مساعدة لنسخ الكوكيز المحدثة من supabaseResponse إلى استجابة إعادة التوجيه
 // تمنع هذه الدالة فقدان الجلسة عند استخدام NextResponse.redirect
@@ -65,6 +66,52 @@ export async function middleware(request: NextRequest) {
   const isStudentRoute = pathname.startsWith('/student')
   const isTeacherRoute = pathname.startsWith('/teacher')
   const isProtectedRoute = isAdminRoute || isStudentRoute || isTeacherRoute
+
+  // ── 0. حماية IP على مسارات المصادقة ضد هجمات التخمين (Brute-Force) ─────────────
+  if (pathname.startsWith('/auth/') || pathname.startsWith('/api/auth/')) {
+    const ip =
+      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+      request.headers.get('x-real-ip') ||
+      '127.0.0.1'
+    const rateCheck = checkIPRateLimit(ip, 20, 60000) // 20 طلب في الدقيقة
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        { error: 'تجاوزت عدد المحاولات المسموح به. يرجى المحاولة لاحقاً.' },
+        { status: 429 }
+      )
+    }
+  }
+
+  // ── 0b. حماية مسارات API الخاصة بالمعلمين والأدمن ───────────────────────────────
+  const isTeacherAPI = pathname.startsWith('/api/teacher/')
+  const isAdminAPI = pathname.startsWith('/api/admin/')
+
+  if (isTeacherAPI || isAdminAPI) {
+    if (!user) {
+      return NextResponse.json({ error: 'غير مصرح. يرجى تسجيل الدخول أولاً.' }, { status: 401 })
+    }
+
+    // جلب دور المستخدم للتحقق من صلاحياته
+    const { data: apiProfile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    if (isTeacherAPI && apiProfile?.role !== 'teacher') {
+      return NextResponse.json(
+        { error: 'صلاحيات غير كافية. هذا المسار للمعلمين فقط.' },
+        { status: 403 }
+      )
+    }
+
+    if (isAdminAPI && apiProfile?.role !== 'admin') {
+      return NextResponse.json(
+        { error: 'صلاحيات غير كافية. هذا المسار للمسؤولين فقط.' },
+        { status: 403 }
+      )
+    }
+  }
 
   // ── 1. غير مسجل يحاول الوصول لمسار محمي → صفحة الدخول ──────────────────
   if (!user && isProtectedRoute) {

@@ -14,10 +14,12 @@ import {
   Flame,
   Crown,
   Users,
+  BookOpen,
 } from 'lucide-react'
 
 const navItems = [
   { href: '/student/dashboard', icon: LayoutDashboard, label: 'الرئيسية' },
+  { href: '/student/lessons', icon: BookOpen, label: 'دروسي' },
   { href: '/student/practice', icon: Dumbbell, label: 'مركز التدريب' },
   {
     href: '/student/challenges',
@@ -77,7 +79,7 @@ export function StudentSidebar() {
           التعلم
         </p>
         {navItems
-          .slice(0, 2)
+          .slice(0, 3)
           .map(({ href, icon: Icon, label, badge, badgeColor }) => {
             const active =
               pathname === href ||
@@ -106,7 +108,7 @@ export function StudentSidebar() {
           المنافسة
         </p>
         {navItems
-          .slice(2, 4)
+          .slice(3, 5)
           .map(({ href, icon: Icon, label, badge, badgeColor }) => {
             const active = pathname === href || pathname.startsWith(href)
             return (
@@ -132,7 +134,7 @@ export function StudentSidebar() {
         <p className="px-3 pb-1 pt-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
           أدائي
         </p>
-        {navItems.slice(4).map(({ href, icon: Icon, label }) => {
+        {navItems.slice(5).map(({ href, icon: Icon, label }) => {
           const active = pathname === href || pathname.startsWith(href)
           return (
             <Link
