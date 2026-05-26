@@ -1,7 +1,7 @@
 import { getCurrentProfile } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
-import { Users, ArrowRight, Trophy, TrendingUp, Calendar, CheckCircle, BookOpen } from 'lucide-react'
+import { Users, ArrowRight, TrendingUp, Calendar, CheckCircle, BookOpen, Info } from 'lucide-react'
 import Link from 'next/link'
 import { AddStudentForm } from './AddStudentForm'
 import { SessionsTab } from './SessionsTab'
@@ -28,6 +28,7 @@ export default async function GroupDetailPage({ params }: { params: { id: string
       student_id,
       students:student_id (
         id,
+        student_code,
         profiles(full_name, email, avatar_url)
       )
     `)
@@ -137,11 +138,25 @@ export default async function GroupDetailPage({ params }: { params: { id: string
             </h2>
             <AddStudentForm groupId={group.id} />
           </div>
+
+          {/* Login info banner */}
+          <div className="mx-4 mt-4 mb-2 flex items-start gap-2.5 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
+            <Info className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+            <p className="text-xs text-blue-700 leading-relaxed">
+              الطلاب المضافون يدخلون عبر{' '}
+              <a href="/auth/student-login" target="_blank" className="font-bold underline hover:text-blue-900">
+                رابط دخول الطالب بالكود
+              </a>
+              {' '}— أرسل لكل طالب الكود الخاص به (STU-…) من القائمة أدناه.
+            </p>
+          </div>
+
           {groupStudents && groupStudents.length > 0 ? (
-            <div className="divide-y divide-border max-h-[400px] overflow-y-auto">
+            <div className="divide-y divide-border max-h-[420px] overflow-y-auto">
               {groupStudents.map((gs: any, i) => {
                 const student = gs.students
                 const studentProfile = student?.profiles
+                const isTempEmail = studentProfile?.email?.includes('@istabaq-temp.com')
                 return (
                   <div key={gs.id} className="flex items-center gap-3 p-4 hover:bg-slate-50 transition-colors">
                     <span className="text-xs text-slate-400 font-bold w-6 shrink-0">{i + 1}</span>
@@ -152,8 +167,20 @@ export default async function GroupDetailPage({ params }: { params: { id: string
                     />
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-sm text-slate-800 truncate">{studentProfile?.full_name || 'طالب'}</p>
-                      <p className="text-xs text-slate-400 truncate">{studentProfile?.email}</p>
+                      {isTempEmail ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full mt-0.5">
+                          يدخل بالكود فقط
+                        </span>
+                      ) : (
+                        <p className="text-xs text-slate-400 truncate">{studentProfile?.email}</p>
+                      )}
                     </div>
+                    {/* Student Code Badge */}
+                    {student?.student_code && (
+                      <span className="font-mono text-xs font-black text-indigo-700 bg-indigo-50 border border-indigo-200 px-2.5 py-1.5 rounded-lg tracking-widest shrink-0">
+                        {student.student_code}
+                      </span>
+                    )}
                     <div className="text-xs text-slate-400 shrink-0 flex items-center gap-1">
                       <Calendar className="w-3 h-3" />
                       {new Date(gs.joined_at).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short' })}

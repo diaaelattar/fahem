@@ -224,13 +224,21 @@ export default function LoginPage() {
             </form>
           </div>
           
-          <div className="bg-slate-50 border-t border-border p-6 text-center">
+          <div className="bg-slate-50 border-t border-border p-6 space-y-3 text-center">
             <p className="text-sm text-slate-600 font-medium">
               مستخدم جديد؟ {' '}
               <Link href="/auth/register" className="text-primary font-bold hover:underline flex items-center justify-center gap-1 mt-1">
                 إنشاء حساب مجاني <ArrowRight className="w-4 h-4 rotate-180" />
               </Link>
             </p>
+            <div className="border-t border-border pt-3">
+              <Link
+                href="/auth/student-login"
+                className="inline-flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl border-2 border-indigo-200 bg-indigo-50 text-indigo-700 font-bold text-sm hover:bg-indigo-100 transition-colors"
+              >
+                🎓 طالب مُضاف من معلمك؟ ادخل بالكود
+              </Link>
+            </div>
           </div>
         </div>
       </div>
