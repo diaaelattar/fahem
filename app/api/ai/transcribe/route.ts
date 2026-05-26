@@ -11,14 +11,17 @@ export async function POST(req: NextRequest) {
     const file = formData.get('audio') as File
 
     if (!file) {
-      return NextResponse.json({ error: 'لم يتم العثور على ملف صوتي' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'لم يتم العثور على ملف صوتي' },
+        { status: 400 }
+      )
     }
 
     // قراءة الملف كـ ArrayBuffer ثم تحويله لـ Base64
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
     const base64Data = buffer.toString('base64')
-    
+
     // WebM and MP4 are commonly produced by browsers
     const mimeType = file.type || 'audio/webm'
 
@@ -26,7 +29,7 @@ export async function POST(req: NextRequest) {
       model: 'gemini-2.5-flash', // Updated: 1.5-flash no longer available on this API key
       generationConfig: {
         temperature: 0.1,
-      }
+      },
     })
 
     const prompt = `أنت خبير تفريغ صوتي للغة العربية.
@@ -40,20 +43,22 @@ export async function POST(req: NextRequest) {
       {
         inlineData: {
           mimeType: mimeType,
-          data: base64Data
-        }
+          data: base64Data,
+        },
       },
-      { text: prompt }
+      { text: prompt },
     ])
 
     const text = result.response.text()
 
     if (!text || text.trim() === '') {
-      return NextResponse.json({ error: 'لم أتمكن من استخراج أي نص من الصوت.' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'لم أتمكن من استخراج أي نص من الصوت.' },
+        { status: 400 }
+      )
     }
 
     return NextResponse.json({ text: text.trim() })
-
   } catch (error: any) {
     console.error('خطأ في تفريغ الصوت:', error)
     return NextResponse.json(

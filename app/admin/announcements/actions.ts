@@ -26,7 +26,7 @@ export async function createAnnouncementAction(formData: {
     cta_url: formData.ctaUrl || null,
     image_url: formData.imageUrl || null,
     is_active: formData.isActive ?? true,
-    display_order: formData.displayOrder ?? 0
+    display_order: formData.displayOrder ?? 0,
   })
 
   if (error) {
@@ -65,7 +65,7 @@ export async function updateAnnouncementAction(
       cta_url: formData.ctaUrl || null,
       image_url: formData.imageUrl || null,
       is_active: formData.isActive ?? true,
-      display_order: formData.displayOrder ?? 0
+      display_order: formData.displayOrder ?? 0,
     })
     .eq('id', id)
 
@@ -96,7 +96,10 @@ export async function deleteAnnouncementAction(id: string) {
   return { success: true }
 }
 
-export async function toggleAnnouncementActiveAction(id: string, isActive: boolean) {
+export async function toggleAnnouncementActiveAction(
+  id: string,
+  isActive: boolean
+) {
   await requireAdmin()
   const supabase = await createClient()
 

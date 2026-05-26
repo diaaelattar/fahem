@@ -15,7 +15,10 @@ async function checkExamsColumns() {
     .limit(1)
 
   if (error) {
-    console.error('Columns do NOT exist or schema cache not updated:', error.message)
+    console.error(
+      'Columns do NOT exist or schema cache not updated:',
+      error.message
+    )
   } else {
     console.log('Success! Columns exist in the database.')
   }

@@ -16,24 +16,26 @@ export async function bulkDeleteQuestionsAction(ids: string[]) {
   try {
     // التأكد من صلاحيات الإدارة أولاً
     await requireAdmin()
-    
+
     const supabase = await createClient()
-    
-    const { error } = await supabase
-      .from('questions')
-      .delete()
-      .in('id', ids)
+
+    const { error } = await supabase.from('questions').delete().in('id', ids)
 
     if (error) {
       console.error('Error bulk deleting questions:', error)
-      return { success: false, error: 'حدث خطأ أثناء عملية الحذف في قاعدة البيانات.' }
+      return {
+        success: false,
+        error: 'حدث خطأ أثناء عملية الحذف في قاعدة البيانات.',
+      }
     }
 
     revalidatePath('/admin/questions')
     return { success: true }
-    
   } catch (error: any) {
     console.error('Bulk delete exception:', error)
-    return { success: false, error: error.message || 'حدث خطأ غير متوقع أثناء الحذف.' }
+    return {
+      success: false,
+      error: error.message || 'حدث خطأ غير متوقع أثناء الحذف.',
+    }
   }
 }

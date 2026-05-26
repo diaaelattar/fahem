@@ -10,7 +10,10 @@ interface PrintPageProps {
   searchParams: { ids?: string }
 }
 
-export default async function PrintQuestionPage({ params, searchParams }: PrintPageProps) {
+export default async function PrintQuestionPage({
+  params,
+  searchParams,
+}: PrintPageProps) {
   const profile = await getCurrentProfile()
   if (!profile || profile.role !== 'teacher') redirect('/auth/login')
 
@@ -23,14 +26,16 @@ export default async function PrintQuestionPage({ params, searchParams }: PrintP
 
   const { data: questions } = await (supabase
     .from('questions')
-    .select(`
+    .select(
+      `
       id, question_type, question_text, correct_answer, explanation,
       difficulty_level, points, options, question_image_url, image_position,
       subjects(name_ar, icon),
       grades(name_ar),
       units(name_ar),
       lessons(name_ar)
-    `)
+    `
+    )
     .in('id', ids) as any)
 
   if (!questions || questions.length === 0) redirect('/teacher/questions')
@@ -219,20 +224,41 @@ export default async function PrintQuestionPage({ params, searchParams }: PrintP
       <body>
         <div className="print-header">
           <div>
-            <h1>📝 {questions.length > 1 ? `${questions.length} أسئلة` : 'سؤال'} — منصة استباق</h1>
-            <p>تمت الطباعة بتاريخ: {new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+            <h1>
+              📝 {questions.length > 1 ? `${questions.length} أسئلة` : 'سؤال'} —
+              منصة استباق
+            </h1>
+            <p>
+              تمت الطباعة بتاريخ:{' '}
+              {new Date().toLocaleDateString('ar-EG', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+              })}
+            </p>
           </div>
-          <button className="print-btn" id="do-print-btn">🖨️ طباعة</button>
+          <button className="print-btn" id="do-print-btn">
+            🖨️ طباعة
+          </button>
         </div>
 
         {(questions as any[]).map((q: any, index: number) => (
           <div key={q.id} className="question-card">
             {/* Meta badges */}
             <div className="question-meta">
-              <span className="badge" style={{ background: '#e0e7ff', color: '#4338ca', borderColor: '#c7d2fe' }}>
+              <span
+                className="badge"
+                style={{
+                  background: '#e0e7ff',
+                  color: '#4338ca',
+                  borderColor: '#c7d2fe',
+                }}
+              >
                 {index + 1}
               </span>
-              <span className="badge badge-type">{TYPE_LABELS[q.question_type] || q.question_type}</span>
+              <span className="badge badge-type">
+                {TYPE_LABELS[q.question_type] || q.question_type}
+              </span>
               <span className={`badge badge-diff-${q.difficulty_level}`}>
                 {DIFF_AR[q.difficulty_level] || q.difficulty_level}
               </span>
@@ -243,7 +269,11 @@ export default async function PrintQuestionPage({ params, searchParams }: PrintP
 
             {/* الصورة — في الأعلى */}
             {q.question_image_url && q.image_position === 'top' && (
-              <img src={q.question_image_url} alt="صورة السؤال" className="question-image" />
+              <img
+                src={q.question_image_url}
+                alt="صورة السؤال"
+                className="question-image"
+              />
             )}
 
             {/* نص السؤال */}
@@ -252,9 +282,14 @@ export default async function PrintQuestionPage({ params, searchParams }: PrintP
             </div>
 
             {/* الصورة — في الأسفل (افتراضي) */}
-            {q.question_image_url && (!q.image_position || q.image_position === 'bottom') && (
-              <img src={q.question_image_url} alt="صورة السؤال" className="question-image" />
-            )}
+            {q.question_image_url &&
+              (!q.image_position || q.image_position === 'bottom') && (
+                <img
+                  src={q.question_image_url}
+                  alt="صورة السؤال"
+                  className="question-image"
+                />
+              )}
 
             {/* خيارات MCQ */}
             {q.question_type === 'mcq' && q.options && (
@@ -262,8 +297,13 @@ export default async function PrintQuestionPage({ params, searchParams }: PrintP
                 {(q.options as string[]).map((opt: string, i: number) => {
                   const isCorrect = opt === q.correct_answer
                   return (
-                    <div key={i} className={`option-item${isCorrect ? ' correct' : ''}`}>
-                      <div className="option-letter">{['أ', 'ب', 'ج', 'د'][i]}</div>
+                    <div
+                      key={i}
+                      className={`option-item${isCorrect ? 'correct' : ''}`}
+                    >
+                      <div className="option-letter">
+                        {['أ', 'ب', 'ج', 'د'][i]}
+                      </div>
                       <MathRenderer text={opt} />
                     </div>
                   )
@@ -274,8 +314,16 @@ export default async function PrintQuestionPage({ params, searchParams }: PrintP
             {/* أزرار صح/خطأ */}
             {q.question_type === 'true_false' && (
               <div className="tf-options">
-                <div className={`tf-btn${q.correct_answer === 'صح' ? ' correct' : ''}`}>✅ صح</div>
-                <div className={`tf-btn${q.correct_answer === 'خطأ' ? ' correct' : ''}`}>❌ خطأ</div>
+                <div
+                  className={`tf-btn${q.correct_answer === 'صح' ? 'correct' : ''}`}
+                >
+                  ✅ صح
+                </div>
+                <div
+                  className={`tf-btn${q.correct_answer === 'خطأ' ? 'correct' : ''}`}
+                >
+                  ❌ خطأ
+                </div>
               </div>
             )}
 
@@ -283,10 +331,15 @@ export default async function PrintQuestionPage({ params, searchParams }: PrintP
             <div className="answer-section">
               <div className="answer-label">الإجابة الصحيحة</div>
               <div className="answer-value">
-                {q.question_type === 'true_false'
-                  ? (q.correct_answer === 'صح' ? '✅ صح' : '❌ خطأ')
-                  : <MathRenderer text={q.correct_answer} />
-                }
+                {q.question_type === 'true_false' ? (
+                  q.correct_answer === 'صح' ? (
+                    '✅ صح'
+                  ) : (
+                    '❌ خطأ'
+                  )
+                ) : (
+                  <MathRenderer text={q.correct_answer} />
+                )}
               </div>
               {q.explanation && (
                 <div className="explanation">
@@ -299,14 +352,21 @@ export default async function PrintQuestionPage({ params, searchParams }: PrintP
             {/* التسلسل التعليمي */}
             <div className="breadcrumb">
               {q.grades?.name_ar && <span>{q.grades.name_ar}</span>}
-              {q.subjects?.name_ar && <span> • {q.subjects.icon} {q.subjects.name_ar}</span>}
+              {q.subjects?.name_ar && (
+                <span>
+                  {' '}
+                  • {q.subjects.icon} {q.subjects.name_ar}
+                </span>
+              )}
               {q.units?.name_ar && <span> • {q.units.name_ar}</span>}
               {q.lessons?.name_ar && <span> • {q.lessons.name_ar}</span>}
             </div>
           </div>
         ))}
 
-        <script dangerouslySetInnerHTML={{ __html: `
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
           // auto-trigger print when loaded
           window.addEventListener('load', () => {
             // نعطي وقتاً للخطوط تحميل
@@ -315,7 +375,9 @@ export default async function PrintQuestionPage({ params, searchParams }: PrintP
           document.getElementById('do-print-btn')?.addEventListener('click', () => {
             window.print();
           });
-        `}} />
+        `,
+          }}
+        />
       </body>
     </html>
   )

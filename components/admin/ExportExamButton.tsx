@@ -22,7 +22,7 @@ export function ExportExamButton({ examId, examTitle }: ExportExamButtonProps) {
         .select('*')
         .eq('id', examId)
         .single()
-      
+
       if (examError) throw examError
 
       // Fetch questions
@@ -46,12 +46,14 @@ export function ExportExamButton({ examId, examTitle }: ExportExamButtonProps) {
           options: eq.questions.options,
           correct_answer: eq.questions.correct_answer,
           explanation: eq.questions.explanation,
-          bloom_level: eq.questions.bloom_level
-        }))
+          bloom_level: eq.questions.bloom_level,
+        })),
       }
 
       // Create downloadable JSON file
-      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' })
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+        type: 'application/json',
+      })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
@@ -61,7 +63,9 @@ export function ExportExamButton({ examId, examTitle }: ExportExamButtonProps) {
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
 
-      alert('تم تصدير الاختبار بنجاح. يمكنك استخدام هذا الملف لاستيراد الأسئلة في أنظمة أخرى.')
+      alert(
+        'تم تصدير الاختبار بنجاح. يمكنك استخدام هذا الملف لاستيراد الأسئلة في أنظمة أخرى.'
+      )
     } catch (error: any) {
       console.error(error)
       alert('حدث خطأ أثناء تصدير الاختبار: ' + error.message)
@@ -74,10 +78,14 @@ export function ExportExamButton({ examId, examTitle }: ExportExamButtonProps) {
     <button
       onClick={handleExport}
       disabled={isExporting}
-      className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300 rounded-xl text-sm font-bold transition-colors disabled:opacity-50"
+      className="flex items-center gap-2 rounded-xl border border-slate-300 bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-200 disabled:opacity-50"
       title="تصدير الاختبار بصيغة JSON (متوافق مع أدوات التحويل إلى Google Forms)"
     >
-      {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+      {isExporting ? (
+        <Loader2 className="h-4 w-4 animate-spin" />
+      ) : (
+        <Download className="h-4 w-4" />
+      )}
       تصدير
     </button>
   )

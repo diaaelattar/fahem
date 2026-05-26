@@ -26,7 +26,9 @@ const MATH_SYMBOLS = [
 
 export function MathKeyboard({ onInsert, className = '' }: MathKeyboardProps) {
   return (
-    <div className={`bg-slate-50 border border-slate-200 rounded-xl p-2 flex flex-wrap gap-1.5 ${className}`}>
+    <div
+      className={`flex flex-wrap gap-1.5 rounded-xl border border-slate-200 bg-slate-50 p-2 ${className}`}
+    >
       {MATH_SYMBOLS.map((sym, i) => (
         <button
           key={i}
@@ -35,7 +37,7 @@ export function MathKeyboard({ onInsert, className = '' }: MathKeyboardProps) {
             e.preventDefault()
             onInsert(sym.value)
           }}
-          className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm font-bold text-slate-700 hover:bg-primary hover:text-white hover:border-primary transition-colors shadow-sm active:scale-95"
+          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-bold text-slate-700 shadow-sm transition-colors hover:border-primary hover:bg-primary hover:text-white active:scale-95"
           dir="ltr"
         >
           {sym.label}

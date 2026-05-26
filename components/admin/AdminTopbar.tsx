@@ -18,45 +18,48 @@ export function AdminTopbar({ profile }: { profile: Profile }) {
   }
 
   return (
-    <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-border px-4 md:px-6 h-16 flex items-center justify-between gap-3">
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b border-border bg-white/80 px-4 backdrop-blur-md md:px-6">
       {/* Left side: hamburger (mobile) + greeting */}
       <div className="flex items-center gap-3">
         {/* Hamburger — only on small screens */}
         <button
           onClick={toggle}
-          className="lg:hidden p-2 rounded-xl hover:bg-muted transition-colors text-slate-600"
+          className="rounded-xl p-2 text-slate-600 transition-colors hover:bg-muted lg:hidden"
           aria-label="فتح القائمة"
         >
-          <Menu className="w-5 h-5" />
+          <Menu className="h-5 w-5" />
         </button>
 
-        <div className="text-sm text-muted-foreground hidden sm:block">
-          مرحباً، <span className="font-semibold text-foreground">{profile?.full_name || 'المدير'}</span>
+        <div className="hidden text-sm text-muted-foreground sm:block">
+          مرحباً،{' '}
+          <span className="font-semibold text-foreground">
+            {profile?.full_name || 'المدير'}
+          </span>
         </div>
       </div>
 
       {/* Right side: bells + avatar + logout */}
       <div className="flex items-center gap-2">
-        <button className="relative p-2 rounded-lg hover:bg-muted transition-colors">
-          <Bell className="w-5 h-5 text-muted-foreground" />
-          <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
+        <button className="relative rounded-lg p-2 transition-colors hover:bg-muted">
+          <Bell className="h-5 w-5 text-muted-foreground" />
+          <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-red-500" />
         </button>
 
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted">
-          <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center shrink-0">
-            <User className="w-4 h-4 text-white" />
+        <div className="flex items-center gap-2 rounded-lg bg-muted px-3 py-1.5">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary">
+            <User className="h-4 w-4 text-white" />
           </div>
-          <span className="text-sm font-medium hidden sm:inline">
+          <span className="hidden text-sm font-medium sm:inline">
             {profile?.full_name?.split(' ')[0] || 'مدير'}
           </span>
         </div>
 
         <button
           onClick={handleLogout}
-          className="p-2 rounded-lg hover:bg-red-50 hover:text-red-600 text-muted-foreground transition-colors"
+          className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600"
           title="تسجيل الخروج"
         >
-          <LogOut className="w-5 h-5" />
+          <LogOut className="h-5 w-5" />
         </button>
       </div>
     </header>

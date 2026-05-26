@@ -2,14 +2,14 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { 
-  LayoutDashboard, 
-  Users, 
-  FileText, 
-  BarChart, 
+import {
+  LayoutDashboard,
+  Users,
+  FileText,
+  BarChart,
   Settings,
   BrainCircuit,
-  HelpCircle
+  HelpCircle,
 } from 'lucide-react'
 
 const MENU_ITEMS = [
@@ -25,15 +25,21 @@ export function TeacherSidebar() {
   const pathname = usePathname()
 
   return (
-    <div className="w-64 h-screen bg-slate-900 text-slate-300 flex flex-col fixed right-0 top-0 border-l border-slate-800">
-      <div className="h-16 flex items-center justify-center border-b border-slate-800 shrink-0 px-6 gap-3">
-        <div className="w-10 h-10 bg-white rounded-xl shadow-lg flex items-center justify-center shrink-0">
-          <img src="/logo.png" alt="استباق مصر فاهم" className="w-full h-full object-contain" />
+    <div className="fixed right-0 top-0 flex h-screen w-64 flex-col border-l border-slate-800 bg-slate-900 text-slate-300">
+      <div className="flex h-16 shrink-0 items-center justify-center gap-3 border-b border-slate-800 px-6">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white shadow-lg">
+          <img
+            src="/logo.png"
+            alt="استباق مصر فاهم"
+            className="h-full w-full object-contain"
+          />
         </div>
-        <span className="font-display font-bold text-lg text-white">بوابة المعلم</span>
+        <span className="font-display text-lg font-bold text-white">
+          بوابة المعلم
+        </span>
       </div>
 
-      <div className="flex-1 overflow-y-auto py-6 px-4">
+      <div className="flex-1 overflow-y-auto px-4 py-6">
         <nav className="space-y-1.5">
           {MENU_ITEMS.map((item) => {
             const isActive = pathname.startsWith(item.href)
@@ -41,13 +47,15 @@ export function TeacherSidebar() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm
-                  ${isActive 
-                    ? 'bg-indigo-500/10 text-indigo-400 font-bold' 
+                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all ${
+                  isActive
+                    ? 'bg-indigo-500/10 font-bold text-indigo-400'
                     : 'hover:bg-slate-800 hover:text-white'
-                  }`}
+                }`}
               >
-                <item.icon className={`w-5 h-5 ${isActive ? 'text-indigo-400' : 'text-slate-400'}`} />
+                <item.icon
+                  className={`h-5 w-5 ${isActive ? 'text-indigo-400' : 'text-slate-400'}`}
+                />
                 {item.label}
               </Link>
             )
@@ -55,9 +63,9 @@ export function TeacherSidebar() {
         </nav>
       </div>
 
-      <div className="p-4 border-t border-slate-800">
-        <div className="bg-slate-800/50 rounded-xl p-4 text-center border border-slate-700">
-          <div className="text-xs text-slate-400 mb-2">اشتراك المعلم</div>
+      <div className="border-t border-slate-800 p-4">
+        <div className="rounded-xl border border-slate-700 bg-slate-800/50 p-4 text-center">
+          <div className="mb-2 text-xs text-slate-400">اشتراك المعلم</div>
           <div className="text-sm font-bold text-emerald-400">مفعل (VIP)</div>
         </div>
       </div>

@@ -20,7 +20,7 @@ export function TeacherOnboardingForm({ subjects }: { subjects: Subject[] }) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!selectedSubject) {
       setError('يرجى اختيار مادتك التخصصية للمتابعة')
       return
@@ -30,7 +30,9 @@ export function TeacherOnboardingForm({ subjects }: { subjects: Subject[] }) {
     setError('')
 
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
       if (!user) throw new Error('غير مسجل الدخول')
 
       const { error: updateError } = await supabase
@@ -51,28 +53,30 @@ export function TeacherOnboardingForm({ subjects }: { subjects: Subject[] }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {error && (
-        <div className="p-3 bg-red-50 text-red-600 rounded-xl text-sm font-bold border border-red-100 flex items-center gap-2">
+        <div className="flex items-center gap-2 rounded-xl border border-red-100 bg-red-50 p-3 text-sm font-bold text-red-600">
           <span>⚠️</span> {error}
         </div>
       )}
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {subjects.map((subject) => (
           <button
             key={subject.id}
             type="button"
             onClick={() => setSelectedSubject(subject.id)}
-            className={`p-4 rounded-2xl border-2 flex flex-col items-center justify-center gap-3 transition-all ${
+            className={`flex flex-col items-center justify-center gap-3 rounded-2xl border-2 p-4 transition-all ${
               selectedSubject === subject.id
                 ? 'border-indigo-600 bg-indigo-50 text-indigo-700 shadow-sm'
                 : 'border-slate-100 bg-white text-slate-600 hover:border-indigo-200 hover:bg-slate-50'
             }`}
           >
             <div className="text-3xl">{subject.icon}</div>
-            <span className="font-bold text-sm text-center">{subject.name_ar}</span>
+            <span className="text-center text-sm font-bold">
+              {subject.name_ar}
+            </span>
             {selectedSubject === subject.id && (
-              <div className="absolute top-2 right-2">
-                <CheckCircle className="w-5 h-5 text-indigo-600" />
+              <div className="absolute right-2 top-2">
+                <CheckCircle className="h-5 w-5 text-indigo-600" />
               </div>
             )}
           </button>
@@ -82,9 +86,13 @@ export function TeacherOnboardingForm({ subjects }: { subjects: Subject[] }) {
       <button
         type="submit"
         disabled={loading || !selectedSubject}
-        className="w-full bg-slate-800 hover:bg-slate-900 disabled:bg-slate-300 text-white font-bold py-4 rounded-xl transition-colors flex items-center justify-center gap-2 shadow-sm"
+        className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-800 py-4 font-bold text-white shadow-sm transition-colors hover:bg-slate-900 disabled:bg-slate-300"
       >
-        {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'حفظ ومتابعة إلى لوحة التحكم'}
+        {loading ? (
+          <Loader2 className="h-5 w-5 animate-spin" />
+        ) : (
+          'حفظ ومتابعة إلى لوحة التحكم'
+        )}
       </button>
     </form>
   )

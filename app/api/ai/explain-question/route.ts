@@ -9,9 +9,9 @@ const MODELS = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.0-flash']
 function getModel(name: string) {
   return new GoogleGenerativeAI(
     process.env.GOOGLE_GENERATIVE_AI_API_KEY || ''
-  ).getGenerativeModel({ 
+  ).getGenerativeModel({
     model: name,
-    generationConfig: { temperature: 0.3, maxOutputTokens: 600 }
+    generationConfig: { temperature: 0.3, maxOutputTokens: 600 },
   })
 }
 
@@ -20,12 +20,21 @@ export async function POST(req: NextRequest) {
     const supabase = await createClient()
 
     // التحقق من المستخدم
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
     if (!user) {
       return NextResponse.json({ error: 'غير مصرح' }, { status: 401 })
     }
 
-    const { questionId, questionText, correctAnswer, studentAnswer, subject, grade } = await req.json()
+    const {
+      questionId,
+      questionText,
+      correctAnswer,
+      studentAnswer,
+      subject,
+      grade,
+    } = await req.json()
 
     if (!questionText) {
       return NextResponse.json({ error: 'بيانات ناقصة' }, { status: 400 })

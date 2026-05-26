@@ -23,7 +23,7 @@ export function GenerateSummaryClient({ lessonId, initialSummary }: Props) {
       const res = await fetch('/api/ai/generate-summary', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lessonId })
+        body: JSON.stringify({ lessonId }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'فشل توليد الملخص')
@@ -53,19 +53,27 @@ export function GenerateSummaryClient({ lessonId, initialSummary }: Props) {
   }
 
   return (
-    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-5 mb-6">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="font-bold text-blue-900 flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-blue-600" />
+    <div className="mb-6 rounded-2xl border border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 p-5">
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="flex items-center gap-2 font-bold text-blue-900">
+          <Sparkles className="h-5 w-5 text-blue-600" />
           الملخص الذكي للدرس
         </h3>
-        <button 
-          onClick={generateSummary} 
+        <button
+          onClick={generateSummary}
           disabled={loading}
-          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-blue-700 transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
         >
-          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : (summary ? <RefreshCcw className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />)}
-          {summary ? 'إعادة التوليد بالذكاء الاصطناعي' : 'توليد بالذكاء الاصطناعي'}
+          {loading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : summary ? (
+            <RefreshCcw className="h-4 w-4" />
+          ) : (
+            <Sparkles className="h-4 w-4" />
+          )}
+          {summary
+            ? 'إعادة التوليد بالذكاء الاصطناعي'
+            : 'توليد بالذكاء الاصطناعي'}
         </button>
       </div>
 
@@ -76,17 +84,21 @@ export function GenerateSummaryClient({ lessonId, initialSummary }: Props) {
           placeholder="سيظهر الملخص الذكي هنا، أو يمكنك كتابة الملخص يدوياً..."
           rows={6}
           dir="rtl"
-          className="w-full p-4 rounded-xl border border-blue-200 focus:outline-none focus:border-blue-500 font-mono text-sm leading-relaxed"
+          className="w-full rounded-xl border border-blue-200 p-4 font-mono text-sm leading-relaxed focus:border-blue-500 focus:outline-none"
         />
-        
+
         {summary !== initialSummary && (
           <div className="flex justify-end">
             <button
               onClick={saveSummary}
               disabled={saving}
-              className="flex items-center gap-2 bg-green-600 text-white px-5 py-2 rounded-xl text-sm font-bold hover:bg-green-700 transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 rounded-xl bg-green-600 px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-green-700 disabled:opacity-50"
             >
-              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              {saving ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
               حفظ الملخص
             </button>
           </div>

@@ -4,8 +4,10 @@ import { createClient } from '@/lib/supabase/server'
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
     if (!user) {
       return NextResponse.json({ error: 'غير مصرح' }, { status: 401 })
     }
@@ -35,7 +37,7 @@ export async function POST(request: NextRequest) {
         amount: plan.price,
         payment_method: paymentMethod,
         status: 'completed',
-        reference_id: `SIM-${Date.now()}`
+        reference_id: `SIM-${Date.now()}`,
       })
       .select()
       .single()
@@ -54,19 +56,21 @@ export async function POST(request: NextRequest) {
         plan_id: plan.id,
         start_date: new Date().toISOString(),
         end_date: endDate.toISOString(),
-        status: 'active'
+        status: 'active',
       })
 
     if (subErr) throw subErr
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       message: 'تم تفعيل الاشتراك بنجاح!',
-      transaction 
+      transaction,
     })
-
   } catch (error: any) {
     console.error('Error in subscription:', error)
-    return NextResponse.json({ error: 'حدث خطأ أثناء إتمام الاشتراك' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'حدث خطأ أثناء إتمام الاشتراك' },
+      { status: 500 }
+    )
   }
 }

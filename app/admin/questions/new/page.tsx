@@ -9,11 +9,11 @@ import { RichTextEditor } from '@/components/ui/RichTextEditor'
 export default function NewQuestionPage() {
   const router = useRouter()
   const supabase = createClient()
-  
+
   const [loading, setLoading] = useState(false)
   const [subjects, setSubjects] = useState<any[]>([])
   const [grades, setGrades] = useState<any[]>([])
-  
+
   const [formData, setFormData] = useState({
     subject_id: '',
     grade_id: '',
@@ -24,14 +24,14 @@ export default function NewQuestionPage() {
     difficulty_level: 'medium',
     bloom_level: 'understand',
     points: 1,
-    options: ['', '', '', '']
+    options: ['', '', '', ''],
   })
 
   useEffect(() => {
     async function fetchData() {
       const [{ data: s }, { data: g }] = await Promise.all([
         supabase.from('subjects').select('*').order('name_ar'),
-        supabase.from('grades').select('*').order('grade_number')
+        supabase.from('grades').select('*').order('grade_number'),
       ])
       setSubjects(s || [])
       setGrades(g || [])
@@ -42,31 +42,35 @@ export default function NewQuestionPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    
+
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
       if (!user) throw new Error('غير مصرح')
 
-      const { data: admin } = await supabase.from('admins').select('id').eq('id', user.id).single()
+      const { data: admin } = await supabase
+        .from('admins')
+        .select('id')
+        .eq('id', user.id)
+        .single()
       if (!admin) throw new Error('فقط المديرون يمكنهم إضافة أسئلة')
 
-      const { error } = await supabase
-        .from('questions')
-        .insert({
-          admin_id: (admin as any).id,
-          subject_id: parseInt(formData.subject_id),
-          grade_id: parseInt(formData.grade_id),
-          question_type: formData.question_type,
-          question_text: formData.question_text,
-          correct_answer: formData.correct_answer,
-          explanation: formData.explanation,
-          difficulty_level: formData.difficulty_level,
-          bloom_level: formData.bloom_level,
-          points: formData.points,
-          options: formData.question_type === 'mcq' ? formData.options : null,
-          status: 'approved',
-          is_approved: true // For backward compatibility if needed
-        } as any)
+      const { error } = await supabase.from('questions').insert({
+        admin_id: (admin as any).id,
+        subject_id: parseInt(formData.subject_id),
+        grade_id: parseInt(formData.grade_id),
+        question_type: formData.question_type,
+        question_text: formData.question_text,
+        correct_answer: formData.correct_answer,
+        explanation: formData.explanation,
+        difficulty_level: formData.difficulty_level,
+        bloom_level: formData.bloom_level,
+        points: formData.points,
+        options: formData.question_type === 'mcq' ? formData.options : null,
+        status: 'approved',
+        is_approved: true, // For backward compatibility if needed
+      } as any)
 
       if (error) throw error
 
@@ -87,36 +91,53 @@ export default function NewQuestionPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-8 pb-20">
+    <div className="mx-auto max-w-3xl space-y-8 pb-20">
       <div>
-        <h1 className="text-3xl font-display font-bold">إضافة سؤال جديد</h1>
-        <p className="text-muted-foreground mt-1">قم بإضافة السؤال يدوياً إلى بنك الأسئلة</p>
+        <h1 className="font-display text-3xl font-bold">إضافة سؤال جديد</h1>
+        <p className="mt-1 text-muted-foreground">
+          قم بإضافة السؤال يدوياً إلى بنك الأسئلة
+        </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white p-8 rounded-2xl border border-border shadow-sm space-y-6">
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-6 rounded-2xl border border-border bg-white p-8 shadow-sm"
+      >
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <label className="text-sm font-medium">المادة</label>
-            <select 
+            <select
               required
               value={formData.subject_id}
-              onChange={e => setFormData({...formData, subject_id: e.target.value})}
-              className="w-full px-4 py-2 rounded-xl border border-border outline-none focus:ring-2 focus:ring-primary/20"
+              onChange={(e) =>
+                setFormData({ ...formData, subject_id: e.target.value })
+              }
+              className="w-full rounded-xl border border-border px-4 py-2 outline-none focus:ring-2 focus:ring-primary/20"
             >
               <option value="">اختر المادة</option>
-              {subjects.map(s => <option key={s.id} value={s.id}>{s.name_ar}</option>)}
+              {subjects.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name_ar}
+                </option>
+              ))}
             </select>
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium">الصف الدراسي</label>
-            <select 
+            <select
               required
               value={formData.grade_id}
-              onChange={e => setFormData({...formData, grade_id: e.target.value})}
-              className="w-full px-4 py-2 rounded-xl border border-border outline-none focus:ring-2 focus:ring-primary/20"
+              onChange={(e) =>
+                setFormData({ ...formData, grade_id: e.target.value })
+              }
+              className="w-full rounded-xl border border-border px-4 py-2 outline-none focus:ring-2 focus:ring-primary/20"
             >
               <option value="">اختر الصف</option>
-              {grades.map(g => <option key={g.id} value={g.id}>{g.name_ar}</option>)}
+              {grades.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.name_ar}
+                </option>
+              ))}
             </select>
           </div>
         </div>
@@ -124,10 +145,12 @@ export default function NewQuestionPage() {
         <div className="grid grid-cols-3 gap-4">
           <div className="space-y-2">
             <label className="text-sm font-medium">نوع السؤال</label>
-            <select 
+            <select
               value={formData.question_type}
-              onChange={e => setFormData({...formData, question_type: e.target.value})}
-              className="w-full px-4 py-2 rounded-xl border border-border outline-none focus:ring-2 focus:ring-primary/20"
+              onChange={(e) =>
+                setFormData({ ...formData, question_type: e.target.value })
+              }
+              className="w-full rounded-xl border border-border px-4 py-2 outline-none focus:ring-2 focus:ring-primary/20"
             >
               <option value="mcq">اختيار من متعدد</option>
               <option value="true_false">صح أو خطأ</option>
@@ -136,10 +159,12 @@ export default function NewQuestionPage() {
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium">الصعوبة</label>
-            <select 
+            <select
               value={formData.difficulty_level}
-              onChange={e => setFormData({...formData, difficulty_level: e.target.value})}
-              className="w-full px-4 py-2 rounded-xl border border-border outline-none focus:ring-2 focus:ring-primary/20"
+              onChange={(e) =>
+                setFormData({ ...formData, difficulty_level: e.target.value })
+              }
+              className="w-full rounded-xl border border-border px-4 py-2 outline-none focus:ring-2 focus:ring-primary/20"
             >
               <option value="easy">سهل</option>
               <option value="medium">متوسط</option>
@@ -148,22 +173,28 @@ export default function NewQuestionPage() {
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium">النقاط</label>
-            <input 
-              type="number" 
+            <input
+              type="number"
               value={formData.points}
-              onChange={e => setFormData({...formData, points: parseInt(e.target.value)})}
-              className="w-full px-4 py-2 rounded-xl border border-border outline-none"
+              onChange={(e) =>
+                setFormData({ ...formData, points: parseInt(e.target.value) })
+              }
+              className="w-full rounded-xl border border-border px-4 py-2 outline-none"
             />
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium">مستوى بلوم المعرفي (Bloom's Taxonomy)</label>
-            <select 
+            <label className="text-sm font-medium">
+              مستوى بلوم المعرفي (Bloom's Taxonomy)
+            </label>
+            <select
               value={formData.bloom_level}
-              onChange={e => setFormData({...formData, bloom_level: e.target.value})}
-              className="w-full px-4 py-2 rounded-xl border border-border outline-none focus:ring-2 focus:ring-primary/20"
+              onChange={(e) =>
+                setFormData({ ...formData, bloom_level: e.target.value })
+              }
+              className="w-full rounded-xl border border-border px-4 py-2 outline-none focus:ring-2 focus:ring-primary/20"
             >
               <option value="remember">تذكر (Remember)</option>
               <option value="understand">فهم (Understand)</option>
@@ -177,27 +208,31 @@ export default function NewQuestionPage() {
 
         <div className="space-y-2">
           <label className="text-sm font-medium">نص السؤال</label>
-          <RichTextEditor 
+          <RichTextEditor
             value={formData.question_text}
-            onChange={val => setFormData({...formData, question_text: val})}
+            onChange={(val) => setFormData({ ...formData, question_text: val })}
             placeholder="اكتب نص السؤال هنا..."
           />
         </div>
 
         {formData.question_type === 'mcq' && (
           <div className="space-y-4 pt-2">
-            <label className="text-sm font-medium flex items-center gap-2"><HelpCircle className="w-4 h-4" /> الخيارات</label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <label className="flex items-center gap-2 text-sm font-medium">
+              <HelpCircle className="h-4 w-4" /> الخيارات
+            </label>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               {formData.options.map((opt, i) => (
                 <div key={i} className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-muted-foreground w-4">{String.fromCharCode(65 + i)}</span>
-                  <input 
+                  <span className="w-4 text-xs font-bold text-muted-foreground">
+                    {String.fromCharCode(65 + i)}
+                  </span>
+                  <input
                     required
-                    type="text" 
+                    type="text"
                     value={opt}
-                    onChange={e => handleOptionChange(i, e.target.value)}
+                    onChange={(e) => handleOptionChange(i, e.target.value)}
                     placeholder={`الخيار ${i + 1}`}
-                    className="flex-1 px-4 py-2 rounded-xl border border-border outline-none"
+                    className="flex-1 rounded-xl border border-border px-4 py-2 outline-none"
                   />
                 </div>
               ))}
@@ -208,48 +243,62 @@ export default function NewQuestionPage() {
         <div className="space-y-2">
           <label className="text-sm font-medium">الإجابة الصحيحة</label>
           {formData.question_type === 'true_false' ? (
-            <select 
+            <select
               value={formData.correct_answer}
-              onChange={e => setFormData({...formData, correct_answer: e.target.value})}
-              className="w-full px-4 py-2 rounded-xl border border-border outline-none"
+              onChange={(e) =>
+                setFormData({ ...formData, correct_answer: e.target.value })
+              }
+              className="w-full rounded-xl border border-border px-4 py-2 outline-none"
             >
               <option value="">اختر الإجابة</option>
               <option value="صح">صح</option>
               <option value="خطأ">خطأ</option>
             </select>
           ) : (
-            <input 
+            <input
               required
-              type="text" 
+              type="text"
               value={formData.correct_answer}
-              onChange={e => setFormData({...formData, correct_answer: e.target.value})}
-              placeholder={formData.question_type === 'mcq' ? "يجب أن تطابق أحد الخيارات تماماً" : "اكتب الإجابة الصحيحة"}
-              className="w-full px-4 py-2 rounded-xl border border-border outline-none focus:ring-2 focus:ring-primary/20"
+              onChange={(e) =>
+                setFormData({ ...formData, correct_answer: e.target.value })
+              }
+              placeholder={
+                formData.question_type === 'mcq'
+                  ? 'يجب أن تطابق أحد الخيارات تماماً'
+                  : 'اكتب الإجابة الصحيحة'
+              }
+              className="w-full rounded-xl border border-border px-4 py-2 outline-none focus:ring-2 focus:ring-primary/20"
             />
           )}
         </div>
 
         <div className="space-y-2">
           <label className="text-sm font-medium">شرح الإجابة (اختياري)</label>
-          <RichTextEditor 
+          <RichTextEditor
             value={formData.explanation}
-            onChange={val => setFormData({...formData, explanation: val})}
+            onChange={(val) => setFormData({ ...formData, explanation: val })}
             placeholder="لماذا هذه هي الإجابة الصحيحة؟"
           />
         </div>
 
-        <div className="pt-4 flex gap-4">
-          <button 
+        <div className="flex gap-4 pt-4">
+          <button
             type="submit"
             disabled={loading}
-            className="flex-1 bg-primary text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-primary/90 transition-all shadow-lg shadow-primary/20"
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary py-3 font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90"
           >
-            {loading ? 'جاري الحفظ...' : <><Save className="w-5 h-5" /> إضافة السؤال للبنك</>}
+            {loading ? (
+              'جاري الحفظ...'
+            ) : (
+              <>
+                <Save className="h-5 w-5" /> إضافة السؤال للبنك
+              </>
+            )}
           </button>
-          <button 
+          <button
             type="button"
             onClick={() => router.back()}
-            className="px-6 py-3 rounded-xl border border-border font-medium hover:bg-muted transition-all"
+            className="rounded-xl border border-border px-6 py-3 font-medium transition-all hover:bg-muted"
           >
             إلغاء
           </button>

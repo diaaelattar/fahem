@@ -21,19 +21,21 @@ export default async function TeacherExamsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 animate-fade-in">
+      <div className="flex animate-fade-in flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-2xl font-black text-slate-800 flex items-center gap-2">
-            <FileText className="w-6 h-6 text-emerald-600" />
+          <h1 className="flex items-center gap-2 text-2xl font-black text-slate-800">
+            <FileText className="h-6 w-6 text-emerald-600" />
             إدارة الاختبارات
           </h1>
-          <p className="text-sm text-slate-500 mt-1">قم بإنشاء اختبارات مخصصة لمجموعاتك باستخدام بنك أسئلة استباق.</p>
+          <p className="mt-1 text-sm text-slate-500">
+            قم بإنشاء اختبارات مخصصة لمجموعاتك باستخدام بنك أسئلة استباق.
+          </p>
         </div>
-        <Link 
-          href="/teacher/exams/new" 
-          className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-emerald-200 transition-all active:scale-95"
+        <Link
+          href="/teacher/exams/new"
+          className="flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 font-bold text-white shadow-lg shadow-emerald-200 transition-all hover:bg-emerald-700 active:scale-95"
         >
-          <PlusCircle className="w-5 h-5" />
+          <PlusCircle className="h-5 w-5" />
           إنشاء اختبار
         </Link>
       </div>
@@ -42,19 +44,22 @@ export default async function TeacherExamsPage() {
       {exams && exams.length > 0 ? (
         <AnimatedExamGrid exams={exams} />
       ) : (
-        <div className="bg-white rounded-3xl border border-dashed border-border p-12 text-center flex flex-col items-center animate-fade-in">
-          <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-4">
-            <FileText className="w-10 h-10 text-slate-300" />
+        <div className="flex animate-fade-in flex-col items-center rounded-3xl border border-dashed border-border bg-white p-12 text-center">
+          <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-slate-50">
+            <FileText className="h-10 w-10 text-slate-300" />
           </div>
-          <h3 className="text-xl font-bold text-slate-800 mb-2">لا يوجد لديك أي اختبارات</h3>
-          <p className="text-slate-500 max-w-md mx-auto mb-6">
-            قم بإنشاء اختبارك الأول واختيار الأسئلة من بنك الأسئلة لإرسالها لطلاب مجموعاتك.
+          <h3 className="mb-2 text-xl font-bold text-slate-800">
+            لا يوجد لديك أي اختبارات
+          </h3>
+          <p className="mx-auto mb-6 max-w-md text-slate-500">
+            قم بإنشاء اختبارك الأول واختيار الأسئلة من بنك الأسئلة لإرسالها
+            لطلاب مجموعاتك.
           </p>
-          <Link 
-            href="/teacher/exams/new" 
-            className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all shadow-lg shadow-emerald-200"
+          <Link
+            href="/teacher/exams/new"
+            className="flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-3 font-bold text-white shadow-lg shadow-emerald-200 transition-all hover:bg-emerald-700"
           >
-            <PlusCircle className="w-5 h-5" />
+            <PlusCircle className="h-5 w-5" />
             أنشئ أول اختبار
           </Link>
         </div>

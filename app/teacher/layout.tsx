@@ -5,7 +5,11 @@ import { TeacherTopbar } from '@/components/teacher/TeacherTopbar'
 import { TeacherBottomNav } from '@/components/teacher/TeacherBottomNav'
 import { createClient } from '@/lib/supabase/server'
 
-export default async function TeacherLayout({ children }: { children: React.ReactNode }) {
+export default async function TeacherLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   const profile = await getCurrentProfile()
 
   if (!profile || profile.role !== 'teacher') {
@@ -15,7 +19,9 @@ export default async function TeacherLayout({ children }: { children: React.Reac
   const supabase = await createClient()
   const { data: teacher } = await supabase
     .from('teachers')
-    .select('subject_id, is_verified, subscription_status, subscription_ends_at')
+    .select(
+      'subject_id, is_verified, subscription_status, subscription_ends_at'
+    )
     .eq('id', profile.id)
     .single()
 
@@ -36,16 +42,16 @@ export default async function TeacherLayout({ children }: { children: React.Reac
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex" dir="rtl">
+    <div className="flex min-h-screen bg-slate-50" dir="rtl">
       {/* Desktop Sidebar — hidden on mobile */}
       <div className="hidden md:block">
         <TeacherSidebar />
       </div>
 
       {/* Main content area */}
-      <div className="flex-1 flex flex-col min-w-0 md:mr-64">
+      <div className="flex min-w-0 flex-1 flex-col md:mr-64">
         <TeacherTopbar profile={profile} />
-        <main className="flex-1 p-4 pb-28 md:pb-6 md:p-6 overflow-auto">
+        <main className="flex-1 overflow-auto p-4 pb-28 md:p-6 md:pb-6">
           {children}
         </main>
       </div>

@@ -17,6 +17,9 @@ export async function GET() {
     return NextResponse.json({ success: true, data: plans })
   } catch (error: any) {
     console.error('Error fetching plans:', error)
-    return NextResponse.json({ error: 'حدث خطأ أثناء جلب الباقات' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'حدث خطأ أثناء جلب الباقات' },
+      { status: 500 }
+    )
   }
 }

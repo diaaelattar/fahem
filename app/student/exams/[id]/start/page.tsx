@@ -13,22 +13,27 @@ export default async function StartExamPage({ params }: Props) {
   const supabase = await createClient()
 
   // التحقق من إمكانية بدء الاختبار
-  const { data: canAttempt } = await (supabase.rpc as any)('can_attempt_exam', { p_exam_id: params.id })
+  const { data: canAttempt } = await (supabase.rpc as any)('can_attempt_exam', {
+    p_exam_id: params.id,
+  })
 
   // تحقق إضافي: هل اطلع الطالب على الإجابات في أي محاولة سابقة؟
-  const { data: previousAttempts } = await (supabase
-    .from('exam_attempts') as any)
+  const { data: previousAttempts } = await (
+    supabase.from('exam_attempts') as any
+  )
     .select('feedback')
     .eq('exam_id', params.id)
     .eq('student_id', profile.id)
     .not('completed_at', 'is', null)
 
-  const hasViewedAnswers = previousAttempts?.some((a: any) => a.feedback?.is_reviewed === true)
+  const hasViewedAnswers = previousAttempts?.some(
+    (a: any) => a.feedback?.is_reviewed === true
+  )
 
   if (!canAttempt?.can_attempt || hasViewedAnswers) {
-    const reason = hasViewedAnswers 
+    const reason = hasViewedAnswers
       ? 'عفواً، لا يمكن إعادة المحاولة لأنك قمت بالاطلاع على الإجابات النموذجية لمراجعتها.'
-      : (canAttempt?.reason || 'الاختبار غير متاح')
+      : canAttempt?.reason || 'الاختبار غير متاح'
 
     // فحص هل يمكن التدريب على الاختبار (practice exam)
     const { data: practiceExam } = await supabase
@@ -43,27 +48,41 @@ export default async function StartExamPage({ params }: Props) {
     const whatsappUrl = `https://wa.me/201118209309?text=${encodeURIComponent(whatsappMessage)}`
 
     return (
-      <div className="max-w-lg mx-auto text-center py-16">
-        <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-        <h2 className="text-xl font-bold mb-2">لا يمكن بدء الاختبار</h2>
-        <p className="text-muted-foreground mb-6">{reason}</p>
-        <div className="flex flex-col sm:flex-row justify-center gap-3">
-          <a href="/student/exams" className="bg-muted text-muted-foreground px-6 py-2.5 rounded-xl font-medium text-sm hover:bg-muted/80">
+      <div className="mx-auto max-w-lg py-16 text-center">
+        <AlertCircle className="mx-auto mb-4 h-12 w-12 text-red-400" />
+        <h2 className="mb-2 text-xl font-bold">لا يمكن بدء الاختبار</h2>
+        <p className="mb-6 text-muted-foreground">{reason}</p>
+        <div className="flex flex-col justify-center gap-3 sm:flex-row">
+          <a
+            href="/student/exams"
+            className="rounded-xl bg-muted px-6 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted/80"
+          >
             العودة للاختبارات
           </a>
           {canAttempt?.is_limit_reached ? (
-            <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="bg-amber-500 text-white px-6 py-2.5 rounded-xl font-medium text-sm hover:bg-amber-600 flex items-center justify-center gap-2">
-              <Star className="w-4 h-4 fill-white" />
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-6 py-2.5 text-sm font-medium text-white hover:bg-amber-600"
+            >
+              <Star className="h-4 w-4 fill-white" />
               اشترك في باقة VIP
             </a>
           ) : previousAttempts?.length ? (
-            <a href={`/student/results/${previousAttempts[0]?.id || params.id}`} className="bg-primary text-white px-6 py-2.5 rounded-xl font-medium text-sm hover:bg-primary/90">
+            <a
+              href={`/student/results/${previousAttempts[0]?.id || params.id}`}
+              className="rounded-xl bg-primary px-6 py-2.5 text-sm font-medium text-white hover:bg-primary/90"
+            >
               عرض النتيجة السابقة
             </a>
           ) : null}
         </div>
         {hasViewedAnswers && (
-           <p className="text-xs text-muted-foreground mt-6">وفقاً لسياسة المنصة، الاطلاع على الإجابات يغلق باب إعادة المحاولة لضمان الشفافية.</p>
+          <p className="mt-6 text-xs text-muted-foreground">
+            وفقاً لسياسة المنصة، الاطلاع على الإجابات يغلق باب إعادة المحاولة
+            لضمان الشفافية.
+          </p>
         )}
       </div>
     )
@@ -71,13 +90,17 @@ export default async function StartExamPage({ params }: Props) {
 
   // إذا كانت هناك محاولة جارية، قم بتحويله مباشرة لصفحة الحل
   if (canAttempt?.has_ongoing && canAttempt?.attempt_id) {
-    redirect(`/student/exams/${params.id}/take?attemptId=${canAttempt.attempt_id}`)
+    redirect(
+      `/student/exams/${params.id}/take?attemptId=${canAttempt.attempt_id}`
+    )
   }
 
   // جلب بيانات الاختبار
   const { data: exam } = await supabase
     .from('exams')
-    .select('id, title, duration_minutes, total_points, passing_score, show_results_immediately, instructions, questions_count, subjects(name_ar, icon), grades(name_ar)')
+    .select(
+      'id, title, duration_minutes, total_points, passing_score, show_results_immediately, instructions, questions_count, subjects(name_ar, icon), grades(name_ar)'
+    )
     .eq('id', params.id)
     .single()
 
@@ -88,73 +111,103 @@ export default async function StartExamPage({ params }: Props) {
 
 function ExamStartScreen({ exam }: { exam: any }) {
   return (
-    <div className="max-w-2xl mx-auto">
-      <div className="bg-white rounded-3xl border border-border overflow-hidden shadow-sm">
+    <div className="mx-auto max-w-2xl">
+      <div className="overflow-hidden rounded-3xl border border-border bg-white shadow-sm">
         {/* Header */}
-        <div className={`p-8 text-white ${
-          exam.show_results_immediately
-            ? 'bg-gradient-to-br from-indigo-600 to-violet-700'
-            : 'bg-primary'
-        }`}>
-          <div className="flex items-start justify-between mb-3">
+        <div
+          className={`p-8 text-white ${
+            exam.show_results_immediately
+              ? 'bg-gradient-to-br from-indigo-600 to-violet-700'
+              : 'bg-primary'
+          }`}
+        >
+          <div className="mb-3 flex items-start justify-between">
             <div className="text-4xl">{exam.subjects?.icon || '📚'}</div>
-            <span className={`text-[11px] font-black px-3 py-1.5 rounded-full ${
-              exam.show_results_immediately
-                ? 'bg-white/20 text-white border border-white/30'
-                : 'bg-red-500 text-white'
-            }`}>
-              {exam.show_results_immediately ? '💪 وضع تدريب' : '🔴 اختبار حقيقي'}
+            <span
+              className={`rounded-full px-3 py-1.5 text-[11px] font-black ${
+                exam.show_results_immediately
+                  ? 'border border-white/30 bg-white/20 text-white'
+                  : 'bg-red-500 text-white'
+              }`}
+            >
+              {exam.show_results_immediately
+                ? '💪 وضع تدريب'
+                : '🔴 اختبار حقيقي'}
             </span>
           </div>
-          <h1 className="text-2xl font-display font-bold mb-1">{exam.title}</h1>
-          <p className="text-blue-100">{exam.subjects?.name_ar} • {exam.grades?.name_ar}</p>
+          <h1 className="mb-1 font-display text-2xl font-bold">{exam.title}</h1>
+          <p className="text-blue-100">
+            {exam.subjects?.name_ar} • {exam.grades?.name_ar}
+          </p>
         </div>
 
         {/* Info */}
         <div className="p-8">
-          <div className="grid grid-cols-3 gap-4 mb-6">
-            <div className="text-center bg-slate-50 rounded-2xl p-4">
-              <Clock className="w-6 h-6 text-primary mx-auto mb-2" />
+          <div className="mb-6 grid grid-cols-3 gap-4">
+            <div className="rounded-2xl bg-slate-50 p-4 text-center">
+              <Clock className="mx-auto mb-2 h-6 w-6 text-primary" />
               <div className="text-xl font-bold">{exam.duration_minutes}</div>
               <div className="text-xs text-muted-foreground">دقيقة</div>
             </div>
-            <div className="text-center bg-slate-50 rounded-2xl p-4">
-              <BookOpen className="w-6 h-6 text-primary mx-auto mb-2" />
-              <div className="text-xl font-bold">{exam.questions_count || 0}</div>
+            <div className="rounded-2xl bg-slate-50 p-4 text-center">
+              <BookOpen className="mx-auto mb-2 h-6 w-6 text-primary" />
+              <div className="text-xl font-bold">
+                {exam.questions_count || 0}
+              </div>
               <div className="text-xs text-muted-foreground">سؤال</div>
             </div>
-            <div className="text-center bg-slate-50 rounded-2xl p-4">
-              <CheckCircle className="w-6 h-6 text-primary mx-auto mb-2" />
+            <div className="rounded-2xl bg-slate-50 p-4 text-center">
+              <CheckCircle className="mx-auto mb-2 h-6 w-6 text-primary" />
               <div className="text-xl font-bold">{exam.total_points}</div>
               <div className="text-xs text-muted-foreground">درجة كاملة</div>
             </div>
           </div>
 
           {exam.instructions && (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6">
-              <h3 className="font-bold text-yellow-800 mb-2">📋 تعليمات الاختبار</h3>
-              <p className="text-sm text-yellow-700 leading-relaxed">{exam.instructions}</p>
+            <div className="mb-6 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
+              <h3 className="mb-2 font-bold text-yellow-800">
+                📋 تعليمات الاختبار
+              </h3>
+              <p className="text-sm leading-relaxed text-yellow-700">
+                {exam.instructions}
+              </p>
             </div>
           )}
 
-          <div className="space-y-2 text-sm text-muted-foreground mb-8">
-            <p className="flex items-center gap-2"><span className="text-primary">✓</span> يمكنك التنقل بين الأسئلة بحرية</p>
-            <p className="flex items-center gap-2"><span className="text-primary">✓</span> سيتم التسليم التلقائي عند انتهاء الوقت</p>
-            <p className="flex items-center gap-2"><span className="text-primary">✓</span> يتم حفظ إجاباتك تلقائياً كل 30 ثانية</p>
+          <div className="mb-8 space-y-2 text-sm text-muted-foreground">
+            <p className="flex items-center gap-2">
+              <span className="text-primary">✓</span> يمكنك التنقل بين الأسئلة
+              بحرية
+            </p>
+            <p className="flex items-center gap-2">
+              <span className="text-primary">✓</span> سيتم التسليم التلقائي عند
+              انتهاء الوقت
+            </p>
+            <p className="flex items-center gap-2">
+              <span className="text-primary">✓</span> يتم حفظ إجاباتك تلقائياً
+              كل 30 ثانية
+            </p>
             {exam.passing_score != null && (
-              <p className="flex items-center gap-2"><span className="text-primary">✓</span> نسبة النجاح: <strong>{exam.passing_score}%</strong></p>
+              <p className="flex items-center gap-2">
+                <span className="text-primary">✓</span> نسبة النجاح:{' '}
+                <strong>{exam.passing_score}%</strong>
+              </p>
             )}
           </div>
 
           <form action={startExamAction}>
             <input type="hidden" name="examId" value={exam.id} />
-            <button type="submit"
-              className={`w-full font-bold py-4 rounded-2xl text-lg transition-all hover:scale-[1.01] ${
+            <button
+              type="submit"
+              className={`w-full rounded-2xl py-4 text-lg font-bold transition-all hover:scale-[1.01] ${
                 exam.show_results_immediately
-                  ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
-                  : 'bg-primary hover:bg-primary/90 text-white'
-              }`}>
-              {exam.show_results_immediately ? '💪 ابدأ جلسة التدريب' : '🚀 ابدأ الاختبار الآن'}
+                  ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+                  : 'bg-primary text-white hover:bg-primary/90'
+              }`}
+            >
+              {exam.show_results_immediately
+                ? '💪 ابدأ جلسة التدريب'
+                : '🚀 ابدأ الاختبار الآن'}
             </button>
           </form>
         </div>

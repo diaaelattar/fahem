@@ -11,18 +11,20 @@ function getModel(name: string) {
     process.env.GOOGLE_GENERATIVE_AI_API_KEY,
     process.env.GOOGLE_GENERATIVE_AI_API_KEY_2,
     process.env.GOOGLE_GENERATIVE_AI_API_KEY_3,
-    process.env.GOOGLE_GENERATIVE_AI_API_KEY_4
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY_4,
   ].filter(Boolean) as string[]
-  
+
   const selectedKey = keys[Math.floor(Math.random() * keys.length)] || ''
 
-  return new GoogleGenerativeAI(selectedKey).getGenerativeModel({ 
+  return new GoogleGenerativeAI(selectedKey).getGenerativeModel({
     model: name,
-    generationConfig: { temperature: 0.2, maxOutputTokens: 800 }
+    generationConfig: { temperature: 0.2, maxOutputTokens: 800 },
   })
 }
 
-async function fetchImageAsBase64(imageUrl: string): Promise<{ data: string; mimeType: string }> {
+async function fetchImageAsBase64(
+  imageUrl: string
+): Promise<{ data: string; mimeType: string }> {
   const response = await fetch(imageUrl)
   if (!response.ok) throw new Error(`Failed to fetch image: ${response.status}`)
   const contentType = response.headers.get('content-type') || 'image/jpeg'
@@ -35,10 +37,10 @@ async function fetchImageAsBase64(imageUrl: string): Promise<{ data: string; mim
 const normalizeMath = (text: string): string => {
   if (!text) return ''
   return text
-    .replace(/\$+/g, '')           // strip LaTeX $ delimiters
+    .replace(/\$+/g, '') // strip LaTeX $ delimiters
     .replace(/\\text\{([^}]*)\}/g, '$1') // \text{x} → x
     .replace(/\\[a-zA-Z]+\s*/g, '') // strip other LaTeX commands
-    .replace(/(\d),(\d{3})(?=[^\d]|$)/g, '$1$2')  // thousands ONLY: 5,000 → 5000 (NOT 9,81)
+    .replace(/(\d),(\d{3})(?=[^\d]|$)/g, '$1$2') // thousands ONLY: 5,000 → 5000 (NOT 9,81)
     .replace(/\s+/g, ' ')
     .trim()
     .toLowerCase()
@@ -53,27 +55,39 @@ const extractNumbers = (text: string): number[] => {
 
 const normalizeArabic = (text: string) => {
   if (!text) return ''
-  return text.trim().toLowerCase()
+  return text
+    .trim()
+    .toLowerCase()
     .replace(/[أإآ]/g, 'ا')
     .replace(/ة/g, 'ه')
     .replace(/ى/g, 'ي')
     .replace(/[\u064B-\u065F]/g, '') // إزالة التشكيل
     .replace(/[،\-_/\\.:؛"']/g, ' ') // استبدال علامات الترقيم بمسافة (استبعدنا الفاصلة الإنجليزية لأنها تُعالج في normalizeMath)
-    .replace(/\s+/g, ' ')            // إزالة المسافات الزائدة
+    .replace(/\s+/g, ' ') // إزالة المسافات الزائدة
 }
 
 /**
  * تحقق من صحة إجابة الطالب بمنطق مرن يقبل الإجابات القريبة والمختصرة
  */
-const checkAnswer = (studentAns: string, correctAns: string, type: string): boolean => {
+const checkAnswer = (
+  studentAns: string,
+  correctAns: string,
+  type: string
+): boolean => {
   if (!studentAns || !correctAns) return false
 
   if (type === 'true_false') {
-    const isStudentTrue  = studentAns === 'صح'  || studentAns.toLowerCase() === 'true'
-    const isCorrectTrue  = correctAns  === 'صح'  || correctAns.toLowerCase()  === 'true'
-    const isStudentFalse = studentAns === 'خطأ' || studentAns.toLowerCase() === 'false'
-    const isCorrectFalse = correctAns  === 'خطأ' || correctAns.toLowerCase()  === 'false'
-    return (isStudentTrue && isCorrectTrue) || (isStudentFalse && isCorrectFalse)
+    const isStudentTrue =
+      studentAns === 'صح' || studentAns.toLowerCase() === 'true'
+    const isCorrectTrue =
+      correctAns === 'صح' || correctAns.toLowerCase() === 'true'
+    const isStudentFalse =
+      studentAns === 'خطأ' || studentAns.toLowerCase() === 'false'
+    const isCorrectFalse =
+      correctAns === 'خطأ' || correctAns.toLowerCase() === 'false'
+    return (
+      (isStudentTrue && isCorrectTrue) || (isStudentFalse && isCorrectFalse)
+    )
   }
 
   // ── Math-aware comparison (runs first, before Arabic normalization) ──
@@ -86,17 +100,23 @@ const checkAnswer = (studentAns: string, correctAns: string, type: string): bool
   const correctNums = extractNumbers(correctAns)
   if (correctNums.length >= 2) {
     const studentNums = extractNumbers(studentAns)
-    if (correctNums.every(n => studentNums.includes(n))) return true
+    if (correctNums.every((n) => studentNums.includes(n))) return true
   }
 
   // Numeric-core: student writes "10", correct is "10 trees"
   const numCoreS = ms.match(/^[\d./+\-\s×÷*]+/)?.[0]?.trim()
   const numCoreC = mc.match(/^[\d./+\-\s×÷*]+/)?.[0]?.trim()
-  if (numCoreS && numCoreC && numCoreS.replace(/\s/g,'') === numCoreC.replace(/\s/g,'')) return true
+  if (
+    numCoreS &&
+    numCoreC &&
+    numCoreS.replace(/\s/g, '') === numCoreC.replace(/\s/g, '')
+  )
+    return true
   // Numeric equivalence: 1/2 == 0.5
   const numS = Number(ms.replace(/[^\d.]/g, ''))
   const numC = Number(mc.replace(/[^\d.]/g, ''))
-  if (!isNaN(numS) && !isNaN(numC) && numS > 0 && Math.abs(numS - numC) < 1e-9) return true
+  if (!isNaN(numS) && !isNaN(numC) && numS > 0 && Math.abs(numS - numC) < 1e-9)
+    return true
 
   const ns = normalizeArabic(studentAns)
   const nc = normalizeArabic(correctAns)
@@ -108,11 +128,11 @@ const checkAnswer = (studentAns: string, correctAns: string, type: string): bool
   if (nc.length >= 3 && ns.includes(nc)) return true
   if (ns.length >= 3 && nc.includes(ns)) return true
 
-  const sw = ns.split(/\s+/).filter(w => w.length >= 2)
-  const cw = nc.split(/\s+/).filter(w => w.length >= 2)
+  const sw = ns.split(/\s+/).filter((w) => w.length >= 2)
+  const cw = nc.split(/\s+/).filter((w) => w.length >= 2)
 
   if (sw.length > 0 && cw.length > 0) {
-    const common = cw.filter(w => sw.includes(w))
+    const common = cw.filter((w) => sw.includes(w))
     if (sw.length <= 2 && common.length === sw.length) return true
     const ratioCorrect = common.length / cw.length
     const ratioStudent = common.length / sw.length
@@ -125,15 +145,18 @@ const checkAnswer = (studentAns: string, correctAns: string, type: string): bool
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
     if (!user) {
       return NextResponse.json({ error: 'غير مصرح' }, { status: 401 })
     }
 
     const body = await req.json()
     const { attemptId, imageAnswers: clientImageAnswers } = body
-    if (!attemptId) return NextResponse.json({ error: 'Missing attemptId' }, { status: 400 })
+    if (!attemptId)
+      return NextResponse.json({ error: 'Missing attemptId' }, { status: 400 })
 
     // 1. Fetch Attempt
     const { data: attempt, error: attemptError } = await supabase
@@ -143,21 +166,32 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (attemptError || !attempt) throw new Error('Attempt not found')
-    if (attempt.completed_at) return NextResponse.json({ error: 'Already graded' }, { status: 400 })
+    if (attempt.completed_at)
+      return NextResponse.json({ error: 'Already graded' }, { status: 400 })
 
     const examData = attempt.exams as any
     const answers = (attempt.answers as Record<string, string>) || {}
     // Image answers: either from client payload or from saved attempt
-    const imageAnswers: Record<string, string> = clientImageAnswers || (attempt as any).answer_images || {}
+    const imageAnswers: Record<string, string> =
+      clientImageAnswers || (attempt as any).answer_images || {}
 
     // Pre-load already-graded image answers from student_answers table
     const { data: existingImageGrades } = await supabase
       .from('student_answers')
-      .select('question_id, score_awarded, is_correct, teacher_feedback, grading_method')
+      .select(
+        'question_id, score_awarded, is_correct, teacher_feedback, grading_method'
+      )
       .eq('attempt_id', attemptId)
       .eq('grading_method', 'image')
 
-    const imageGradeMap: Record<string, { score_awarded: number; is_correct: boolean; teacher_feedback: string | null }> = {}
+    const imageGradeMap: Record<
+      string,
+      {
+        score_awarded: number
+        is_correct: boolean
+        teacher_feedback: string | null
+      }
+    > = {}
     if (existingImageGrades) {
       for (const row of existingImageGrades) {
         imageGradeMap[row.question_id] = {
@@ -171,7 +205,9 @@ export async function POST(req: NextRequest) {
     // 2. Fetch Questions
     const { data: examQuestions } = await supabase
       .from('exam_questions')
-      .select('points_override, questions(id, question_type, correct_answer, points, question_text, explanation)')
+      .select(
+        'points_override, questions(id, question_type, correct_answer, points, question_text, explanation)'
+      )
       .eq('exam_id', attempt.exam_id)
 
     if (!examQuestions) throw new Error('Questions not found')
@@ -196,7 +232,11 @@ export async function POST(req: NextRequest) {
 
       if (!studentAns && !hasImageAnswer) {
         // Unanswered
-      } else if ((q.question_type === 'essay' || q.question_type === 'correction') && hasImageAnswer && imageGradeMap[q.id]) {
+      } else if (
+        (q.question_type === 'essay' || q.question_type === 'correction') &&
+        hasImageAnswer &&
+        imageGradeMap[q.id]
+      ) {
         // ── Image-graded: use pre-saved vision AI result ──
         const preGraded = imageGradeMap[q.id]
         isCorrect = preGraded.is_correct
@@ -205,7 +245,11 @@ export async function POST(req: NextRequest) {
         // Skip adding to studentAnswersPayload (already saved by /api/ai/grade-image)
         totalScore += scoreAwarded
         continue
-      } else if ((q.question_type === 'essay' || q.question_type === 'correction') && hasImageAnswer && !imageGradeMap[q.id]) {
+      } else if (
+        (q.question_type === 'essay' || q.question_type === 'correction') &&
+        hasImageAnswer &&
+        !imageGradeMap[q.id]
+      ) {
         // ── Grade handwritten image answer using Gemini Vision ──
         const imageUrl = imageAnswers[q.id]
         if (imageUrl) {
@@ -248,26 +292,38 @@ export async function POST(req: NextRequest) {
                 ])
 
                 aiResultStr = result.response.text().trim()
-                aiResultStr = aiResultStr.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim()
+                aiResultStr = aiResultStr
+                  .replace(/^```json\s*/i, '')
+                  .replace(/\s*```$/i, '')
+                  .trim()
                 break
               } catch (e) {
-                console.warn(`[Vision Grade Exam] Model ${modelName} failed:`, e)
+                console.warn(
+                  `[Vision Grade Exam] Model ${modelName} failed:`,
+                  e
+                )
               }
             }
 
             const parsed = JSON.parse(aiResultStr)
             isCorrect = parsed.is_correct || parsed.earned_score > 0
-            scoreAwarded = Math.min(qPoints, Math.max(0, Number(parsed.earned_score) || 0))
+            scoreAwarded = Math.min(
+              qPoints,
+              Math.max(0, Number(parsed.earned_score) || 0)
+            )
             aiFeedback = parsed.feedback
             studentAns = parsed.extracted_text || studentAns
           } catch (err) {
-            console.error("Failed vision grading for question:", q.id, err)
+            console.error('Failed vision grading for question:', q.id, err)
             aiFeedback = 'تعذر تصحيح الصورة تلقائياً. (تم إعطاء 0 درجة مؤقتاً)'
             scoreAwarded = 0
             isCorrect = false
           }
         }
-      } else if (q.question_type === 'mcq' || q.question_type === 'true_false') {
+      } else if (
+        q.question_type === 'mcq' ||
+        q.question_type === 'true_false'
+      ) {
         // Exact Match
         if (studentAns.trim() === q.correct_answer?.trim()) {
           isCorrect = true
@@ -279,7 +335,10 @@ export async function POST(req: NextRequest) {
           isCorrect = true
           scoreAwarded = qPoints
         }
-      } else if (q.question_type === 'essay' || q.question_type === 'correction') {
+      } else if (
+        q.question_type === 'essay' ||
+        q.question_type === 'correction'
+      ) {
         // AI Semantic Grading
         const prompt = `أنت مصحح امتحانات مصري خبير ومتساهل في التصحيح.
 
@@ -311,7 +370,10 @@ export async function POST(req: NextRequest) {
             aiResultStr = result.response.text().trim()
             // clean json markdown if present
             if (aiResultStr.startsWith('\`\`\`json')) {
-              aiResultStr = aiResultStr.replace(/\`\`\`json/g, '').replace(/\`\`\`/g, '').trim()
+              aiResultStr = aiResultStr
+                .replace(/\`\`\`json/g, '')
+                .replace(/\`\`\`/g, '')
+                .trim()
             }
             break
           } catch (e) {
@@ -322,12 +384,16 @@ export async function POST(req: NextRequest) {
         try {
           const aiEval = JSON.parse(aiResultStr)
           isCorrect = aiEval.is_correct || aiEval.score_awarded > 0
-          scoreAwarded = Math.min(qPoints, Math.max(0, Number(aiEval.score_awarded) || 0))
+          scoreAwarded = Math.min(
+            qPoints,
+            Math.max(0, Number(aiEval.score_awarded) || 0)
+          )
           aiFeedback = aiEval.feedback
         } catch (e) {
-          console.error("Failed to parse AI grading:", aiResultStr)
+          console.error('Failed to parse AI grading:', aiResultStr)
           // Fallback: AI Busy -> Exclude from total points
-          aiFeedback = 'تعذر التصحيح نظراً لانشغال المساعد الذكي. (تم استبعاد هذا السؤال من التقييم ولن يؤثر على درجاتك)'
+          aiFeedback =
+            'تعذر التصحيح نظراً لانشغال المساعد الذكي. (تم استبعاد هذا السؤال من التقييم ولن يؤثر على درجاتك)'
           scoreAwarded = 0
           isCorrect = true // Show as "neutral" or not explicitly red
           pointsToExclude += qPoints
@@ -349,18 +415,24 @@ export async function POST(req: NextRequest) {
         score_awarded: scoreAwarded,
         teacher_feedback: aiFeedback, // Save AI feedback here
         answer_image_url: answerImageUrl,
-        grading_method: gradingMethod
+        grading_method: gradingMethod,
       })
     }
 
     // 4. Calculate Final Result
-    const originalTotalPoints = examQuestions.reduce((sum, eq) => sum + Math.max(1, eq.points_override || (eq.questions as any)?.points || 1), 0)
+    const originalTotalPoints = examQuestions.reduce(
+      (sum, eq) =>
+        sum +
+        Math.max(1, eq.points_override || (eq.questions as any)?.points || 1),
+      0
+    )
     let finalTotalPoints = originalTotalPoints - pointsToExclude
     if (finalTotalPoints <= 0) finalTotalPoints = 1 // Prevent division by zero
 
     // نسبة النجاح (passing_score مخزنة كنسبة مئوية 0-100، وليس درجة مطلقة)
-    const percentage = finalTotalPoints > 0 ? (totalScore / finalTotalPoints) * 100 : 0
-    const passThreshold = examData.passing_score ?? 50  // مباشرة كنسبة مئوية
+    const percentage =
+      finalTotalPoints > 0 ? (totalScore / finalTotalPoints) * 100 : 0
+    const passThreshold = examData.passing_score ?? 50 // مباشرة كنسبة مئوية
     const isPassed = percentage >= passThreshold
 
     // 5. Update Attempt in DB
@@ -370,7 +442,7 @@ export async function POST(req: NextRequest) {
         score: totalScore,
         percentage: percentage,
         is_passed: isPassed,
-        completed_at: new Date().toISOString()
+        completed_at: new Date().toISOString(),
       })
       .eq('id', attemptId)
 
@@ -378,7 +450,9 @@ export async function POST(req: NextRequest) {
 
     // 6. Save detailed student answers
     if (studentAnswersPayload.length > 0) {
-      await supabase.from('student_answers').upsert(studentAnswersPayload, { onConflict: 'attempt_id,question_id' })
+      await supabase
+        .from('student_answers')
+        .upsert(studentAnswersPayload, { onConflict: 'attempt_id,question_id' })
     }
 
     return NextResponse.json({
@@ -386,9 +460,8 @@ export async function POST(req: NextRequest) {
       score: totalScore,
       total: finalTotalPoints,
       percentage,
-      is_passed: isPassed
+      is_passed: isPassed,
     })
-
   } catch (error: any) {
     console.error('Exam AI grading error:', error)
     return NextResponse.json(

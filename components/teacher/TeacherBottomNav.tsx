@@ -2,12 +2,12 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { 
-  LayoutDashboard, 
-  Users, 
-  FileText, 
+import {
+  LayoutDashboard,
+  Users,
+  FileText,
   BarChart,
-  HelpCircle
+  HelpCircle,
 } from 'lucide-react'
 
 const MENU_ITEMS = [
@@ -22,19 +22,22 @@ export function TeacherBottomNav() {
   const pathname = usePathname()
 
   return (
-    <div className="md:hidden fixed bottom-0 inset-x-0 bg-white border-t border-border pb-safe z-40">
-      <div className="flex items-center justify-around h-16">
+    <div className="pb-safe fixed inset-x-0 bottom-0 z-40 border-t border-border bg-white md:hidden">
+      <div className="flex h-16 items-center justify-around">
         {MENU_ITEMS.map((item) => {
           const isActive = pathname.startsWith(item.href)
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors
-                ${isActive ? 'text-indigo-600' : 'text-slate-500 hover:text-slate-900'}`}
+              className={`flex h-full w-full flex-col items-center justify-center space-y-1 transition-colors ${isActive ? 'text-indigo-600' : 'text-slate-500 hover:text-slate-900'}`}
             >
-              <item.icon className={`w-5 h-5 ${isActive ? 'fill-indigo-100' : ''}`} />
-              <span className={`text-[10px] font-bold ${isActive ? 'text-indigo-600' : 'text-slate-500'}`}>
+              <item.icon
+                className={`h-5 w-5 ${isActive ? 'fill-indigo-100' : ''}`}
+              />
+              <span
+                className={`text-[10px] font-bold ${isActive ? 'text-indigo-600' : 'text-slate-500'}`}
+              >
                 {item.label}
               </span>
             </Link>

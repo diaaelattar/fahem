@@ -35,15 +35,15 @@ export default async function TakeExamPage({ params, searchParams }: Props) {
 
   if (!attempt) {
     return (
-      <div className="max-w-lg mx-auto text-center py-16">
-        <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-        <h2 className="text-xl font-bold mb-2">محاولة غير صالحة</h2>
-        <p className="text-muted-foreground mb-6">
+      <div className="mx-auto max-w-lg py-16 text-center">
+        <AlertCircle className="mx-auto mb-4 h-12 w-12 text-red-400" />
+        <h2 className="mb-2 text-xl font-bold">محاولة غير صالحة</h2>
+        <p className="mb-6 text-muted-foreground">
           لم يتم العثور على هذه المحاولة أو انتهت صلاحيتها
         </p>
         <a
           href="/student/exams"
-          className="bg-primary text-white px-6 py-2.5 rounded-xl font-medium text-sm hover:bg-primary/90"
+          className="rounded-xl bg-primary px-6 py-2.5 text-sm font-medium text-white hover:bg-primary/90"
         >
           العودة للاختبارات
         </a>
@@ -59,7 +59,8 @@ export default async function TakeExamPage({ params, searchParams }: Props) {
   // جلب بيانات الاختبار
   const { data: exam } = await supabase
     .from('exams')
-    .select(`
+    .select(
+      `
       id, 
       title, 
       duration_minutes, 
@@ -68,7 +69,8 @@ export default async function TakeExamPage({ params, searchParams }: Props) {
       show_results_immediately, 
       instructions,
       subjects (name_ar)
-    `)
+    `
+    )
     .eq('id', params.id)
     .single()
 
@@ -91,11 +93,14 @@ export default async function TakeExamPage({ params, searchParams }: Props) {
 
   if (!examQuestions || examQuestions.length === 0) {
     return (
-      <div className="max-w-lg mx-auto text-center py-16">
-        <AlertCircle className="w-12 h-12 text-yellow-400 mx-auto mb-4" />
-        <h2 className="text-xl font-bold mb-2">الاختبار لا يحتوي على أسئلة</h2>
-        <p className="text-muted-foreground mb-6">يرجى التواصل مع معلمك</p>
-        <a href="/student/exams" className="bg-primary text-white px-6 py-2.5 rounded-xl font-medium text-sm">
+      <div className="mx-auto max-w-lg py-16 text-center">
+        <AlertCircle className="mx-auto mb-4 h-12 w-12 text-yellow-400" />
+        <h2 className="mb-2 text-xl font-bold">الاختبار لا يحتوي على أسئلة</h2>
+        <p className="mb-6 text-muted-foreground">يرجى التواصل مع معلمك</p>
+        <a
+          href="/student/exams"
+          className="rounded-xl bg-primary px-6 py-2.5 text-sm font-medium text-white"
+        >
           العودة
         </a>
       </div>
@@ -116,10 +121,12 @@ export default async function TakeExamPage({ params, searchParams }: Props) {
       points: eq.points_override || Math.max(1, eq.questions.points || 1),
       question_image_url: eq.questions.question_image_url,
       // الإجابات الصحيحة فقط في وضع التدريب
-      ...(isPracticeMode ? {
-        correct_answer: eq.questions.correct_answer,
-        explanation: eq.questions.explanation,
-      } : {})
+      ...(isPracticeMode
+        ? {
+            correct_answer: eq.questions.correct_answer,
+            explanation: eq.questions.explanation,
+          }
+        : {}),
     }))
 
   return (

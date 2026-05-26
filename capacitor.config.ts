@@ -1,4 +1,4 @@
-import { CapacitorConfig } from '@capacitor/cli';
+import { CapacitorConfig } from '@capacitor/cli'
 
 const config: CapacitorConfig = {
   appId: 'com.fahem.egypt',
@@ -7,8 +7,8 @@ const config: CapacitorConfig = {
 
   server: {
     url: 'https://fahem-dpmnkkpzf-123456s-projects-1468ee16.vercel.app',
-    cleartext: true
-  }
-};
+    cleartext: true,
+  },
+}
 
-export default config;
+export default config

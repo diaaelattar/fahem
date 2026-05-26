@@ -1,6 +1,12 @@
 'use client'
 
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react'
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  ReactNode,
+} from 'react'
 import { CheckCircle, XCircle, AlertCircle, X } from 'lucide-react'
 
 type ToastType = 'success' | 'error' | 'info'
@@ -36,28 +42,36 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={{ toast }}>
       {children}
-      <div className="fixed bottom-4 left-4 z-50 flex flex-col gap-2 max-w-sm">
+      <div className="fixed bottom-4 left-4 z-50 flex max-w-sm flex-col gap-2">
         {toasts.map((t) => (
           <div
             key={t.id}
-            className={`flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border animate-fade-in ${
-              t.type === 'success' ? 'bg-green-50 border-green-200 text-green-800' :
-              t.type === 'error' ? 'bg-red-50 border-red-200 text-red-800' :
-              'bg-blue-50 border-blue-200 text-blue-800'
+            className={`flex animate-fade-in items-center gap-3 rounded-lg border px-4 py-3 shadow-lg ${
+              t.type === 'success'
+                ? 'border-green-200 bg-green-50 text-green-800'
+                : t.type === 'error'
+                  ? 'border-red-200 bg-red-50 text-red-800'
+                  : 'border-blue-200 bg-blue-50 text-blue-800'
             }`}
             dir="rtl"
           >
-            {t.type === 'success' && <CheckCircle className="w-5 h-5 text-green-500 shrink-0" />}
-            {t.type === 'error' && <XCircle className="w-5 h-5 text-red-500 shrink-0" />}
-            {t.type === 'info' && <AlertCircle className="w-5 h-5 text-blue-500 shrink-0" />}
-            
-            <p className="text-sm font-medium flex-1">{t.message}</p>
-            
+            {t.type === 'success' && (
+              <CheckCircle className="h-5 w-5 shrink-0 text-green-500" />
+            )}
+            {t.type === 'error' && (
+              <XCircle className="h-5 w-5 shrink-0 text-red-500" />
+            )}
+            {t.type === 'info' && (
+              <AlertCircle className="h-5 w-5 shrink-0 text-blue-500" />
+            )}
+
+            <p className="flex-1 text-sm font-medium">{t.message}</p>
+
             <button
               onClick={() => removeToast(t.id)}
-              className="p-1 rounded-md hover:bg-black/5 transition-colors shrink-0"
+              className="shrink-0 rounded-md p-1 transition-colors hover:bg-black/5"
             >
-              <X className="w-4 h-4" />
+              <X className="h-4 w-4" />
             </button>
           </div>
         ))}

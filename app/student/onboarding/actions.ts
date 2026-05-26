@@ -14,24 +14,35 @@ export async function saveStudentGradeAction(
   )
 
   // 1. Get user email to ensure profile is complete
-  const { data: { user } } = await supabaseAdmin.auth.admin.getUserById(userId)
+  const {
+    data: { user },
+  } = await supabaseAdmin.auth.admin.getUserById(userId)
 
   // 2. Ensure profile exists
-  const { error: profileError } = await supabaseAdmin.from('profiles').upsert({
-    id: userId,
-    email: user?.email || '',
-    full_name: user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'طالب جديد',
-    role: 'student',
-  }, { onConflict: 'id' })
+  const { error: profileError } = await supabaseAdmin.from('profiles').upsert(
+    {
+      id: userId,
+      email: user?.email || '',
+      full_name:
+        user?.user_metadata?.full_name ||
+        user?.email?.split('@')[0] ||
+        'طالب جديد',
+      role: 'student',
+    },
+    { onConflict: 'id' }
+  )
 
   if (profileError) throw new Error(profileError.message)
 
   // 3. Ensure student row exists and update grade + education_type
-  const { error: studentError } = await supabaseAdmin.from('students').upsert({
-    id: userId,
-    grade_id: gradeId,
-    education_type: educationType,
-  }, { onConflict: 'id' })
+  const { error: studentError } = await supabaseAdmin.from('students').upsert(
+    {
+      id: userId,
+      grade_id: gradeId,
+      education_type: educationType,
+    },
+    { onConflict: 'id' }
+  )
 
   if (studentError) throw new Error(studentError.message)
 
@@ -41,7 +52,7 @@ export async function saveStudentGradeAction(
       p_student_id: userId,
       p_amount: 10,
       p_reason: 'أول تسجيل دخول 🎉',
-      p_reference: null
+      p_reference: null,
     })
   } catch {
     // Ignore error

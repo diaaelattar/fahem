@@ -13,6 +13,7 @@
 **الهدف:** عرض أسئلة تخصص المعلم فقط، وتوفير تصفية متسلسلة هرمية: **الصف الدراسي ← الفصل الدراسي (الترم) ← الوحدة الدراسية ← الدرس**، مع إمكانية تحديد الأسئلة المفرزة وتكوين اختبار جديد بها مباشرة.
 
 #### [MODIFY] [page.tsx](file:///c:/Users/diaa_elattar/Downloads/istabaq-egypt-complete/istabaq-egypt/app/teacher/questions/page.tsx)
+
 - **تقييد مادة المعلم:** التحقق من وجود مادة للمعلم؛ وفي حال لم يقم باختيار مادتة الدراسية (مثل الحسابات الجديدة)، يتم توجيهه تلقائياً لصفحة الإعدادات أو Onboarding لاختيار مادة.
 - **تحسين التصفية الهرمية:**
   - تعديل جلب الوحدات (`units`) ليتم فرزها بناءً على الصف الدراسي **والفصل الدراسي** معاً لضمان عدم تداخل وحدات الترم الأول والثاني.
@@ -21,6 +22,7 @@
   - تمرير خاصية `basePath="/teacher/questions"` للمكون المشترك `QuestionsListClient`.
 
 #### [MODIFY] [QuestionsListClient.tsx](file:///c:/Users/diaa_elattar/Downloads/istabaq-egypt-complete/istabaq-egypt/components/admin/QuestionsListClient.tsx)
+
 - **شريط تكوين الاختبار العائم:**
   - عند وجود تحديد (`selectedIds.length > 0`) وفي حال كان المسار تابع للمعلم (`basePath.includes('/teacher')`):
     - إخفاء خيار الحذف الجماعي (الخاص بالأدمن).
@@ -31,6 +33,7 @@
     3. يتم تحويل المعلم فوراً إلى صفحة إنشاء اختبار جديد `/teacher/exams/new`.
 
 #### [MODIFY] [TeacherExamBuilder.tsx](file:///c:/Users/diaa_elattar/Downloads/istabaq-egypt-complete/istabaq-egypt/components/teacher/TeacherExamBuilder.tsx)
+
 - **استقبال الأسئلة المحددة مسبقاً:**
   - في دالة التهيئة (`useState` الأولي لـ `selectedQuestions`):
     - التحقق من وجود بيانات مخزنة في `sessionStorage.getItem('pre_selected_exam_questions')`.
@@ -44,7 +47,9 @@
 **الهدف:** منح المعلم القدرة الكاملة على تخصيص ورقة الطباعة، بالاختيار بين الترويسة الرسمية (مديرية/إدارة/مدرسة) أو الترويسة الشخصية (اسمه/اللقب/رقم الهاتف/وسائل التواصل)، أو الدمج بينهما، مع دعم رفع لوجو خاص وكتابة علامة مائية (Watermark) مائلة على كامل صفحات الاختبار.
 
 #### [NEW] [20260530000003_teacher_personal_settings.sql](file:///c:/Users/diaa_elattar/Downloads/istabaq-egypt-complete/istabaq-egypt/supabase/migrations/20260530000003_teacher_personal_settings.sql)
+
 إنشاء هجرة قاعدة البيانات لإضافة الأعمدة التالية لجدول المعلمين `teachers`:
+
 ```sql
 ALTER TABLE public.teachers
   ADD COLUMN IF NOT EXISTS print_header_type TEXT DEFAULT 'official',  -- 'official' (رسمي), 'personal' (شخصي), 'both' (دمج)
@@ -58,6 +63,7 @@ ALTER TABLE public.teachers
 ```
 
 #### [MODIFY] [TeacherSettingsClient.tsx](file:///c:/Users/diaa_elattar/Downloads/istabaq-egypt-complete/istabaq-egypt/components/teacher/TeacherSettingsClient.tsx)
+
 - **إضافة قسم تخصيص رأس ورقة الاختبار (الترويسة واللوجو والوسم):**
   - **نوع الترويسة (Header Type):** أزرار اختيار بصرية جذابة لاختيار (رسمي وزارة / شخصي خاص / دمج رسمي + شخصي).
   - **البيانات الشخصية:** حقول مخصصة لاسم الشهرة للمعلم، اللقب الوظيفي، رقم الهاتف، والروابط.
@@ -71,10 +77,13 @@ ALTER TABLE public.teachers
     - صندوق تفاعلي بحدود مقطعة يعرض للمعلم بشكل حي ومباشر كيف سيبدو رأس ورقة امتحانه عند الطباعة قبل أن يقوم بالحفظ!
 
 #### [MODIFY] [TeacherPrintSettingsBar.tsx](file:///c:/Users/diaa_elattar/Downloads/istabaq-egypt-complete/istabaq-egypt/components/teacher/TeacherPrintSettingsBar.tsx)
+
 - تعديل المكون لتمرير وبث الخيارات الجديدة لـ `PrintExamClient` عبر الـ Custom Event مثل `print_header_type` و `teacher_logo_url` و `show_watermark` و `teacher_watermark_text` وغيرها.
 
 #### [MODIFY] [PrintExamClient.tsx](file:///c:/Users/diaa_elattar/Downloads/istabaq-egypt-complete/istabaq-egypt/components/admin/PrintExamClient.tsx)
+
 تحديث محرك الطباعة لترجمة اختيارات المعلم بشكل استثنائي وفني:
+
 - **تصميم الترويسة الجديدة (The New Premium Header Layout):**
   - استخدام جدول ترويسة ذو 3 أعمدة (أو مرن) متوافق تماماً مع مقاييس الطباعة المصرية A4:
     - **الجانب الأيمن:**
@@ -95,6 +104,7 @@ ALTER TABLE public.teachers
 ## 🧪 خطة التحقق والضمان (Verification Plan)
 
 ### الاختبارات المؤتمتة ومطابقة الأجهزة (Automated & Manual Checking)
+
 1. **تكامل بنك الأسئلة:**
    - الدخول كمعلم والتحقق من أن الأسئلة مقتصرة بالكامل على مادة التخصص فقط.
    - التحقق من سلسلة الفلترة الهرمية: اختيار الصف العاشر ← اختيار الترم الأول ← يظهر فقط وحدات الترم الأول للصف العاشر ← اختيار وحدة ← يظهر دروسها فقط.

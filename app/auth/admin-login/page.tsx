@@ -19,12 +19,17 @@ export default function AdminLoginPage() {
     setError('')
     setLoading(true)
     try {
-      const { error: authError } = await supabase.auth.signInWithPassword({ email, password })
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
       if (authError) {
         setError('البريد الإلكتروني أو كلمة المرور غير صحيحة')
         return
       }
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
       const { data: profileRaw } = await supabase
         .from('profiles')
         .select('role')
@@ -47,64 +52,92 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-hero-pattern flex items-center justify-center p-4" dir="rtl">
+    <div
+      className="bg-hero-pattern flex min-h-screen items-center justify-center p-4"
+      dir="rtl"
+    >
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-block group">
+        <div className="mb-8 text-center">
+          <Link href="/" className="group inline-block">
             <Logo variant="vertical" size="lg" light />
-            <div className="text-blue-200 text-sm mt-3 font-semibold">بوابة المسؤولين والأدمن</div>
+            <div className="mt-3 text-sm font-semibold text-blue-200">
+              بوابة المسؤولين والأدمن
+            </div>
           </Link>
         </div>
 
-        <div className="bg-white rounded-3xl shadow-2xl p-8">
-          <h1 className="text-xl font-display font-bold text-center mb-6">دخول المسؤول</h1>
+        <div className="rounded-3xl bg-white p-8 shadow-2xl">
+          <h1 className="mb-6 text-center font-display text-xl font-bold">
+            دخول المسؤول
+          </h1>
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="text-sm font-semibold block mb-1.5">البريد الإلكتروني</label>
+              <label className="mb-1.5 block text-sm font-semibold">
+                البريد الإلكتروني
+              </label>
               <input
                 type="email"
                 value={email}
-                onChange={e => setEmail(e.target.value)}
+                onChange={(e) => setEmail(e.target.value)}
                 required
                 placeholder="admin@istabaq.eg"
-                className="w-full px-4 py-3 border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+                className="w-full rounded-xl border border-border px-4 py-3 text-sm transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
             </div>
             <div>
-              <label className="text-sm font-semibold block mb-1.5">كلمة المرور</label>
+              <label className="mb-1.5 block text-sm font-semibold">
+                كلمة المرور
+              </label>
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
-                  onChange={e => setPassword(e.target.value)}
+                  onChange={(e) => setPassword(e.target.value)}
                   required
                   placeholder="••••••••"
-                  className="w-full px-4 py-3 border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary pr-4 pl-12"
+                  className="w-full rounded-xl border border-border px-4 py-3 pl-12 pr-4 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
                 >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
                 </button>
               </div>
             </div>
             {error && (
-              <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
-                <AlertCircle className="w-4 h-4 shrink-0" />{error}
+              <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                {error}
               </div>
             )}
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-3.5 rounded-xl transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 font-bold text-white transition-all hover:bg-primary/90 disabled:opacity-60"
             >
-              {loading ? <><Loader2 className="w-5 h-5 animate-spin" />جاري الدخول...</> : 'دخول لوحة الإدارة'}
+              {loading ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  جاري الدخول...
+                </>
+              ) : (
+                'دخول لوحة الإدارة'
+              )}
             </button>
           </form>
           <div className="mt-5 text-center">
-            <Link href="/auth/login" className="text-sm text-primary hover:underline">← دخول الطلاب والمعلمين</Link>
+            <Link
+              href="/auth/login"
+              className="text-sm text-primary hover:underline"
+            >
+              ← دخول الطلاب والمعلمين
+            </Link>
           </div>
         </div>
       </div>

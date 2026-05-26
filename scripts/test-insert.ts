@@ -11,9 +11,16 @@ const supabase = createClient(
 async function testInsert() {
   const { data, error } = await supabase
     .from('exams')
-    .insert({ title: 'Test', exam_type: 'custom', duration_minutes: 10, passing_score: 50, subject_id: 1, grade_id: 1 })
+    .insert({
+      title: 'Test',
+      exam_type: 'custom',
+      duration_minutes: 10,
+      passing_score: 50,
+      subject_id: 1,
+      grade_id: 1,
+    })
     .select()
-    
+
   console.log('Error:', error)
 }
 

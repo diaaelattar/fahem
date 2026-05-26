@@ -55,55 +55,64 @@ export class ClientErrorBoundary extends Component<Props, State> {
       const isExam = this.props.sectionName === 'exam'
 
       return (
-        <div className="min-h-[50vh] flex items-center justify-center p-4" dir="rtl">
-          <div className="max-w-lg w-full bg-white rounded-2xl shadow-xl p-8 text-center border-2 border-amber-100">
-            <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <AlertTriangle className="w-8 h-8 text-amber-500" />
+        <div
+          className="flex min-h-[50vh] items-center justify-center p-4"
+          dir="rtl"
+        >
+          <div className="w-full max-w-lg rounded-2xl border-2 border-amber-100 bg-white p-8 text-center shadow-xl">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-100">
+              <AlertTriangle className="h-8 w-8 text-amber-500" />
             </div>
 
-            <h2 className="text-lg font-bold text-slate-800 mb-2">
+            <h2 className="mb-2 text-lg font-bold text-slate-800">
               {isExam ? 'حدث خطأ في واجهة الاختبار' : 'حدث خطأ في هذا القسم'}
             </h2>
 
             {isExam && (
-              <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-4 text-right">
-                <p className="text-green-800 font-bold text-sm mb-1">✅ إجاباتك محفوظة تلقائياً</p>
-                <p className="text-green-700 text-xs leading-relaxed">
-                  جميع إجاباتك حُفظت في النظام. بمجرد الضغط على &quot;إعادة المحاولة&quot; ستجد كل شيء كما تركته.
+              <div className="mb-4 rounded-xl border border-green-200 bg-green-50 p-4 text-right">
+                <p className="mb-1 text-sm font-bold text-green-800">
+                  ✅ إجاباتك محفوظة تلقائياً
+                </p>
+                <p className="text-xs leading-relaxed text-green-700">
+                  جميع إجاباتك حُفظت في النظام. بمجرد الضغط على &quot;إعادة
+                  المحاولة&quot; ستجد كل شيء كما تركته.
                 </p>
               </div>
             )}
 
-            <p className="text-slate-500 text-sm mb-5 leading-relaxed">
+            <p className="mb-5 text-sm leading-relaxed text-slate-500">
               {isExam
                 ? 'قد يكون الخطأ مؤقتاً. تأكد من اتصالك بالإنترنت ثم حاول مجدداً.'
                 : 'حدث خطأ غير متوقع. يمكنك إعادة المحاولة.'}
             </p>
 
-            {process.env.NODE_ENV === 'development' && this.state.errorMessage && (
-              <details className="mb-5 text-left">
-                <summary className="text-xs text-slate-400 cursor-pointer mb-1">تفاصيل الخطأ (للمطورين)</summary>
-                <pre className="text-xs bg-red-50 text-red-700 p-3 rounded-lg overflow-auto max-h-40 text-left">
-                  {this.state.errorMessage}
-                  {'\n\n'}
-                  {this.state.errorStack}
-                </pre>
-              </details>
-            )}
+            {process.env.NODE_ENV === 'development' &&
+              this.state.errorMessage && (
+                <details className="mb-5 text-left">
+                  <summary className="mb-1 cursor-pointer text-xs text-slate-400">
+                    تفاصيل الخطأ (للمطورين)
+                  </summary>
+                  <pre className="max-h-40 overflow-auto rounded-lg bg-red-50 p-3 text-left text-xs text-red-700">
+                    {this.state.errorMessage}
+                    {'\n\n'}
+                    {this.state.errorStack}
+                  </pre>
+                </details>
+              )}
 
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <div className="flex flex-col justify-center gap-3 sm:flex-row">
               <button
                 onClick={this.handleReset}
-                className="flex items-center justify-center gap-2 bg-primary text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-primary/90 transition-colors"
+                className="flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-bold text-white transition-colors hover:bg-primary/90"
               >
-                <RefreshCw className="w-4 h-4" />
+                <RefreshCw className="h-4 w-4" />
                 إعادة المحاولة
               </button>
               <a
                 href={isExam ? '/student/exams' : '/student/dashboard'}
-                className="flex items-center justify-center gap-2 bg-slate-100 text-slate-700 px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-slate-200 transition-colors"
+                className="flex items-center justify-center gap-2 rounded-xl bg-slate-100 px-6 py-2.5 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-200"
               >
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight className="h-4 w-4" />
                 {isExam ? 'العودة للاختبارات' : 'لوحة التحكم'}
               </a>
             </div>

@@ -4,14 +4,35 @@ import { createClient } from '@/lib/supabase/server'
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'غير مصرح' }, { status: 401 })
 
-    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-    if (profile?.role !== 'admin') return NextResponse.json({ error: 'صلاحيات غير كافية' }, { status: 403 })
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+    if (profile?.role !== 'admin')
+      return NextResponse.json({ error: 'صلاحيات غير كافية' }, { status: 403 })
 
     const body = await req.json()
-    const { subjectId, gradeId, semesterId, mode, numberOfExams, questionsPerExam, titlePrefix, durationMinutes, passingScore, shuffleQuestions, shuffleOptions, showResultsImmediately, allowedAttempts } = body
+    const {
+      subjectId,
+      gradeId,
+      semesterId,
+      mode,
+      numberOfExams,
+      questionsPerExam,
+      titlePrefix,
+      durationMinutes,
+      passingScore,
+      shuffleQuestions,
+      shuffleOptions,
+      showResultsImmediately,
+      allowedAttempts,
+    } = body
 
     if (!subjectId || !gradeId || !mode) {
       return NextResponse.json({ error: 'بيانات غير مكتملة' }, { status: 400 })
@@ -29,14 +50,22 @@ export async function POST(req: NextRequest) {
         .eq('is_approved', true)
 
       if (!bankQuestions || bankQuestions.length < questionsPerExam) {
-        return NextResponse.json({ error: `بنك الأسئلة لا يحتوي على عدد كافٍ من الأسئلة. المتوفر: ${bankQuestions?.length || 0}` }, { status: 400 })
+        return NextResponse.json(
+          {
+            error: `بنك الأسئلة لا يحتوي على عدد كافٍ من الأسئلة. المتوفر: ${bankQuestions?.length || 0}`,
+          },
+          { status: 400 }
+        )
       }
 
       for (let i = 0; i < numberOfExams; i++) {
         // Shuffle questions
         const shuffled = [...bankQuestions].sort(() => Math.random() - 0.5)
         const selectedQuestions = shuffled.slice(0, questionsPerExam)
-        const totalPoints = selectedQuestions.reduce((sum, q) => sum + (q.points || 1), 0)
+        const totalPoints = selectedQuestions.reduce(
+          (sum, q) => sum + (q.points || 1),
+          0
+        )
 
         // Insert exam
         const examData = {
@@ -51,10 +80,14 @@ export async function POST(req: NextRequest) {
           shuffle_options: shuffleOptions,
           show_results_immediately: showResultsImmediately,
           allowed_attempts: parseInt(allowedAttempts) || 1,
-          is_published: true
+          is_published: true,
         }
 
-        const { data: exam, error: examError } = await supabase.from('exams').insert(examData).select('id').single()
+        const { data: exam, error: examError } = await supabase
+          .from('exams')
+          .insert(examData)
+          .select('id')
+          .single()
         if (examError) throw examError
 
         // Insert exam questions
@@ -62,15 +95,16 @@ export async function POST(req: NextRequest) {
           exam_id: (exam as any).id,
           question_id: q.id,
           question_order: idx + 1,
-          points_override: q.points || 1
+          points_override: q.points || 1,
         }))
 
-        const { error: eqError } = await supabase.from('exam_questions').insert(examQuestionsData)
+        const { error: eqError } = await supabase
+          .from('exam_questions')
+          .insert(examQuestionsData)
         if (eqError) throw eqError
 
         createdExamsCount++
       }
-
     } else if (mode === 'units') {
       // جلب جميع الوحدات لهذه المادة والصف
       const { data: units } = await supabase
@@ -80,7 +114,10 @@ export async function POST(req: NextRequest) {
         .eq('grade_id', gradeId)
 
       if (!units || units.length === 0) {
-        return NextResponse.json({ error: 'لا توجد وحدات مسجلة لهذه المادة' }, { status: 400 })
+        return NextResponse.json(
+          { error: 'لا توجد وحدات مسجلة لهذه المادة' },
+          { status: 400 }
+        )
       }
 
       for (const unit of units) {
@@ -98,7 +135,10 @@ export async function POST(req: NextRequest) {
         const shuffled = [...unitQuestions].sort(() => Math.random() - 0.5)
         const selectedCount = Math.min(questionsPerExam || 15, shuffled.length)
         const selectedQuestions = shuffled.slice(0, selectedCount)
-        const totalPoints = selectedQuestions.reduce((sum, q) => sum + (q.points || 1), 0)
+        const totalPoints = selectedQuestions.reduce(
+          (sum, q) => sum + (q.points || 1),
+          0
+        )
 
         const examData = {
           admin_id: user.id,
@@ -113,20 +153,26 @@ export async function POST(req: NextRequest) {
           shuffle_options: shuffleOptions,
           show_results_immediately: showResultsImmediately,
           allowed_attempts: parseInt(allowedAttempts) || 1,
-          is_published: true
+          is_published: true,
         }
 
-        const { data: exam, error: examError } = await supabase.from('exams').insert(examData).select('id').single()
+        const { data: exam, error: examError } = await supabase
+          .from('exams')
+          .insert(examData)
+          .select('id')
+          .single()
         if (examError) throw examError
 
         const examQuestionsData = selectedQuestions.map((q, idx) => ({
           exam_id: (exam as any).id,
           question_id: q.id,
           question_order: idx + 1,
-          points_override: q.points || 1
+          points_override: q.points || 1,
         }))
 
-        const { error: eqError } = await supabase.from('exam_questions').insert(examQuestionsData)
+        const { error: eqError } = await supabase
+          .from('exam_questions')
+          .insert(examQuestionsData)
         if (eqError) throw eqError
 
         createdExamsCount++

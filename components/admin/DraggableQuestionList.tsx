@@ -8,27 +8,30 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-  DragEndEvent
+  DragEndEvent,
 } from '@dnd-kit/core'
 import {
   arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
-  useSortable
+  useSortable,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { GripVertical, Trash2 } from 'lucide-react'
 
 // Item Component
-function SortableItem({ id, question, onRemove }: { id: string, question: any, onRemove: (id: string) => void }) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-  } = useSortable({ id })
+function SortableItem({
+  id,
+  question,
+  onRemove,
+}: {
+  id: string
+  question: any
+  onRemove: (id: string) => void
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition } =
+    useSortable({ id })
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -36,27 +39,38 @@ function SortableItem({ id, question, onRemove }: { id: string, question: any, o
   }
 
   return (
-    <div 
-      ref={setNodeRef} 
-      style={style} 
-      className="flex items-center gap-3 bg-white border border-border p-3 rounded-xl shadow-sm mb-2"
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="mb-2 flex items-center gap-3 rounded-xl border border-border bg-white p-3 shadow-sm"
     >
-      <div {...attributes} {...listeners} className="cursor-grab touch-none p-1 text-muted-foreground hover:text-primary">
-        <GripVertical className="w-5 h-5" />
+      <div
+        {...attributes}
+        {...listeners}
+        className="cursor-grab touch-none p-1 text-muted-foreground hover:text-primary"
+      >
+        <GripVertical className="h-5 w-5" />
       </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex gap-2 mb-1">
-          <span className="text-xs font-bold bg-blue-50 text-blue-700 px-2 rounded-md">{question.question_type}</span>
-          <span className="text-xs font-bold bg-green-50 text-green-700 px-2 rounded-md">{question.difficulty_level}</span>
+      <div className="min-w-0 flex-1">
+        <div className="mb-1 flex gap-2">
+          <span className="rounded-md bg-blue-50 px-2 text-xs font-bold text-blue-700">
+            {question.question_type}
+          </span>
+          <span className="rounded-md bg-green-50 px-2 text-xs font-bold text-green-700">
+            {question.difficulty_level}
+          </span>
         </div>
-        <p className="text-sm font-medium truncate" dangerouslySetInnerHTML={{ __html: question.question_text }}></p>
+        <p
+          className="truncate text-sm font-medium"
+          dangerouslySetInnerHTML={{ __html: question.question_text }}
+        ></p>
       </div>
       <button
         type="button"
         onClick={() => onRemove(id)}
-        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+        className="rounded-lg p-2 text-red-500 transition-colors hover:bg-red-50"
       >
-        <Trash2 className="w-4 h-4" />
+        <Trash2 className="h-4 w-4" />
       </button>
     </div>
   )
@@ -69,7 +83,11 @@ interface DraggableQuestionListProps {
   onRemove: (id: string) => void
 }
 
-export function DraggableQuestionList({ questions, setQuestions, onRemove }: DraggableQuestionListProps) {
+export function DraggableQuestionList({
+  questions,
+  setQuestions,
+  onRemove,
+}: DraggableQuestionListProps) {
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -81,28 +99,33 @@ export function DraggableQuestionList({ questions, setQuestions, onRemove }: Dra
     const { active, over } = event
 
     if (over && active.id !== over.id) {
-      const oldIndex = questions.findIndex(q => q.id === active.id)
-      const newIndex = questions.findIndex(q => q.id === over.id)
+      const oldIndex = questions.findIndex((q) => q.id === active.id)
+      const newIndex = questions.findIndex((q) => q.id === over.id)
       setQuestions(arrayMove(questions, oldIndex, newIndex))
     }
   }
 
   return (
-    <DndContext 
+    <DndContext
       sensors={sensors}
       collisionDetection={closestCenter}
       onDragEnd={handleDragEnd}
     >
-      <SortableContext 
-        items={questions.map(q => q.id)}
+      <SortableContext
+        items={questions.map((q) => q.id)}
         strategy={verticalListSortingStrategy}
       >
         <div className="space-y-1">
-          {questions.map(q => (
-            <SortableItem key={q.id} id={q.id} question={q} onRemove={onRemove} />
+          {questions.map((q) => (
+            <SortableItem
+              key={q.id}
+              id={q.id}
+              question={q}
+              onRemove={onRemove}
+            />
           ))}
           {questions.length === 0 && (
-            <div className="text-center p-8 border-2 border-dashed border-border rounded-xl text-muted-foreground text-sm">
+            <div className="rounded-xl border-2 border-dashed border-border p-8 text-center text-sm text-muted-foreground">
               لم تقم بإضافة أي أسئلة للاختبار بعد. ابحث في البنك وأضف أسئلة.
             </div>
           )}

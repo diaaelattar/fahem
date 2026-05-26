@@ -27,7 +27,9 @@ export function CertificateCard({
   attemptId,
 }: CertificateCardProps) {
   const formattedDate = new Date(completedAt).toLocaleDateString('ar-EG', {
-    day: 'numeric', month: 'long', year: 'numeric',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
   })
 
   const getGrade = (pct: number) => {
@@ -93,74 +95,94 @@ export function CertificateCard({
     `)
     win.document.close()
     win.focus()
-    setTimeout(() => { win.print(); win.close() }, 500)
+    setTimeout(() => {
+      win.print()
+      win.close()
+    }, 500)
   }
 
   return (
     <div
       id={`cert-${attemptId}`}
-      className="relative bg-white rounded-3xl overflow-hidden shadow-lg border-2 border-primary/20"
+      className="relative overflow-hidden rounded-3xl border-2 border-primary/20 bg-white shadow-lg"
     >
       {/* الخلفية المزخرفة */}
-      <div className="absolute inset-0 opacity-5 pointer-events-none"
+      <div
+        className="pointer-events-none absolute inset-0 opacity-5"
         style={{
-          backgroundImage: 'repeating-linear-gradient(45deg, #1B4F72 0, #1B4F72 1px, transparent 0, transparent 50%)',
+          backgroundImage:
+            'repeating-linear-gradient(45deg, #1B4F72 0, #1B4F72 1px, transparent 0, transparent 50%)',
           backgroundSize: '10px 10px',
         }}
       />
 
       {/* إطار ذهبي داخلي */}
       <div className="m-3 rounded-2xl border-2 border-egypt-gold/50">
-        <div className="p-8 text-center relative">
-
+        <div className="relative p-8 text-center">
           {/* الأيقونة */}
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <Award className="w-11 h-11 text-white" />
+          <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 shadow-lg">
+            <Award className="h-11 w-11 text-white" />
           </div>
 
           {/* العنوان */}
-          <div className="text-xs uppercase tracking-[4px] text-muted-foreground mb-1">شهادة إنجاز</div>
-          <h2 className="text-2xl font-bold text-primary mb-1">منصة استباق مصر</h2>
+          <div className="mb-1 text-xs uppercase tracking-[4px] text-muted-foreground">
+            شهادة إنجاز
+          </div>
+          <h2 className="mb-1 text-2xl font-bold text-primary">
+            منصة استباق مصر
+          </h2>
 
           {/* اسم الطالب */}
           <div className="my-5">
-            <p className="text-sm text-muted-foreground mb-2">يُشهد بأن الطالب/الطالبة</p>
-            <div className="inline-block border-b-2 border-egypt-gold pb-1 px-8">
-              <p className="text-2xl font-bold text-foreground">{studentName}</p>
+            <p className="mb-2 text-sm text-muted-foreground">
+              يُشهد بأن الطالب/الطالبة
+            </p>
+            <div className="inline-block border-b-2 border-egypt-gold px-8 pb-1">
+              <p className="text-2xl font-bold text-foreground">
+                {studentName}
+              </p>
             </div>
           </div>
 
           {/* الاختبار */}
-          <p className="text-sm text-muted-foreground mb-1">قد اجتاز بنجاح اختبار</p>
-          <p className="text-xl font-bold text-primary mb-1">{examTitle}</p>
-          <p className="text-sm text-muted-foreground">{subjectName} • {gradeName}</p>
+          <p className="mb-1 text-sm text-muted-foreground">
+            قد اجتاز بنجاح اختبار
+          </p>
+          <p className="mb-1 text-xl font-bold text-primary">{examTitle}</p>
+          <p className="text-sm text-muted-foreground">
+            {subjectName} • {gradeName}
+          </p>
 
           {/* الدرجة */}
           <div className="my-6 flex items-center justify-center gap-6">
             <div className="text-center">
-              <div className="text-5xl font-bold text-primary">{percentage.toFixed(0)}٪</div>
-              <div className={`text-lg font-bold mt-1 ${grade.color}`}>{grade.label}</div>
+              <div className="text-5xl font-bold text-primary">
+                {percentage.toFixed(0)}٪
+              </div>
+              <div className={`mt-1 text-lg font-bold ${grade.color}`}>
+                {grade.label}
+              </div>
             </div>
           </div>
 
           {/* التقييم بالنجوم */}
-          <div className="flex justify-center gap-1 mb-4">
-            {[1, 2, 3, 4, 5].map(i => (
+          <div className="mb-4 flex justify-center gap-1">
+            {[1, 2, 3, 4, 5].map((i) => (
               <Star
                 key={i}
-                className={`w-5 h-5 ${i <= Math.round(percentage / 20) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-200'}`}
+                className={`h-5 w-5 ${i <= Math.round(percentage / 20) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-200'}`}
               />
             ))}
           </div>
 
           {/* التاريخ */}
-          <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground mb-6">
+          <div className="mb-6 flex items-center justify-center gap-4 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
-              <Calendar className="w-3 h-3" />
+              <Calendar className="h-3 w-3" />
               {formattedDate}
             </span>
             <span className="flex items-center gap-1">
-              <BookOpen className="w-3 h-3" />
+              <BookOpen className="h-3 w-3" />
               {subjectName}
             </span>
           </div>
@@ -168,9 +190,9 @@ export function CertificateCard({
           {/* زر الطباعة */}
           <button
             onClick={handlePrint}
-            className="flex items-center gap-2 mx-auto bg-primary text-white px-6 py-2.5 rounded-xl text-sm font-medium hover:bg-primary/90 transition-colors"
+            className="mx-auto flex items-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary/90"
           >
-            <Printer className="w-4 h-4" />
+            <Printer className="h-4 w-4" />
             طباعة الشهادة
           </button>
         </div>

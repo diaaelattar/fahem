@@ -23,7 +23,9 @@ function getModel(name: string) {
   })
 }
 
-async function fetchImageAsBase64(imageUrl: string): Promise<{ data: string; mimeType: string }> {
+async function fetchImageAsBase64(
+  imageUrl: string
+): Promise<{ data: string; mimeType: string }> {
   const response = await fetch(imageUrl)
   if (!response.ok) throw new Error(`Failed to fetch image: ${response.status}`)
   const contentType = response.headers.get('content-type') || 'image/jpeg'
@@ -43,8 +45,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'غير مصرح' }, { status: 401 })
     }
 
-    const { questionText, idealAnswer, imageUrl, maxScore, attemptId, questionId } =
-      await req.json()
+    const {
+      questionText,
+      idealAnswer,
+      imageUrl,
+      maxScore,
+      attemptId,
+      questionId,
+    } = await req.json()
 
     if (!imageUrl || !questionText || maxScore === undefined) {
       return NextResponse.json({ error: 'بيانات ناقصة' }, { status: 400 })
@@ -94,7 +102,10 @@ export async function POST(req: NextRequest) {
 
         let text = result.response.text().trim()
         // تنظيف markdown إذا أرجع الموديل ```json```
-        text = text.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim()
+        text = text
+          .replace(/^```json\s*/i, '')
+          .replace(/\s*```$/i, '')
+          .trim()
 
         const parsed = JSON.parse(text)
 
@@ -111,7 +122,10 @@ export async function POST(req: NextRequest) {
                 answer_image_url: imageUrl,
                 student_answer: parsed.extracted_text || '[إجابة مصوّرة]',
                 is_correct: parsed.is_correct,
-                score_awarded: Math.min(maxScore, Math.max(0, Number(parsed.earned_score) || 0)),
+                score_awarded: Math.min(
+                  maxScore,
+                  Math.max(0, Number(parsed.earned_score) || 0)
+                ),
                 teacher_feedback: parsed.feedback,
                 ai_vision_feedback: JSON.stringify({
                   extracted_text: parsed.extracted_text,
@@ -129,7 +143,10 @@ export async function POST(req: NextRequest) {
           success: true,
           extracted_text: parsed.extracted_text,
           is_correct: parsed.is_correct,
-          earned_score: Math.min(maxScore, Math.max(0, Number(parsed.earned_score) || 0)),
+          earned_score: Math.min(
+            maxScore,
+            Math.max(0, Number(parsed.earned_score) || 0)
+          ),
           feedback: parsed.feedback,
           math_steps_valid: parsed.math_steps_valid,
           confidence: parsed.confidence,

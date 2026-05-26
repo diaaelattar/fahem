@@ -7,8 +7,9 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { BookOpen, Save, ArrowRight, Trash2 } from 'lucide-react'
 
-
-interface Props { params: { unitId: string } }
+interface Props {
+  params: { unitId: string }
+}
 
 export default function EditUnitPage({ params }: Props) {
   const router = useRouter()
@@ -34,13 +35,11 @@ export default function EditUnitPage({ params }: Props) {
     async function loadData() {
       try {
         // جلب الصفوف والمواد
-        const [
-          { data: gradesData },
-          { data: subjectsData }
-        ] = await Promise.all([
-          supabase.from('grades').select('id, name_ar').order('grade_number'),
-          supabase.from('subjects').select('id, name_ar, icon').order('id')
-        ])
+        const [{ data: gradesData }, { data: subjectsData }] =
+          await Promise.all([
+            supabase.from('grades').select('id, name_ar').order('grade_number'),
+            supabase.from('subjects').select('id, name_ar, icon').order('id'),
+          ])
         setGrades(gradesData || [])
         setSubjects(subjectsData || [])
 
@@ -104,11 +103,19 @@ export default function EditUnitPage({ params }: Props) {
   }
 
   const handleDelete = async () => {
-    if (!confirm('هل أنت متأكد من حذف هذه الوحدة؟ سيؤدي ذلك لحذف جميع الدروس والأسئلة المرتبطة بها!')) return
-    
+    if (
+      !confirm(
+        'هل أنت متأكد من حذف هذه الوحدة؟ سيؤدي ذلك لحذف جميع الدروس والأسئلة المرتبطة بها!'
+      )
+    )
+      return
+
     setSaving(true)
-    const { error: err } = await supabase.from('units').delete().eq('id', unitId)
-    
+    const { error: err } = await supabase
+      .from('units')
+      .delete()
+      .eq('id', unitId)
+
     if (err) {
       setError('حدث خطأ أثناء الحذف: ' + err.message)
       setSaving(false)
@@ -121,57 +128,68 @@ export default function EditUnitPage({ params }: Props) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
       </div>
     )
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 animate-fade-in pb-12">
+    <div className="mx-auto max-w-2xl animate-fade-in space-y-6 pb-12">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <button onClick={() => router.back()}
-            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary mb-4 transition-colors w-fit">
-            <ArrowRight className="w-4 h-4" /> العودة
+          <button
+            onClick={() => router.back()}
+            className="mb-4 flex w-fit items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-primary"
+          >
+            <ArrowRight className="h-4 w-4" /> العودة
           </button>
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
-              <BookOpen className="w-6 h-6 text-primary" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
+              <BookOpen className="h-6 w-6 text-primary" />
             </div>
             <div>
               <h1 className="text-2xl font-bold">تعديل الوحدة الدراسية</h1>
-              <p className="text-muted-foreground text-sm">تعديل بيانات الوحدة وتصنيفها</p>
+              <p className="text-sm text-muted-foreground">
+                تعديل بيانات الوحدة وتصنيفها
+              </p>
             </div>
           </div>
         </div>
         <button
           onClick={handleDelete}
-          className="p-2.5 text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+          className="rounded-xl p-2.5 text-red-500 transition-colors hover:bg-red-50"
           title="حذف الوحدة"
         >
-          <Trash2 className="w-5 h-5" />
+          <Trash2 className="h-5 w-5" />
         </button>
       </div>
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-border p-8 space-y-6">
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-6 rounded-2xl border border-border bg-white p-8"
+      >
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
+          <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
             ❌ {error}
           </div>
         )}
 
         {/* Unit Name */}
         <div>
-          <label className="block text-sm font-bold mb-2">اسم الوحدة الدراسية *</label>
+          <label className="mb-2 block text-sm font-bold">
+            اسم الوحدة الدراسية *
+          </label>
           <input
             type="text"
             value={form.name_ar}
-            onChange={e => setForm(f => ({ ...f, name_ar: e.target.value }))}
+            onChange={(e) =>
+              setForm((f) => ({ ...f, name_ar: e.target.value }))
+            }
             placeholder="مثال: الوحدة الأولى — التواصل اللغوي"
-            className="w-full px-4 py-3 border-2 border-border rounded-xl text-base focus:outline-none focus:border-primary transition-colors"
+            className="w-full rounded-xl border-2 border-border px-4 py-3 text-base transition-colors focus:border-primary focus:outline-none"
             required
           />
         </div>
@@ -179,41 +197,59 @@ export default function EditUnitPage({ params }: Props) {
         {/* Subject */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-bold mb-2">المادة الدراسية *</label>
+            <label className="mb-2 block text-sm font-bold">
+              المادة الدراسية *
+            </label>
             <select
               value={form.subject_id}
-              onChange={e => setForm(f => ({ ...f, subject_id: e.target.value }))}
-              className="w-full px-4 py-3 border-2 border-border rounded-xl focus:outline-none focus:border-primary transition-colors bg-white"
+              onChange={(e) =>
+                setForm((f) => ({ ...f, subject_id: e.target.value }))
+              }
+              className="w-full rounded-xl border-2 border-border bg-white px-4 py-3 transition-colors focus:border-primary focus:outline-none"
               required
             >
               <option value="">اختر المادة...</option>
-              {subjects.map(s => (
-                <option key={s.id} value={s.id}>{s.icon} {s.name_ar}</option>
+              {subjects.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.icon} {s.name_ar}
+                </option>
               ))}
             </select>
           </div>
 
           {/* Grade */}
           <div>
-            <label className="block text-sm font-bold mb-2">الصف الدراسي *</label>
+            <label className="mb-2 block text-sm font-bold">
+              الصف الدراسي *
+            </label>
             <select
               value={form.grade_id}
-              onChange={e => {
+              onChange={(e) => {
                 const newGradeId = e.target.value
-                const selectedGrade = grades.find(g => g.id.toString() === newGradeId)
-                const isThirdSec = selectedGrade?.name_ar?.includes('الثالث الثانوى') || selectedGrade?.name_ar?.includes('الثالث الثانوي')
-                setForm(f => ({ 
-                  ...f, 
+                const selectedGrade = grades.find(
+                  (g) => g.id.toString() === newGradeId
+                )
+                const isThirdSec =
+                  selectedGrade?.name_ar?.includes('الثالث الثانوى') ||
+                  selectedGrade?.name_ar?.includes('الثالث الثانوي')
+                setForm((f) => ({
+                  ...f,
                   grade_id: newGradeId,
-                  semester: isThirdSec ? 'full_year' : f.semester === 'full_year' ? 'term_1' : f.semester
+                  semester: isThirdSec
+                    ? 'full_year'
+                    : f.semester === 'full_year'
+                      ? 'term_1'
+                      : f.semester,
                 }))
               }}
-              className="w-full px-4 py-3 border-2 border-border rounded-xl focus:outline-none focus:border-primary transition-colors bg-white"
+              className="w-full rounded-xl border-2 border-border bg-white px-4 py-3 transition-colors focus:border-primary focus:outline-none"
               required
             >
               <option value="">اختر الصف...</option>
               {grades.map((g: any) => (
-                <option key={g.id} value={g.id}>{g.name_ar}</option>
+                <option key={g.id} value={g.id}>
+                  {g.name_ar}
+                </option>
               ))}
             </select>
           </div>
@@ -222,11 +258,15 @@ export default function EditUnitPage({ params }: Props) {
         {/* Semester & Sort Order */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-bold mb-2">الفصل الدراسي *</label>
+            <label className="mb-2 block text-sm font-bold">
+              الفصل الدراسي *
+            </label>
             <select
               value={form.semester}
-              onChange={e => setForm(f => ({ ...f, semester: e.target.value }))}
-              className="w-full px-4 py-3 border-2 border-border rounded-xl focus:outline-none focus:border-primary transition-colors bg-white"
+              onChange={(e) =>
+                setForm((f) => ({ ...f, semester: e.target.value }))
+              }
+              className="w-full rounded-xl border-2 border-border bg-white px-4 py-3 transition-colors focus:border-primary focus:outline-none"
               required
             >
               <option value="term_1">الفصل الدراسي الأول</option>
@@ -236,26 +276,32 @@ export default function EditUnitPage({ params }: Props) {
           </div>
 
           <div>
-            <label className="block text-sm font-bold mb-2">ترتيب الوحدة</label>
+            <label className="mb-2 block text-sm font-bold">ترتيب الوحدة</label>
             <input
               type="number"
               min="1"
               value={form.sort_order}
-              onChange={e => setForm(f => ({ ...f, sort_order: e.target.value }))}
-              className="w-full px-4 py-3 border-2 border-border rounded-xl focus:outline-none focus:border-primary transition-colors"
+              onChange={(e) =>
+                setForm((f) => ({ ...f, sort_order: e.target.value }))
+              }
+              className="w-full rounded-xl border-2 border-border px-4 py-3 transition-colors focus:border-primary focus:outline-none"
             />
           </div>
         </div>
 
         {/* Description */}
         <div>
-          <label className="block text-sm font-bold mb-2">وصف الوحدة (اختياري)</label>
+          <label className="mb-2 block text-sm font-bold">
+            وصف الوحدة (اختياري)
+          </label>
           <textarea
             value={form.description}
-            onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+            onChange={(e) =>
+              setForm((f) => ({ ...f, description: e.target.value }))
+            }
             placeholder="نبذة مختصرة عن محتوى هذه الوحدة..."
             rows={3}
-            className="w-full px-4 py-3 border-2 border-border rounded-xl focus:outline-none focus:border-primary transition-colors resize-none"
+            className="w-full resize-none rounded-xl border-2 border-border px-4 py-3 transition-colors focus:border-primary focus:outline-none"
           />
         </div>
 
@@ -263,32 +309,36 @@ export default function EditUnitPage({ params }: Props) {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => setForm(f => ({ ...f, is_active: !f.is_active }))}
-            className={`w-12 h-6 rounded-full transition-all ${form.is_active ? 'bg-primary' : 'bg-muted'}`}
+            onClick={() => setForm((f) => ({ ...f, is_active: !f.is_active }))}
+            className={`h-6 w-12 rounded-full transition-all ${form.is_active ? 'bg-primary' : 'bg-muted'}`}
           >
-            <span className={`block w-5 h-5 bg-white rounded-full shadow transition-transform mx-0.5 ${form.is_active ? 'translate-x-6' : 'translate-x-0'}`} />
+            <span
+              className={`mx-0.5 block h-5 w-5 rounded-full bg-white shadow transition-transform ${form.is_active ? 'translate-x-6' : 'translate-x-0'}`}
+            />
           </button>
-          <label className="text-sm font-medium">الوحدة نشطة ومتاحة للطلاب</label>
+          <label className="text-sm font-medium">
+            الوحدة نشطة ومتاحة للطلاب
+          </label>
         </div>
 
         {/* Submit */}
-        <div className="flex gap-3 pt-4 border-t border-border">
+        <div className="flex gap-3 border-t border-border pt-4">
           <button
             type="submit"
             disabled={saving}
-            className="flex items-center gap-2 bg-primary text-white px-8 py-3 rounded-xl font-bold hover:bg-primary/90 transition-colors disabled:opacity-60"
+            className="flex items-center gap-2 rounded-xl bg-primary px-8 py-3 font-bold text-white transition-colors hover:bg-primary/90 disabled:opacity-60"
           >
             {saving ? (
-              <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
             ) : (
-              <Save className="w-4 h-4" />
+              <Save className="h-4 w-4" />
             )}
             {saving ? 'جاري الحفظ...' : 'حفظ التغييرات'}
           </button>
           <button
             type="button"
             onClick={() => router.back()}
-            className="px-6 py-3 border border-border rounded-xl font-medium hover:bg-muted transition-colors"
+            className="rounded-xl border border-border px-6 py-3 font-medium transition-colors hover:bg-muted"
           >
             إلغاء
           </button>

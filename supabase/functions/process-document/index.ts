@@ -7,7 +7,8 @@ import OpenAI from 'https://esm.sh/openai@4'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers':
+    'authorization, x-client-info, apikey, content-type',
 }
 
 serve(async (req) => {
@@ -24,10 +25,14 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     )
 
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabaseClient.auth.getUser()
     if (authError || !user) {
       return new Response(JSON.stringify({ error: 'غير مصرح' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
@@ -39,7 +44,8 @@ serve(async (req) => {
 
     if (profile?.role !== 'admin') {
       return new Response(JSON.stringify({ error: 'للمديرين فقط' }), {
-        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
@@ -47,7 +53,8 @@ serve(async (req) => {
     const { documentId } = await req.json()
     if (!documentId) {
       return new Response(JSON.stringify({ error: 'documentId مطلوب' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
@@ -60,7 +67,8 @@ serve(async (req) => {
 
     if (!document) {
       return new Response(JSON.stringify({ error: 'المستند غير موجود' }), {
-        status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
@@ -83,12 +91,17 @@ serve(async (req) => {
             const fileResponse = await fetch(document.file_url)
             const fileBuffer = await fileResponse.arrayBuffer()
             const formData = new FormData()
-            formData.append('files', new Blob([fileBuffer]), `doc.${document.file_type}`)
+            formData.append(
+              'files',
+              new Blob([fileBuffer]),
+              `doc.${document.file_type}`
+            )
             formData.append('strategy', 'fast')
             formData.append('languages', 'ara')
 
             const unstructuredRes = await fetch(
-              Deno.env.get('UNSTRUCTURED_API_URL') || 'https://api.unstructured.io/general/v0/general',
+              Deno.env.get('UNSTRUCTURED_API_URL') ||
+                'https://api.unstructured.io/general/v0/general',
               {
                 method: 'POST',
                 headers: { 'unstructured-api-key': unstructuredKey },
@@ -98,7 +111,10 @@ serve(async (req) => {
 
             if (unstructuredRes.ok) {
               const elements = await unstructuredRes.json()
-              extractedText = elements.map((el: any) => el.text || '').filter(Boolean).join('\n')
+              extractedText = elements
+                .map((el: any) => el.text || '')
+                .filter(Boolean)
+                .join('\n')
             }
           } catch (e) {
             console.error('Unstructured error:', e)
@@ -108,9 +124,13 @@ serve(async (req) => {
         // Whisper transcription
         const audioResponse = await fetch(document.file_url)
         const audioBuffer = await audioResponse.arrayBuffer()
-        const audioFile = new File([audioBuffer], `audio.${document.file_type}`, {
-          type: document.file_type === 'mp4' ? 'video/mp4' : 'audio/mpeg'
-        })
+        const audioFile = new File(
+          [audioBuffer],
+          `audio.${document.file_type}`,
+          {
+            type: document.file_type === 'mp4' ? 'video/mp4' : 'audio/mpeg',
+          }
+        )
 
         const transcription = await openai.audio.transcriptions.create({
           file: audioFile,
@@ -122,14 +142,21 @@ serve(async (req) => {
     }
 
     if (!extractedText || extractedText.length < 50) {
-      await supabaseClient.from('documents').update({
-        processing_status: 'failed',
-        metadata: { error: 'النص المستخرج قصير جداً' }
-      }).eq('id', documentId)
+      await supabaseClient
+        .from('documents')
+        .update({
+          processing_status: 'failed',
+          metadata: { error: 'النص المستخرج قصير جداً' },
+        })
+        .eq('id', documentId)
 
-      return new Response(JSON.stringify({ error: 'لم يتمكن النظام من استخراج نص كافٍ' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      })
+      return new Response(
+        JSON.stringify({ error: 'لم يتمكن النظام من استخراج نص كافٍ' }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      )
     }
 
     // 6. توليد الأسئلة
@@ -180,22 +207,27 @@ ${extractedText.slice(0, 6000)}
     }
 
     // 8. تحديث المستند
-    await supabaseClient.from('documents').update({
-      extracted_text: extractedText,
-      processing_status: 'completed',
-      questions_count: questions.length,
-    }).eq('id', documentId)
+    await supabaseClient
+      .from('documents')
+      .update({
+        extracted_text: extractedText,
+        processing_status: 'completed',
+        questions_count: questions.length,
+      })
+      .eq('id', documentId)
 
     return new Response(
       JSON.stringify({ success: true, questions_count: questions.length }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
-
   } catch (error: any) {
     console.error('Edge function error:', error)
     return new Response(
       JSON.stringify({ error: error.message || 'خطأ داخلي' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
     )
   }
 })

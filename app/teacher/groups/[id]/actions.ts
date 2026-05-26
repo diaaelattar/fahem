@@ -28,7 +28,9 @@ export async function addStudentToGroupAction(
   if (registerDetails) {
     // 1. تسجيل طالب جديد بالمنصة عبر العميل المسؤول (Admin)
     const adminClient = createAdminClient()
-    const emailToUse = registerDetails.email?.trim().toLowerCase() || `student-${Date.now()}-${Math.floor(Math.random() * 1000)}@istabaq-temp.com`
+    const emailToUse =
+      registerDetails.email?.trim().toLowerCase() ||
+      `student-${Date.now()}-${Math.floor(Math.random() * 1000)}@istabaq-temp.com`
 
     if (registerDetails.email) {
       const { data: existingProfile } = await supabase
@@ -38,20 +40,23 @@ export async function addStudentToGroupAction(
         .single()
 
       if (existingProfile) {
-        throw new Error('البريد الإلكتروني هذا مسجل بالفعل لطالب آخر على المنصة')
+        throw new Error(
+          'البريد الإلكتروني هذا مسجل بالفعل لطالب آخر على المنصة'
+        )
       }
     }
 
     // إنشاء مستخدم جديد في Supabase Auth
-    const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
-      email: emailToUse,
-      password: Math.random().toString(36).slice(-10), // كلمة مرور عشوائية غير مستخدمة مباشرة
-      email_confirm: true,
-      user_metadata: {
-        full_name: registerDetails.fullName,
-        role: 'student'
-      }
-    })
+    const { data: authData, error: authError } =
+      await adminClient.auth.admin.createUser({
+        email: emailToUse,
+        password: Math.random().toString(36).slice(-10), // كلمة مرور عشوائية غير مستخدمة مباشرة
+        email_confirm: true,
+        user_metadata: {
+          full_name: registerDetails.fullName,
+          role: 'student',
+        },
+      })
 
     if (authError) {
       throw new Error(`فشل إنشاء حساب الطالب: ${authError.message}`)
@@ -67,16 +72,14 @@ export async function addStudentToGroupAction(
     const studentCode = `STU-${new Date().getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`
 
     // إدراج السجل في جدول الطلاب يدويًا (بما أن التريجر يدرج فقط في profiles)
-    const { error: studentError } = await adminClient
-      .from('students')
-      .insert({
-        id: studentId,
-        student_code: studentCode,
-        parent_phone: registerDetails.parentPhone || null,
-        xp_points: 0,
-        level: 1,
-        streak_days: 0
-      })
+    const { error: studentError } = await adminClient.from('students').insert({
+      id: studentId,
+      student_code: studentCode,
+      parent_phone: registerDetails.parentPhone || null,
+      xp_points: 0,
+      level: 1,
+      streak_days: 0,
+    })
 
     if (studentError) {
       console.error('Error inserting student details:', studentError)
@@ -122,14 +125,12 @@ export async function addStudentToGroupAction(
   }
 
   // إضافة الطالب للمجموعة
-  const { error: insertError } = await supabase
-    .from('group_students')
-    .insert({
-      group_id: groupId,
-      student_id: studentId,
-      status: 'active',
-      source: 'teacher_added'
-    })
+  const { error: insertError } = await supabase.from('group_students').insert({
+    group_id: groupId,
+    student_id: studentId,
+    status: 'active',
+    source: 'teacher_added',
+  })
 
   if (insertError) {
     throw new Error('حدث خطأ أثناء إضافة الطالب للمجموعة')
@@ -165,16 +166,14 @@ export async function createSessionAction(
   if (!data.title.trim()) throw new Error('يرجى إدخال عنوان الحصة')
   if (!data.scheduledAt) throw new Error('يرجى تحديد موعد الحصة')
 
-  const { error } = await supabase
-    .from('group_sessions')
-    .insert({
-      group_id: groupId,
-      title: data.title,
-      scheduled_at: data.scheduledAt,
-      live_stream_url: data.liveStreamUrl || null,
-      media_url: data.mediaUrl || null,
-      media_title: data.mediaTitle || null
-    })
+  const { error } = await supabase.from('group_sessions').insert({
+    group_id: groupId,
+    title: data.title,
+    scheduled_at: data.scheduledAt,
+    live_stream_url: data.liveStreamUrl || null,
+    media_url: data.mediaUrl || null,
+    media_title: data.mediaTitle || null,
+  })
 
   if (error) {
     throw new Error(`فشل إنشاء الحصة: ${error.message}`)
@@ -235,14 +234,15 @@ export async function saveAttendanceAction(
   if (!session) throw new Error('الحصة غير موجودة')
 
   const teacherId = (session.student_groups as any)?.teacher_id
-  if (teacherId !== profile.id) throw new Error('غير مصرح لك بإدارة حضور هذه الحصة')
+  if (teacherId !== profile.id)
+    throw new Error('غير مصرح لك بإدارة حضور هذه الحصة')
 
   // إعداد بيانات الإدراج والتحديث
-  const upsertData = attendanceData.map(item => ({
+  const upsertData = attendanceData.map((item) => ({
     session_id: sessionId,
     student_id: item.studentId,
     status: item.status,
-    notes: item.notes || null
+    notes: item.notes || null,
   }))
 
   const { error } = await supabase

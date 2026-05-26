@@ -21,7 +21,7 @@ export function SubscribeButton({ planId, isPrimary, disabled }: Props) {
       const res = await fetch('/api/checkout/paymob', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planId })
+        body: JSON.stringify({ planId }),
       })
 
       const data = await res.json()
@@ -36,7 +36,6 @@ export function SubscribeButton({ planId, isPrimary, disabled }: Props) {
       } else {
         throw new Error('لم يتم إرجاع رابط الدفع')
       }
-
     } catch (err: any) {
       setError(err.message)
       setLoading(false)
@@ -46,20 +45,26 @@ export function SubscribeButton({ planId, isPrimary, disabled }: Props) {
   return (
     <div>
       {error && (
-        <div className="text-red-500 text-sm mb-3 font-medium text-center">
+        <div className="mb-3 text-center text-sm font-medium text-red-500">
           {error}
         </div>
       )}
       <button
         onClick={handleSubscribe}
         disabled={loading || disabled}
-        className={`w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+        className={`flex w-full items-center justify-center gap-2 rounded-xl py-4 font-bold transition-all disabled:cursor-not-allowed disabled:opacity-50 ${
           isPrimary
-            ? 'bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20'
-            : 'bg-slate-100 hover:bg-slate-200 text-slate-800'
+            ? 'bg-primary text-white shadow-lg shadow-primary/20 hover:bg-primary/90'
+            : 'bg-slate-100 text-slate-800 hover:bg-slate-200'
         }`}
       >
-        {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : disabled ? 'مشترك بالفعل' : 'اشترك الآن'}
+        {loading ? (
+          <Loader2 className="h-5 w-5 animate-spin" />
+        ) : disabled ? (
+          'مشترك بالفعل'
+        ) : (
+          'اشترك الآن'
+        )}
       </button>
     </div>
   )

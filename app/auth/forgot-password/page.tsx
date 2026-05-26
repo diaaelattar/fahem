@@ -21,12 +21,15 @@ export default function ForgotPasswordPage() {
 
     setLoading(true)
     setError('')
-    
+
     try {
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
-      })
-      
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+        email,
+        {
+          redirectTo: `${window.location.origin}/auth/reset-password`,
+        }
+      )
+
       if (resetError) {
         setError('حدث خطأ: ' + resetError.message)
         return
@@ -41,44 +44,59 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-hero-pattern flex items-center justify-center p-4" dir="rtl">
+    <div
+      className="bg-hero-pattern flex min-h-screen items-center justify-center p-4"
+      dir="rtl"
+    >
       <div className="w-full max-w-md">
-
         {/* Logo */}
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-flex flex-col items-center gap-2 text-white group">
-            <div className="w-16 h-16 rounded-2xl bg-white/15 backdrop-blur-sm border border-white/30 flex items-center justify-center shadow-xl group-hover:scale-105 transition-transform">
-              <Brain className="w-8 h-8 text-yellow-300" />
+        <div className="mb-8 text-center">
+          <Link
+            href="/"
+            className="group inline-flex flex-col items-center gap-2 text-white"
+          >
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/30 bg-white/15 shadow-xl backdrop-blur-sm transition-transform group-hover:scale-105">
+              <Brain className="h-8 w-8 text-yellow-300" />
             </div>
-            <div className="text-2xl font-display font-bold">استباق مصر</div>
+            <div className="font-display text-2xl font-bold">استباق مصر</div>
           </Link>
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden p-8">
-          <h1 className="text-2xl font-display font-bold text-center mb-2">استعادة كلمة المرور</h1>
-          
+        <div className="overflow-hidden rounded-3xl bg-white p-8 shadow-2xl">
+          <h1 className="mb-2 text-center font-display text-2xl font-bold">
+            استعادة كلمة المرور
+          </h1>
+
           {success ? (
-            <div className="text-center py-6">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckCircle2 className="w-8 h-8 text-green-600" />
+            <div className="py-6 text-center">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
+                <CheckCircle2 className="h-8 w-8 text-green-600" />
               </div>
-              <h2 className="text-lg font-bold text-slate-800 mb-2">تم إرسال رابط الاستعادة!</h2>
-              <p className="text-slate-600 text-sm mb-6 leading-relaxed">
-                يرجى التحقق من صندوق الوارد في بريدك الإلكتروني ({email}). ستجد رابطاً لتعيين كلمة مرور جديدة.
+              <h2 className="mb-2 text-lg font-bold text-slate-800">
+                تم إرسال رابط الاستعادة!
+              </h2>
+              <p className="mb-6 text-sm leading-relaxed text-slate-600">
+                يرجى التحقق من صندوق الوارد في بريدك الإلكتروني ({email}). ستجد
+                رابطاً لتعيين كلمة مرور جديدة.
               </p>
-              <Link href="/auth/login" className="text-primary font-bold hover:underline flex items-center justify-center gap-1">
-                العودة لتسجيل الدخول <ArrowRight className="w-4 h-4 rotate-180" />
+              <Link
+                href="/auth/login"
+                className="flex items-center justify-center gap-1 font-bold text-primary hover:underline"
+              >
+                العودة لتسجيل الدخول{' '}
+                <ArrowRight className="h-4 w-4 rotate-180" />
               </Link>
             </div>
           ) : (
             <>
-              <p className="text-muted-foreground text-center text-sm mb-6">
-                أدخل بريدك الإلكتروني المسجل لدينا وسنرسل لك رابطاً لإنشاء كلمة مرور جديدة.
+              <p className="mb-6 text-center text-sm text-muted-foreground">
+                أدخل بريدك الإلكتروني المسجل لدينا وسنرسل لك رابطاً لإنشاء كلمة
+                مرور جديدة.
               </p>
 
               {error && (
-                <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm mb-5">
+                <div className="mb-5 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
                   <span className="text-red-500">⚠️</span>
                   {error}
                 </div>
@@ -86,9 +104,11 @@ export default function ForgotPasswordPage() {
 
               <form onSubmit={handleReset} className="space-y-5">
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-1.5">البريد الإلكتروني</label>
+                  <label className="mb-1.5 block text-sm font-bold text-slate-700">
+                    البريد الإلكتروني
+                  </label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
                       <Mail className="h-5 w-5 text-slate-400" />
                     </div>
                     <input
@@ -96,7 +116,7 @@ export default function ForgotPasswordPage() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       dir="ltr"
-                      className="block w-full pl-3 pr-10 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:border-primary text-sm bg-slate-50 focus:bg-white transition-colors"
+                      className="block w-full rounded-xl border border-border bg-slate-50 py-3 pl-3 pr-10 text-sm transition-colors focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary"
                       placeholder="student@example.com"
                       required
                     />
@@ -106,14 +126,21 @@ export default function ForgotPasswordPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3.5 rounded-xl transition-all disabled:opacity-60 shadow-md"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 font-bold text-primary-foreground shadow-md transition-all hover:bg-primary/90 disabled:opacity-60"
                 >
-                  {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'إرسال رابط الاستعادة'}
+                  {loading ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    'إرسال رابط الاستعادة'
+                  )}
                 </button>
               </form>
 
               <div className="mt-6 text-center">
-                <Link href="/auth/login" className="text-sm text-slate-500 font-medium hover:text-slate-800 transition-colors">
+                <Link
+                  href="/auth/login"
+                  className="text-sm font-medium text-slate-500 transition-colors hover:text-slate-800"
+                >
                   تذكرت كلمة المرور؟ العودة لتسجيل الدخول
                 </Link>
               </div>

@@ -41,7 +41,7 @@ export async function POST(req: Request) {
         obj.source_data.pan,
         obj.source_data.sub_type,
         obj.source_data.type,
-        obj.success
+        obj.success,
       ].join('')
 
       const hashedString = crypto
@@ -84,7 +84,7 @@ export async function POST(req: Request) {
           .update({
             status: 'completed',
             reference_id: obj.id.toString(),
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
           })
           .eq('id', transactionId)
 
@@ -101,26 +101,22 @@ export async function POST(req: Request) {
           endDate.setDate(endDate.getDate() + plan.duration_days)
 
           // Insert or update subscription
-          await supabase
-            .from('student_subscriptions')
-            .insert({
-              student_id: transaction.student_id,
-              plan_id: transaction.plan_id,
-              start_date: new Date().toISOString(),
-              end_date: endDate.toISOString(),
-              status: 'active'
-            })
+          await supabase.from('student_subscriptions').insert({
+            student_id: transaction.student_id,
+            plan_id: transaction.plan_id,
+            start_date: new Date().toISOString(),
+            end_date: endDate.toISOString(),
+            status: 'active',
+          })
 
           // Send VIP Activation Notification
-          await supabase
-            .from('notifications')
-            .insert({
-              user_id: transaction.student_id,
-              title: 'تم تفعيل حساب الـ VIP 👑',
-              message: `مبروك! تم تفعيل اشتراكك في باقة "${plan.name_ar}" بنجاح. استمتع بوصول غير محدود للامتحانات حتى ${endDate.toLocaleDateString('ar-EG')}.`,
-              type: 'success',
-              link: '/student/vip'
-            })
+          await supabase.from('notifications').insert({
+            user_id: transaction.student_id,
+            title: 'تم تفعيل حساب الـ VIP 👑',
+            message: `مبروك! تم تفعيل اشتراكك في باقة "${plan.name_ar}" بنجاح. استمتع بوصول غير محدود للامتحانات حتى ${endDate.toLocaleDateString('ar-EG')}.`,
+            type: 'success',
+            link: '/student/vip',
+          })
         }
       }
     } else {
@@ -130,15 +126,17 @@ export async function POST(req: Request) {
         .update({
           status: 'failed',
           reference_id: obj.id.toString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', transactionId)
     }
 
     return NextResponse.json({ success: true })
-
   } catch (error) {
     console.error('Webhook processing error:', error)
-    return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Webhook processing failed' },
+      { status: 500 }
+    )
   }
 }

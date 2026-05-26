@@ -4,7 +4,16 @@ import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import TextAlign from '@tiptap/extension-text-align'
 import Placeholder from '@tiptap/extension-placeholder'
-import { Bold, Italic, Strikethrough, AlignLeft, AlignCenter, AlignRight, List, ListOrdered } from 'lucide-react'
+import {
+  Bold,
+  Italic,
+  Strikethrough,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  List,
+  ListOrdered,
+} from 'lucide-react'
 
 interface RichTextEditorProps {
   value: string
@@ -13,7 +22,12 @@ interface RichTextEditorProps {
   minHeight?: string
 }
 
-export function RichTextEditor({ value, onChange, placeholder = 'اكتب هنا...', minHeight = 'min-h-[150px]' }: RichTextEditorProps) {
+export function RichTextEditor({
+  value,
+  onChange,
+  placeholder = 'اكتب هنا...',
+  minHeight = 'min-h-[150px]',
+}: RichTextEditorProps) {
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -42,70 +56,70 @@ export function RichTextEditor({ value, onChange, placeholder = 'اكتب هنا
   }
 
   return (
-    <div className="border border-border rounded-xl overflow-hidden bg-white">
+    <div className="overflow-hidden rounded-xl border border-border bg-white">
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-1 p-2 border-b border-border bg-slate-50">
+      <div className="flex flex-wrap items-center gap-1 border-b border-border bg-slate-50 p-2">
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleBold().run()}
-          className={`p-2 rounded-lg hover:bg-slate-200 transition-colors ${editor.isActive('bold') ? 'bg-slate-200 text-primary' : 'text-slate-600'}`}
+          className={`rounded-lg p-2 transition-colors hover:bg-slate-200 ${editor.isActive('bold') ? 'bg-slate-200 text-primary' : 'text-slate-600'}`}
         >
-          <Bold className="w-4 h-4" />
+          <Bold className="h-4 w-4" />
         </button>
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleItalic().run()}
-          className={`p-2 rounded-lg hover:bg-slate-200 transition-colors ${editor.isActive('italic') ? 'bg-slate-200 text-primary' : 'text-slate-600'}`}
+          className={`rounded-lg p-2 transition-colors hover:bg-slate-200 ${editor.isActive('italic') ? 'bg-slate-200 text-primary' : 'text-slate-600'}`}
         >
-          <Italic className="w-4 h-4" />
+          <Italic className="h-4 w-4" />
         </button>
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleStrike().run()}
-          className={`p-2 rounded-lg hover:bg-slate-200 transition-colors ${editor.isActive('strike') ? 'bg-slate-200 text-primary' : 'text-slate-600'}`}
+          className={`rounded-lg p-2 transition-colors hover:bg-slate-200 ${editor.isActive('strike') ? 'bg-slate-200 text-primary' : 'text-slate-600'}`}
         >
-          <Strikethrough className="w-4 h-4" />
+          <Strikethrough className="h-4 w-4" />
         </button>
-        
-        <div className="w-px h-6 bg-border mx-1" />
-        
+
+        <div className="mx-1 h-6 w-px bg-border" />
+
         <button
           type="button"
           onClick={() => editor.chain().focus().setTextAlign('right').run()}
-          className={`p-2 rounded-lg hover:bg-slate-200 transition-colors ${editor.isActive({ textAlign: 'right' }) ? 'bg-slate-200 text-primary' : 'text-slate-600'}`}
+          className={`rounded-lg p-2 transition-colors hover:bg-slate-200 ${editor.isActive({ textAlign: 'right' }) ? 'bg-slate-200 text-primary' : 'text-slate-600'}`}
         >
-          <AlignRight className="w-4 h-4" />
+          <AlignRight className="h-4 w-4" />
         </button>
         <button
           type="button"
           onClick={() => editor.chain().focus().setTextAlign('center').run()}
-          className={`p-2 rounded-lg hover:bg-slate-200 transition-colors ${editor.isActive({ textAlign: 'center' }) ? 'bg-slate-200 text-primary' : 'text-slate-600'}`}
+          className={`rounded-lg p-2 transition-colors hover:bg-slate-200 ${editor.isActive({ textAlign: 'center' }) ? 'bg-slate-200 text-primary' : 'text-slate-600'}`}
         >
-          <AlignCenter className="w-4 h-4" />
+          <AlignCenter className="h-4 w-4" />
         </button>
         <button
           type="button"
           onClick={() => editor.chain().focus().setTextAlign('left').run()}
-          className={`p-2 rounded-lg hover:bg-slate-200 transition-colors ${editor.isActive({ textAlign: 'left' }) ? 'bg-slate-200 text-primary' : 'text-slate-600'}`}
+          className={`rounded-lg p-2 transition-colors hover:bg-slate-200 ${editor.isActive({ textAlign: 'left' }) ? 'bg-slate-200 text-primary' : 'text-slate-600'}`}
         >
-          <AlignLeft className="w-4 h-4" />
+          <AlignLeft className="h-4 w-4" />
         </button>
 
-        <div className="w-px h-6 bg-border mx-1" />
+        <div className="mx-1 h-6 w-px bg-border" />
 
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleBulletList().run()}
-          className={`p-2 rounded-lg hover:bg-slate-200 transition-colors ${editor.isActive('bulletList') ? 'bg-slate-200 text-primary' : 'text-slate-600'}`}
+          className={`rounded-lg p-2 transition-colors hover:bg-slate-200 ${editor.isActive('bulletList') ? 'bg-slate-200 text-primary' : 'text-slate-600'}`}
         >
-          <List className="w-4 h-4" />
+          <List className="h-4 w-4" />
         </button>
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
-          className={`p-2 rounded-lg hover:bg-slate-200 transition-colors ${editor.isActive('orderedList') ? 'bg-slate-200 text-primary' : 'text-slate-600'}`}
+          className={`rounded-lg p-2 transition-colors hover:bg-slate-200 ${editor.isActive('orderedList') ? 'bg-slate-200 text-primary' : 'text-slate-600'}`}
         >
-          <ListOrdered className="w-4 h-4" />
+          <ListOrdered className="h-4 w-4" />
         </button>
       </div>
 

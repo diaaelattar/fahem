@@ -2,7 +2,16 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Swords, Loader2, Trophy, Clock, CheckCircle, XCircle, Zap, Shield } from 'lucide-react'
+import {
+  Swords,
+  Loader2,
+  Trophy,
+  Clock,
+  CheckCircle,
+  XCircle,
+  Zap,
+  Shield,
+} from 'lucide-react'
 import { MathRenderer } from '@/components/ui/MathRenderer'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -21,7 +30,9 @@ interface ChallengeQuestion {
 export default function ChallengesPage() {
   const supabase = createClient()
   const [phase, setPhase] = useState<Phase>('select')
-  const [subjects, setSubjects] = useState<{ id: number; name_ar: string; icon: string }[]>([])
+  const [subjects, setSubjects] = useState<
+    { id: number; name_ar: string; icon: string }[]
+  >([])
   const [selectedSubject, setSelectedSubject] = useState<number | null>(null)
   const [challenge, setChallenge] = useState<any>(null)
   const [role, setRole] = useState<'challenger' | 'opponent'>('challenger')
@@ -38,11 +49,15 @@ export default function ChallengesPage() {
 
   useEffect(() => {
     async function init() {
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
       if (user) setUserId(user.id)
 
       const { data: subs } = await supabase
-        .from('subjects').select('id, name_ar, icon').order('name_ar')
+        .from('subjects')
+        .select('id, name_ar, icon')
+        .order('name_ar')
       setSubjects(subs || [])
     }
     init()
@@ -73,7 +88,7 @@ export default function ChallengesPage() {
     if (phase !== 'playing') return
     setTimeLeft(15)
     const timer = setInterval(() => {
-      setTimeLeft(t => {
+      setTimeLeft((t) => {
         if (t <= 1) {
           clearInterval(timer)
           handleAutoNext()
@@ -98,7 +113,7 @@ export default function ChallengesPage() {
     const res = await fetch('/api/challenges/find', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ subjectId: selectedSubject })
+      body: JSON.stringify({ subjectId: selectedSubject }),
     })
     const data = await res.json()
     setChallenge(data.challenge)
@@ -120,7 +135,7 @@ export default function ChallengesPage() {
           event: 'UPDATE',
           schema: 'public',
           table: 'challenges',
-          filter: `id=eq.${data.challenge.id}`
+          filter: `id=eq.${data.challenge.id}`,
         },
         (payload) => {
           const updated = payload.new as any
@@ -147,7 +162,10 @@ export default function ChallengesPage() {
         realtimeChannelRef.current = null
       }
       // Cancel challenge and go to solo practice
-      await supabase.from('challenges').update({ status: 'cancelled' }).eq('id', data.challenge.id)
+      await supabase
+        .from('challenges')
+        .update({ status: 'cancelled' })
+        .eq('id', data.challenge.id)
       setPhase('select')
       toast.info('لم يُوجد خصم الآن. حاول مجدداً لاحقاً!')
     }, 60000)
@@ -155,18 +173,19 @@ export default function ChallengesPage() {
 
   const handleAnswer = async (q: ChallengeQuestion, answer: string) => {
     if (answers[q.id] !== undefined) return
-    const isCorrect = answer.trim().toLowerCase() === q.correct_answer.trim().toLowerCase()
+    const isCorrect =
+      answer.trim().toLowerCase() === q.correct_answer.trim().toLowerCase()
     const pts = isCorrect ? q.points : 0
 
     // Play synthesized sound effect
     playSound(isCorrect ? 'correct' : 'incorrect')
 
-    setAnswers(prev => ({ ...prev, [q.id]: answer }))
-    setScore(s => s + pts)
+    setAnswers((prev) => ({ ...prev, [q.id]: answer }))
+    setScore((s) => s + pts)
 
     setTimeout(() => {
       if (currentIdx < questions.length - 1) {
-        setCurrentIdx(i => i + 1)
+        setCurrentIdx((i) => i + 1)
       } else {
         finishChallenge(score + pts)
       }
@@ -178,7 +197,7 @@ export default function ChallengesPage() {
     const res = await fetch(`/api/challenges/${challenge.id}/submit`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ answers, score: finalScore })
+      body: JSON.stringify({ answers, score: finalScore }),
     })
     const data = await res.json()
 
@@ -197,7 +216,7 @@ export default function ChallengesPage() {
           event: 'UPDATE',
           schema: 'public',
           table: 'challenges',
-          filter: `id=eq.${challenge.id}`
+          filter: `id=eq.${challenge.id}`,
         },
         (payload) => {
           const updated = payload.new as any
@@ -222,60 +241,84 @@ export default function ChallengesPage() {
         supabase.removeChannel(realtimeChannelRef.current)
         realtimeChannelRef.current = null
       }
-      setResult({ ...challenge, winner_id: userId, challenger_score: finalScore, opponent_score: 0 })
+      setResult({
+        ...challenge,
+        winner_id: userId,
+        challenger_score: finalScore,
+        opponent_score: 0,
+      })
       setPhase('result')
     }, 30000)
   }
 
   const q = questions[currentIdx]
-  const progress = questions.length > 0 ? ((currentIdx + 1) / questions.length) * 100 : 0
+  const progress =
+    questions.length > 0 ? ((currentIdx + 1) / questions.length) * 100 : 0
 
   // ── SELECT SUBJECT ──────────────────────────────────────────────────────────
   if (phase === 'select') {
     return (
-      <motion.div 
-        initial={{ opacity: 0, y: 15 }} 
-        animate={{ opacity: 1, y: 0 }} 
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -15 }}
-        className="max-w-lg mx-auto space-y-6 pb-24" 
+        className="mx-auto max-w-lg space-y-6 pb-24"
         dir="rtl"
       >
-        <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-3xl p-6 text-white">
-          <div className="flex items-center gap-3 mb-2">
-            <Swords className="w-8 h-8 text-yellow-300" />
+        <div className="rounded-3xl bg-gradient-to-br from-indigo-600 to-purple-700 p-6 text-white">
+          <div className="mb-2 flex items-center gap-3">
+            <Swords className="h-8 w-8 text-yellow-300" />
             <div>
-              <h1 className="text-2xl font-display font-bold">التحديات المباشرة</h1>
-              <p className="text-indigo-200 text-sm">تحدّ طالباً عشوائياً الآن!</p>
+              <h1 className="font-display text-2xl font-bold">
+                التحديات المباشرة
+              </h1>
+              <p className="text-sm text-indigo-200">
+                تحدّ طالباً عشوائياً الآن!
+              </p>
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-3 mt-5">
-            {[{ v: '10', l: 'أسئلة' }, { v: '15ث', l: 'لكل سؤال' }, { v: '+30', l: 'XP للفوز' }].map(s => (
-              <div key={s.l} className="bg-white/15 rounded-2xl p-3 text-center">
+          <div className="mt-5 grid grid-cols-3 gap-3">
+            {[
+              { v: '10', l: 'أسئلة' },
+              { v: '15ث', l: 'لكل سؤال' },
+              { v: '+30', l: 'XP للفوز' },
+            ].map((s) => (
+              <div
+                key={s.l}
+                className="rounded-2xl bg-white/15 p-3 text-center"
+              >
                 <div className="text-xl font-black text-yellow-300">{s.v}</div>
-                <div className="text-indigo-200 text-xs">{s.l}</div>
+                <div className="text-xs text-indigo-200">{s.l}</div>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="bg-white rounded-3xl border border-border p-5">
-          <h2 className="font-bold mb-4">اختر المادة</h2>
+        <div className="rounded-3xl border border-border bg-white p-5">
+          <h2 className="mb-4 font-bold">اختر المادة</h2>
           <div className="grid grid-cols-2 gap-3">
-            {subjects.map(sub => (
-              <button key={sub.id} onClick={() => setSelectedSubject(sub.id)}
-                className={`flex items-center gap-3 p-4 rounded-2xl border-2 transition-all font-bold text-right
-                  ${selectedSubject === sub.id
+            {subjects.map((sub) => (
+              <button
+                key={sub.id}
+                onClick={() => setSelectedSubject(sub.id)}
+                className={`flex items-center gap-3 rounded-2xl border-2 p-4 text-right font-bold transition-all ${
+                  selectedSubject === sub.id
                     ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                    : 'border-border hover:border-indigo-300 hover:bg-indigo-50/30'}`}>
+                    : 'border-border hover:border-indigo-300 hover:bg-indigo-50/30'
+                }`}
+              >
                 <span className="text-2xl">{sub.icon}</span>
                 <span className="text-sm">{sub.name_ar}</span>
               </button>
             ))}
           </div>
 
-          <button onClick={startSearch} disabled={!selectedSubject}
-            className="w-full mt-5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-90 disabled:opacity-40 text-white font-bold py-4 rounded-2xl transition-all flex items-center justify-center gap-2 text-lg shadow-lg">
-            <Swords className="w-5 h-5" />
+          <button
+            onClick={startSearch}
+            disabled={!selectedSubject}
+            className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 py-4 text-lg font-bold text-white shadow-lg transition-all hover:opacity-90 disabled:opacity-40"
+          >
+            <Swords className="h-5 w-5" />
             ابدأ التحدي!
           </button>
         </div>
@@ -286,27 +329,33 @@ export default function ChallengesPage() {
   // ── SEARCHING ───────────────────────────────────────────────────────────────
   if (phase === 'searching') {
     return (
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="max-w-lg mx-auto flex flex-col items-center justify-center min-h-[60vh] text-center" 
+        className="mx-auto flex min-h-[60vh] max-w-lg flex-col items-center justify-center text-center"
         dir="rtl"
       >
         <div className="relative mb-6">
-          <motion.div 
+          <motion.div
             animate={{ scale: [1, 1.08, 1], rotate: [0, 5, -5, 0] }}
-            transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut" }}
-            className="w-32 h-32 rounded-full border-4 border-indigo-200 flex items-center justify-center bg-indigo-50"
+            transition={{ repeat: Infinity, duration: 2.5, ease: 'easeInOut' }}
+            className="flex h-32 w-32 items-center justify-center rounded-full border-4 border-indigo-200 bg-indigo-50"
           >
-            <Swords className="w-16 h-16 text-indigo-400" />
+            <Swords className="h-16 w-16 text-indigo-400" />
           </motion.div>
-          <div className="absolute inset-0 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin" />
+          <div className="absolute inset-0 animate-spin rounded-full border-4 border-indigo-500 border-t-transparent" />
         </div>
-        <h2 className="text-2xl font-display font-bold mb-2">نبحث عن خصم...</h2>
-        <p className="text-muted-foreground">جاري إيجاد طالب آخر في نفس المادة</p>
-        <div className="flex gap-2 mt-4">
-          {[0,1,2].map(i => (
-            <div key={i} className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+        <h2 className="mb-2 font-display text-2xl font-bold">نبحث عن خصم...</h2>
+        <p className="text-muted-foreground">
+          جاري إيجاد طالب آخر في نفس المادة
+        </p>
+        <div className="mt-4 flex gap-2">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="h-2 w-2 animate-bounce rounded-full bg-indigo-400"
+              style={{ animationDelay: `${i * 0.15}s` }}
+            />
           ))}
         </div>
       </motion.div>
@@ -318,73 +367,97 @@ export default function ChallengesPage() {
     const answered = answers[q.id]
     const isCorrect = answered && answered === q.correct_answer
     return (
-      <div className="max-w-lg mx-auto space-y-4 pb-24" dir="rtl">
+      <div className="mx-auto max-w-lg space-y-4 pb-24" dir="rtl">
         {/* Header */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-4 text-white"
+          className="rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 p-4 text-white"
         >
-          <div className="flex items-center justify-between mb-3">
+          <div className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2 font-bold">
-              <Zap className="w-4 h-4 text-yellow-300" />
+              <Zap className="h-4 w-4 text-yellow-300" />
               <span>{score} نقطة</span>
             </div>
-            <div className={`flex items-center gap-2 font-black text-lg px-4 py-1 rounded-xl
-              ${timeLeft <= 5 ? 'bg-red-500 animate-pulse' : 'bg-white/20'}`}>
-              <Clock className="w-4 h-4" />
+            <div
+              className={`flex items-center gap-2 rounded-xl px-4 py-1 text-lg font-black ${timeLeft <= 5 ? 'animate-pulse bg-red-500' : 'bg-white/20'}`}
+            >
+              <Clock className="h-4 w-4" />
               {timeLeft}
             </div>
-            <div className="text-sm">{currentIdx + 1} / {questions.length}</div>
+            <div className="text-sm">
+              {currentIdx + 1} / {questions.length}
+            </div>
           </div>
-          <div className="w-full bg-white/20 rounded-full h-2">
-            <div className="bg-yellow-400 h-2 rounded-full transition-all" style={{ width: `${progress}%` }} />
+          <div className="h-2 w-full rounded-full bg-white/20">
+            <div
+              className="h-2 rounded-full bg-yellow-400 transition-all"
+              style={{ width: `${progress}%` }}
+            />
           </div>
         </motion.div>
 
         {/* Question with AnimatePresence */}
         <AnimatePresence mode="wait">
-          <motion.div 
+          <motion.div
             key={q.id}
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -50 }}
             transition={{ duration: 0.25 }}
-            className={`bg-white rounded-3xl border-2 p-6 transition-all ${answered ? (isCorrect ? 'border-emerald-400' : 'border-rose-400') : 'border-border'}`}
+            className={`rounded-3xl border-2 bg-white p-6 transition-all ${answered ? (isCorrect ? 'border-emerald-400' : 'border-rose-400') : 'border-border'}`}
           >
-            <MathRenderer text={q.question_text} className="text-xl font-bold mb-6 leading-relaxed" />
+            <MathRenderer
+              text={q.question_text}
+              className="mb-6 text-xl font-bold leading-relaxed"
+            />
             <div className="space-y-3">
               {q.options?.map((opt, i) => {
                 const isSelected = answered === opt
                 const correct = opt === q.correct_answer
-                let cls = 'w-full text-right flex items-center gap-3 p-4 rounded-2xl border-2 font-medium transition-all'
+                let cls =
+                  'w-full text-right flex items-center gap-3 p-4 rounded-2xl border-2 font-medium transition-all'
                 if (!answered) {
-                  cls += ' border-border hover:border-indigo-400 hover:bg-indigo-50 cursor-pointer'
+                  cls +=
+                    ' border-border hover:border-indigo-400 hover:bg-indigo-50 cursor-pointer'
                 } else if (correct) {
-                  cls += ' border-emerald-500 bg-emerald-50 text-emerald-800 cursor-default'
+                  cls +=
+                    ' border-emerald-500 bg-emerald-50 text-emerald-800 cursor-default'
                 } else if (isSelected) {
-                  cls += ' border-rose-400 bg-rose-50 text-rose-800 cursor-default'
+                  cls +=
+                    ' border-rose-400 bg-rose-50 text-rose-800 cursor-default'
                 } else {
                   cls += ' border-border opacity-40 cursor-default'
                 }
                 return (
-                  <motion.button 
-                    key={i} 
-                    onClick={() => !answered && handleAnswer(q, opt)} 
-                    className={cls} 
+                  <motion.button
+                    key={i}
+                    onClick={() => !answered && handleAnswer(q, opt)}
+                    className={cls}
                     disabled={!!answered}
                     whileHover={!answered ? { scale: 1.02, x: -2 } : {}}
                     whileTap={!answered ? { scale: 0.98 } : {}}
-                    animate={answered && isSelected && !correct ? { x: [-6, 6, -6, 6, 0] } : answered && correct ? { scale: [1, 1.03, 1] } : {}}
+                    animate={
+                      answered && isSelected && !correct
+                        ? { x: [-6, 6, -6, 6, 0] }
+                        : answered && correct
+                          ? { scale: [1, 1.03, 1] }
+                          : {}
+                    }
                     transition={{ duration: 0.3 }}
                   >
-                    <span className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-black shrink-0
-                      ${answered && correct ? 'bg-emerald-500 text-white' : answered && isSelected ? 'bg-rose-500 text-white' : 'bg-muted text-muted-foreground'}`}>
-                      {['أ','ب','ج','د'][i]}
+                    <span
+                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-xs font-black ${answered && correct ? 'bg-emerald-500 text-white' : answered && isSelected ? 'bg-rose-500 text-white' : 'bg-muted text-muted-foreground'}`}
+                    >
+                      {['أ', 'ب', 'ج', 'د'][i]}
                     </span>
                     <MathRenderer text={opt} className="flex-1 text-base" />
-                    {answered && correct && <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0" />}
-                    {answered && isSelected && !correct && <XCircle className="w-5 h-5 text-rose-500 shrink-0" />}
+                    {answered && correct && (
+                      <CheckCircle className="h-5 w-5 shrink-0 text-emerald-600" />
+                    )}
+                    {answered && isSelected && !correct && (
+                      <XCircle className="h-5 w-5 shrink-0 text-rose-500" />
+                    )}
                   </motion.button>
                 )
               })}
@@ -399,56 +472,82 @@ export default function ChallengesPage() {
   if (phase === 'result' && result) {
     const isWinner = result.winner_id === userId
     const isDraw = result.winner_id === null
-    const myScore = role === 'challenger' ? result.challenger_score : result.opponent_score
-    const theirScore = role === 'challenger' ? result.opponent_score : result.challenger_score
+    const myScore =
+      role === 'challenger' ? result.challenger_score : result.opponent_score
+    const theirScore =
+      role === 'challenger' ? result.opponent_score : result.challenger_score
 
     return (
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="max-w-lg mx-auto flex flex-col items-center justify-center min-h-[70vh] text-center space-y-6 pb-24" 
+        className="mx-auto flex min-h-[70vh] max-w-lg flex-col items-center justify-center space-y-6 pb-24 text-center"
         dir="rtl"
       >
-        <motion.div 
+        <motion.div
           initial={{ scale: 0, rotate: -30 }}
           animate={{ scale: 1, rotate: 0 }}
-          transition={{ type: "spring", damping: 10, stiffness: 120 }}
-          className={`w-28 h-28 rounded-3xl flex items-center justify-center shadow-2xl
-            ${isWinner ? 'bg-yellow-400' : isDraw ? 'bg-slate-200' : 'bg-rose-100'}`}
+          transition={{ type: 'spring', damping: 10, stiffness: 120 }}
+          className={`flex h-28 w-28 items-center justify-center rounded-3xl shadow-2xl ${isWinner ? 'bg-yellow-400' : isDraw ? 'bg-slate-200' : 'bg-rose-100'}`}
         >
-          {isWinner ? <Trophy className="w-16 h-16 text-yellow-800" /> :
-           isDraw ? <Shield className="w-16 h-16 text-slate-500" /> :
-           <XCircle className="w-16 h-16 text-rose-400" />}
+          {isWinner ? (
+            <Trophy className="h-16 w-16 text-yellow-800" />
+          ) : isDraw ? (
+            <Shield className="h-16 w-16 text-slate-500" />
+          ) : (
+            <XCircle className="h-16 w-16 text-rose-400" />
+          )}
         </motion.div>
 
         <div>
-          <h1 className="text-4xl font-display font-black mb-2">
+          <h1 className="mb-2 font-display text-4xl font-black">
             {isWinner ? '🏆 فزت!' : isDraw ? '🤝 تعادل!' : '💪 خسرت هذه المرة'}
           </h1>
           <p className="text-muted-foreground">
-            {isWinner ? `حصلت على +30 XP` : isDraw ? 'نتيجة متكافئة' : 'لا بأس، حاول مجدداً!'}
+            {isWinner
+              ? `حصلت على +30 XP`
+              : isDraw
+                ? 'نتيجة متكافئة'
+                : 'لا بأس، حاول مجدداً!'}
           </p>
         </div>
 
         <div className="flex gap-6">
-          <div className={`text-center p-5 rounded-2xl border-2 ${isWinner ? 'border-yellow-400 bg-yellow-50' : 'border-border bg-muted/30'}`}>
+          <div
+            className={`rounded-2xl border-2 p-5 text-center ${isWinner ? 'border-yellow-400 bg-yellow-50' : 'border-border bg-muted/30'}`}
+          >
             <div className="text-4xl font-black text-primary">{myScore}</div>
-            <div className="text-sm text-muted-foreground mt-1">نقاطك</div>
+            <div className="mt-1 text-sm text-muted-foreground">نقاطك</div>
           </div>
-          <div className="flex items-center text-2xl font-black text-muted-foreground">VS</div>
-          <div className={`text-center p-5 rounded-2xl border-2 ${!isWinner && !isDraw ? 'border-rose-400 bg-rose-50' : 'border-border bg-muted/30'}`}>
-            <div className="text-4xl font-black text-foreground">{theirScore}</div>
-            <div className="text-sm text-muted-foreground mt-1">نقاط الخصم</div>
+          <div className="flex items-center text-2xl font-black text-muted-foreground">
+            VS
+          </div>
+          <div
+            className={`rounded-2xl border-2 p-5 text-center ${!isWinner && !isDraw ? 'border-rose-400 bg-rose-50' : 'border-border bg-muted/30'}`}
+          >
+            <div className="text-4xl font-black text-foreground">
+              {theirScore}
+            </div>
+            <div className="mt-1 text-sm text-muted-foreground">نقاط الخصم</div>
           </div>
         </div>
 
-        <div className="flex gap-3 w-full">
-          <button onClick={() => { setPhase('select'); setCurrentIdx(0); setAnswers({}); setScore(0) }}
-            className="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold py-4 rounded-2xl hover:opacity-90 transition-all">
+        <div className="flex w-full gap-3">
+          <button
+            onClick={() => {
+              setPhase('select')
+              setCurrentIdx(0)
+              setAnswers({})
+              setScore(0)
+            }}
+            className="flex-1 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 py-4 font-bold text-white transition-all hover:opacity-90"
+          >
             تحدي جديد ⚔️
           </button>
-          <a href="/student/dashboard"
-            className="flex-1 border-2 border-border text-foreground font-bold py-4 rounded-2xl hover:bg-muted transition-all flex items-center justify-center">
+          <a
+            href="/student/dashboard"
+            className="flex flex-1 items-center justify-center rounded-2xl border-2 border-border py-4 font-bold text-foreground transition-all hover:bg-muted"
+          >
             الرئيسية
           </a>
         </div>
@@ -457,8 +556,8 @@ export default function ChallengesPage() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-[60vh]">
-      <Loader2 className="w-10 h-10 animate-spin text-primary" />
+    <div className="flex min-h-[60vh] items-center justify-center">
+      <Loader2 className="h-10 w-10 animate-spin text-primary" />
     </div>
   )
 }

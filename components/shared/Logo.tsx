@@ -11,17 +11,22 @@ export function Logo({
   className = '',
   size = 'md',
   variant = 'horizontal',
-  light = false
+  light = false,
 }: LogoProps) {
   // Determine pixel sizes
   const getPixelSize = () => {
     if (typeof size === 'number') return size
     switch (size) {
-      case 'sm': return 32
-      case 'md': return 48
-      case 'lg': return 64
-      case 'xl': return 96
-      default: return 48
+      case 'sm':
+        return 32
+      case 'md':
+        return 48
+      case 'lg':
+        return 64
+      case 'xl':
+        return 96
+      default:
+        return 48
     }
   }
 
@@ -35,7 +40,7 @@ export function Logo({
       viewBox="0 0 100 100"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      className="shrink-0 drop-shadow-[0_4px_12px_rgba(27,79,114,0.15)] select-none animate-pop"
+      className="animate-pop shrink-0 select-none drop-shadow-[0_4px_12px_rgba(27,79,114,0.15)]"
     >
       <defs>
         {/* Egypt Blue Gradient */}
@@ -44,7 +49,7 @@ export function Logo({
           <stop offset="50%" stopColor="#2E86C1" />
           <stop offset="100%" stopColor="#1A5276" />
         </linearGradient>
-        
+
         {/* Egypt Gold Gradient */}
         <linearGradient id="goldGrad" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0%" stopColor="#C5A028" />
@@ -65,7 +70,7 @@ export function Logo({
         stroke="url(#blueGrad)"
         strokeWidth="3.5"
         strokeLinejoin="round"
-        fill={light ? "rgba(255,255,255,0.85)" : "rgba(27,79,114,0.03)"}
+        fill={light ? 'rgba(255,255,255,0.85)' : 'rgba(27,79,114,0.03)'}
         className="transition-all duration-300"
       />
 
@@ -89,7 +94,13 @@ export function Logo({
       />
 
       {/* Center Intelligence Core */}
-      <circle cx="50" cy="50" r="4.5" fill="#FFFFFF" className="animate-pulse shadow-xl" />
+      <circle
+        cx="50"
+        cy="50"
+        r="4.5"
+        fill="#FFFFFF"
+        className="animate-pulse shadow-xl"
+      />
     </svg>
   )
 
@@ -107,13 +118,19 @@ export function Logo({
 
   if (variant === 'vertical') {
     return (
-      <div className={`flex flex-col items-center text-center gap-2.5 ${className}`}>
+      <div
+        className={`flex flex-col items-center gap-2.5 text-center ${className}`}
+      >
         {logoIcon}
         <div className="flex flex-col items-center">
-          <span className={`font-display font-black text-2xl tracking-tight leading-none ${titleColor}`}>
+          <span
+            className={`font-display text-2xl font-black leading-none tracking-tight ${titleColor}`}
+          >
             استباق مصر
           </span>
-          <span className={`text-xs font-semibold mt-1 tracking-widest uppercase ${subtextColor}`}>
+          <span
+            className={`mt-1 text-xs font-semibold uppercase tracking-widest ${subtextColor}`}
+          >
             فاهم
           </span>
         </div>
@@ -126,10 +143,14 @@ export function Logo({
     <div className={`inline-flex items-center gap-3.5 ${className}`}>
       {logoIcon}
       <div className="flex flex-col justify-center text-right">
-        <span className={`font-display font-black text-xl leading-none tracking-tight ${titleColor}`}>
+        <span
+          className={`font-display text-xl font-black leading-none tracking-tight ${titleColor}`}
+        >
           استباق مصر
         </span>
-        <span className={`text-[10px] font-bold mt-1.5 tracking-widest uppercase leading-none ${subtextColor}`}>
+        <span
+          className={`mt-1.5 text-[10px] font-bold uppercase leading-none tracking-widest ${subtextColor}`}
+        >
           فـــاهـــم
         </span>
       </div>

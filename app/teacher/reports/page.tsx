@@ -5,12 +5,16 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { AnalyticsDashboard } from '@/components/teacher/AnalyticsDashboard'
 
-export default async function TeacherReportsPage({ searchParams }: { searchParams: { exam_id?: string, group_id?: string } }) {
+export default async function TeacherReportsPage({
+  searchParams,
+}: {
+  searchParams: { exam_id?: string; group_id?: string }
+}) {
   const profile = await getCurrentProfile()
   if (!profile || profile.role !== 'teacher') redirect('/auth/login')
 
   const supabase = await createClient()
-  
+
   const selectedExamId = searchParams.exam_id
   const selectedGroupId = searchParams.group_id
 
@@ -26,7 +30,7 @@ export default async function TeacherReportsPage({ searchParams }: { searchParam
     .select('id, title, group_id')
     .eq('teacher_id', profile.id)
     .order('created_at', { ascending: false })
-    
+
   if (selectedGroupId) {
     examsQuery = examsQuery.eq('group_id', selectedGroupId)
   }
@@ -35,15 +39,17 @@ export default async function TeacherReportsPage({ searchParams }: { searchParam
   // If an exam is selected, fetch attempts with exam total_points
   let attempts: any[] = []
   let questionStats: any[] = []
-  
+
   if (selectedExamId) {
     const { data: fetchedAttempts } = await supabase
       .from('exam_attempts')
-      .select('*, students(profiles(full_name)), exams(total_points), exam_proctoring_events(id, event_type)')
+      .select(
+        '*, students(profiles(full_name)), exams(total_points), exam_proctoring_events(id, event_type)'
+      )
       .eq('exam_id', selectedExamId)
       .not('completed_at', 'is', null)
       .order('percentage', { ascending: false })
-    
+
     if (fetchedAttempts) {
       attempts = fetchedAttempts
     }
@@ -88,7 +94,7 @@ export default async function TeacherReportsPage({ searchParams }: { searchParam
           return {
             question_text: text,
             failure_rate,
-            total_attempts: s.total
+            total_attempts: s.total,
           }
         })
         .sort((a, b) => b.failure_rate - a.failure_rate)
@@ -96,32 +102,36 @@ export default async function TeacherReportsPage({ searchParams }: { searchParam
   }
 
   return (
-    <div className="space-y-6 animate-fade-in" dir="rtl">
+    <div className="animate-fade-in space-y-6" dir="rtl">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-black text-slate-800 flex items-center gap-2">
-          <BarChart className="w-6 h-6 text-indigo-600" />
+        <h1 className="flex items-center gap-2 text-2xl font-black text-slate-800">
+          <BarChart className="h-6 w-6 text-indigo-600" />
           تقارير الأداء والنتائج
         </h1>
-        <p className="text-sm text-slate-500 mt-1">تابع أداء طلابك في اختباراتك الخاصة واكتشف نقاط الضعف.</p>
+        <p className="mt-1 text-sm text-slate-500">
+          تابع أداء طلابك في اختباراتك الخاصة واكتشف نقاط الضعف.
+        </p>
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-2xl border border-border p-5 shadow-sm flex flex-col md:flex-row gap-4">
+      <div className="flex flex-col gap-4 rounded-2xl border border-border bg-white p-5 shadow-sm md:flex-row">
         <div className="flex-1">
-          <label className="text-xs font-bold text-slate-500 mb-1.5 block">تصفية حسب المجموعة</label>
+          <label className="mb-1.5 block text-xs font-bold text-slate-500">
+            تصفية حسب المجموعة
+          </label>
           <div className="flex flex-wrap gap-2">
-            <Link 
-              href={`/teacher/reports`} 
-              className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors ${!selectedGroupId && !selectedExamId ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}
+            <Link
+              href={`/teacher/reports`}
+              className={`rounded-xl px-4 py-2 text-sm font-bold transition-colors ${!selectedGroupId && !selectedExamId ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}
             >
               الكل
             </Link>
             {groups?.map((group: any) => (
-              <Link 
-                key={group.id} 
-                href={`/teacher/reports?group_id=${group.id}`} 
-                className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors ${selectedGroupId === String(group.id) ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}
+              <Link
+                key={group.id}
+                href={`/teacher/reports?group_id=${group.id}`}
+                className={`rounded-xl px-4 py-2 text-sm font-bold transition-colors ${selectedGroupId === String(group.id) ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}
               >
                 {group.name_ar}
               </Link>
@@ -130,19 +140,23 @@ export default async function TeacherReportsPage({ searchParams }: { searchParam
         </div>
 
         <div className="flex-1">
-          <label className="text-xs font-bold text-slate-500 mb-1.5 block">اختر الاختبار لعرض النتائج</label>
+          <label className="mb-1.5 block text-xs font-bold text-slate-500">
+            اختر الاختبار لعرض النتائج
+          </label>
           <div className="flex flex-wrap gap-2">
             {exams?.map((exam: any) => (
-              <Link 
-                key={exam.id} 
-                href={`/teacher/reports?exam_id=${exam.id}${selectedGroupId ? `&group_id=${selectedGroupId}` : ''}`} 
-                className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors ${selectedExamId === String(exam.id) ? 'bg-emerald-600 text-white shadow-md shadow-emerald-200' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-100'}`}
+              <Link
+                key={exam.id}
+                href={`/teacher/reports?exam_id=${exam.id}${selectedGroupId ? `&group_id=${selectedGroupId}` : ''}`}
+                className={`rounded-xl px-4 py-2 text-sm font-bold transition-colors ${selectedExamId === String(exam.id) ? 'bg-emerald-600 text-white shadow-md shadow-emerald-200' : 'border border-slate-100 bg-slate-50 text-slate-600 hover:bg-slate-100'}`}
               >
                 {exam.title}
               </Link>
             ))}
             {(!exams || exams.length === 0) && (
-              <div className="text-sm text-slate-400 italic py-2">لا توجد اختبارات في هذه المجموعة.</div>
+              <div className="py-2 text-sm italic text-slate-400">
+                لا توجد اختبارات في هذه المجموعة.
+              </div>
             )}
           </div>
         </div>
@@ -152,17 +166,22 @@ export default async function TeacherReportsPage({ searchParams }: { searchParam
       {selectedExamId ? (
         <div className="space-y-6">
           {/* Analytics charts and metrics */}
-          <AnalyticsDashboard attempts={attempts} questionStats={questionStats} />
+          <AnalyticsDashboard
+            attempts={attempts}
+            questionStats={questionStats}
+          />
 
           {/* Table */}
-          <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden">
-            <div className="p-5 border-b border-border flex justify-between items-center">
-              <h3 className="font-bold text-slate-800">نتائج الطلاب بالتفصيل</h3>
+          <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
+            <div className="flex items-center justify-between border-b border-border p-5">
+              <h3 className="font-bold text-slate-800">
+                نتائج الطلاب بالتفصيل
+              </h3>
             </div>
             {attempts.length > 0 ? (
               <div className="overflow-x-auto">
                 <table className="w-full text-right">
-                  <thead className="bg-slate-50 text-slate-500 text-sm">
+                  <thead className="bg-slate-50 text-sm text-slate-500">
                     <tr>
                       <th className="p-4 font-bold">اسم الطالب</th>
                       <th className="p-4 font-bold">تاريخ الاختبار</th>
@@ -174,37 +193,54 @@ export default async function TeacherReportsPage({ searchParams }: { searchParam
                   </thead>
                   <tbody className="divide-y divide-border">
                     {attempts.map((attempt: any) => (
-                      <tr key={attempt.id} className="hover:bg-slate-50 transition-colors">
+                      <tr
+                        key={attempt.id}
+                        className="transition-colors hover:bg-slate-50"
+                      >
                         <td className="p-4 font-bold text-slate-800">
                           {attempt.students?.profiles?.full_name || 'غير معروف'}
                         </td>
                         <td className="p-4 text-sm text-slate-500">
-                          {new Date(attempt.completed_at).toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' })}
+                          {new Date(attempt.completed_at).toLocaleString(
+                            'ar-EG',
+                            { dateStyle: 'medium', timeStyle: 'short' }
+                          )}
                         </td>
                         <td className="p-4 text-sm font-black text-slate-700">
                           {attempt.score} / {attempt.exams?.total_points ?? '—'}
                         </td>
                         <td className="p-4">
-                          <span className={`font-black text-sm px-2.5 py-1 rounded-md ${
-                            (attempt.percentage || 0) >= 85 ? 'bg-emerald-100 text-emerald-700' :
-                            (attempt.percentage || 0) >= 50 ? 'bg-amber-100 text-amber-700' :
-                            'bg-rose-100 text-rose-700'
-                          }`}>
+                          <span
+                            className={`rounded-md px-2.5 py-1 text-sm font-black ${
+                              (attempt.percentage || 0) >= 85
+                                ? 'bg-emerald-100 text-emerald-700'
+                                : (attempt.percentage || 0) >= 50
+                                  ? 'bg-amber-100 text-amber-700'
+                                  : 'bg-rose-100 text-rose-700'
+                            }`}
+                          >
                             {Math.round(attempt.percentage || 0)}%
                           </span>
                         </td>
                         <td className="p-4 text-sm font-medium">
                           {(() => {
-                            const violations = attempt.exam_proctoring_events?.length || 0
+                            const violations =
+                              attempt.exam_proctoring_events?.length || 0
                             return violations === 0 ? (
-                              <span className="text-emerald-600 font-bold">✅ سليم (0)</span>
+                              <span className="font-bold text-emerald-600">
+                                ✅ سليم (0)
+                              </span>
                             ) : (
-                              <span className="text-rose-600 font-bold font-mono">⚠️ مخالفة ({violations})</span>
+                              <span className="font-mono font-bold text-rose-600">
+                                ⚠️ مخالفة ({violations})
+                              </span>
                             )
                           })()}
                         </td>
                         <td className="p-4">
-                          <span className={`text-xs font-bold ${attempt.is_passed ? 'text-emerald-600' : 'text-rose-500'}`}>
+                          <span
+                            className={`text-xs font-bold ${attempt.is_passed ? 'text-emerald-600' : 'text-rose-500'}`}
+                          >
                             {attempt.is_passed ? 'ناجح' : 'راسب'}
                           </span>
                         </td>
@@ -215,20 +251,25 @@ export default async function TeacherReportsPage({ searchParams }: { searchParam
               </div>
             ) : (
               <div className="p-12 text-center text-slate-500">
-                <BarChart className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                <p className="font-bold">لا توجد محاولات لهذا الاختبار حتى الآن.</p>
+                <BarChart className="mx-auto mb-3 h-12 w-12 text-slate-300" />
+                <p className="font-bold">
+                  لا توجد محاولات لهذا الاختبار حتى الآن.
+                </p>
               </div>
             )}
           </div>
         </div>
       ) : (
-        <div className="bg-indigo-50/50 rounded-3xl border border-dashed border-indigo-200 p-12 text-center flex flex-col items-center">
-          <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-4 shadow-sm">
-            <FileText className="w-8 h-8 text-indigo-300" />
+        <div className="flex flex-col items-center rounded-3xl border border-dashed border-indigo-200 bg-indigo-50/50 p-12 text-center">
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-sm">
+            <FileText className="h-8 w-8 text-indigo-300" />
           </div>
-          <h3 className="text-lg font-bold text-indigo-900 mb-2">اختر اختباراً لعرض نتائجه</h3>
-          <p className="text-indigo-600/70 text-sm max-w-md mx-auto">
-            قم باختيار أحد الاختبارات من القائمة بالأعلى لترى تفاصيل أداء طلابك والمحاولات التي تمت.
+          <h3 className="mb-2 text-lg font-bold text-indigo-900">
+            اختر اختباراً لعرض نتائجه
+          </h3>
+          <p className="mx-auto max-w-md text-sm text-indigo-600/70">
+            قم باختيار أحد الاختبارات من القائمة بالأعلى لترى تفاصيل أداء طلابك
+            والمحاولات التي تمت.
           </p>
         </div>
       )}

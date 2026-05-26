@@ -20,36 +20,43 @@ export function TeacherTopbar({ profile }: Props) {
   }
 
   return (
-    <header className="h-16 border-b border-border bg-white flex items-center justify-between px-4 shrink-0 md:px-6 sticky top-0 z-30">
+    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between border-b border-border bg-white px-4 md:px-6">
       <div className="flex items-center gap-3 md:hidden">
-        <span className="font-display font-bold text-lg text-primary">بوابة المعلم</span>
+        <span className="font-display text-lg font-bold text-primary">
+          بوابة المعلم
+        </span>
       </div>
 
       {/* Placeholder for left side on desktop */}
       <div className="hidden md:block">
-        <h2 className="font-bold text-slate-800">مرحباً أستاذ {profile.full_name.split(' ')[0]}</h2>
+        <h2 className="font-bold text-slate-800">
+          مرحباً أستاذ {profile.full_name.split(' ')[0]}
+        </h2>
       </div>
 
       <div className="flex items-center gap-3">
         <NotificationsDropdown userId={profile.id} />
 
-        <div className="flex items-center gap-2 bg-slate-50 border border-border p-1 pr-3 rounded-full">
-          <span className="text-sm font-bold text-slate-700 hidden sm:block">
+        <div className="flex items-center gap-2 rounded-full border border-border bg-slate-50 p-1 pr-3">
+          <span className="hidden text-sm font-bold text-slate-700 sm:block">
             {profile.full_name.split(' ')[0]}
           </span>
           <img
-            src={profile.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${profile.full_name}`}
+            src={
+              profile.avatar_url ||
+              `https://api.dicebear.com/7.x/initials/svg?seed=${profile.full_name}`
+            }
             alt={profile.full_name}
-            className="w-8 h-8 rounded-full border border-slate-200"
+            className="h-8 w-8 rounded-full border border-slate-200"
           />
         </div>
-        
-        <button 
+
+        <button
           onClick={handleSignOut}
-          className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors flex items-center gap-2"
+          className="flex items-center gap-2 rounded-lg p-2 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500"
           title="تسجيل الخروج"
         >
-          <LogOut className="w-5 h-5" />
+          <LogOut className="h-5 w-5" />
         </button>
       </div>
     </header>

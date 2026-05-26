@@ -14,8 +14,25 @@ export type Role = 'admin' | 'student'
 export type QuestionType = 'mcq' | 'true_false' | 'fill_blank'
 export type DifficultyLevel = 'easy' | 'medium' | 'hard'
 export type ProcessingStatus = 'pending' | 'processing' | 'completed' | 'failed'
-export type FileType = 'pdf' | 'docx' | 'pptx' | 'mp3' | 'mp4' | 'wav' | 'jpg' | 'jpeg' | 'png' | 'youtube' | 'text'
-export type ExamType = 'partial' | 'monthly' | 'midterm' | 'final' | 'homework' | 'custom'
+export type FileType =
+  | 'pdf'
+  | 'docx'
+  | 'pptx'
+  | 'mp3'
+  | 'mp4'
+  | 'wav'
+  | 'jpg'
+  | 'jpeg'
+  | 'png'
+  | 'youtube'
+  | 'text'
+export type ExamType =
+  | 'partial'
+  | 'monthly'
+  | 'midterm'
+  | 'final'
+  | 'homework'
+  | 'custom'
 
 export interface Database {
   public: {
@@ -32,7 +49,10 @@ export interface Database {
           created_at: string
           updated_at: string
         }
-        Insert: Omit<Database['public']['Tables']['profiles']['Row'], 'created_at' | 'updated_at'>
+        Insert: Omit<
+          Database['public']['Tables']['profiles']['Row'],
+          'created_at' | 'updated_at'
+        >
         Update: Partial<Database['public']['Tables']['profiles']['Insert']>
       }
       students: {
@@ -45,7 +65,10 @@ export interface Database {
           enrollment_date: string
           notes: string | null
         }
-        Insert: Omit<Database['public']['Tables']['students']['Row'], 'enrollment_date'> & { enrollment_date?: string }
+        Insert: Omit<
+          Database['public']['Tables']['students']['Row'],
+          'enrollment_date'
+        > & { enrollment_date?: string }
         Update: Partial<Database['public']['Tables']['students']['Insert']>
       }
       admins: {
@@ -59,12 +82,27 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['admins']['Insert']>
       }
       educational_stages: {
-        Row: { id: number; name_ar: string; name_en: string | null; sort_order: number }
-        Insert: Omit<Database['public']['Tables']['educational_stages']['Row'], 'id'>
-        Update: Partial<Database['public']['Tables']['educational_stages']['Insert']>
+        Row: {
+          id: number
+          name_ar: string
+          name_en: string | null
+          sort_order: number
+        }
+        Insert: Omit<
+          Database['public']['Tables']['educational_stages']['Row'],
+          'id'
+        >
+        Update: Partial<
+          Database['public']['Tables']['educational_stages']['Insert']
+        >
       }
       semesters: {
-        Row: { id: number; name_ar: string; name_en: string | null; sort_order: number }
+        Row: {
+          id: number
+          name_ar: string
+          name_en: string | null
+          sort_order: number
+        }
         Insert: Omit<Database['public']['Tables']['semesters']['Row'], 'id'>
         Update: Partial<Database['public']['Tables']['semesters']['Insert']>
       }
@@ -80,7 +118,10 @@ export interface Database {
           is_active: boolean
           created_at: string
         }
-        Insert: Omit<Database['public']['Tables']['units']['Row'], 'id' | 'created_at'>
+        Insert: Omit<
+          Database['public']['Tables']['units']['Row'],
+          'id' | 'created_at'
+        >
         Update: Partial<Database['public']['Tables']['units']['Insert']>
       }
       lessons: {
@@ -95,16 +136,34 @@ export interface Database {
           objectives: string | null
           created_at: string
         }
-        Insert: Omit<Database['public']['Tables']['lessons']['Row'], 'id' | 'created_at'>
+        Insert: Omit<
+          Database['public']['Tables']['lessons']['Row'],
+          'id' | 'created_at'
+        >
         Update: Partial<Database['public']['Tables']['lessons']['Insert']>
       }
       grades: {
-        Row: { id: number; stage_id: number; name_ar: string; name_en: string | null; grade_number: number; sort_order: number }
+        Row: {
+          id: number
+          stage_id: number
+          name_ar: string
+          name_en: string | null
+          grade_number: number
+          sort_order: number
+        }
         Insert: Omit<Database['public']['Tables']['grades']['Row'], 'id'>
         Update: Partial<Database['public']['Tables']['grades']['Insert']>
       }
       subjects: {
-        Row: { id: number; name_ar: string; name_en: string | null; category: string | null; applicable_stages: string[] | null; icon: string; color: string }
+        Row: {
+          id: number
+          name_ar: string
+          name_en: string | null
+          category: string | null
+          applicable_stages: string[] | null
+          icon: string
+          color: string
+        }
         Insert: Omit<Database['public']['Tables']['subjects']['Row'], 'id'>
         Update: Partial<Database['public']['Tables']['subjects']['Insert']>
       }
@@ -129,7 +188,10 @@ export interface Database {
           created_at: string
           updated_at: string
         }
-        Insert: Omit<Database['public']['Tables']['documents']['Row'], 'id' | 'created_at' | 'updated_at' | 'questions_count'>
+        Insert: Omit<
+          Database['public']['Tables']['documents']['Row'],
+          'id' | 'created_at' | 'updated_at' | 'questions_count'
+        >
         Update: Partial<Database['public']['Tables']['documents']['Insert']>
       }
       questions: {
@@ -157,7 +219,10 @@ export interface Database {
           created_at: string
           updated_at: string
         }
-        Insert: Omit<Database['public']['Tables']['questions']['Row'], 'id' | 'created_at' | 'updated_at' | 'usage_count'>
+        Insert: Omit<
+          Database['public']['Tables']['questions']['Row'],
+          'id' | 'created_at' | 'updated_at' | 'usage_count'
+        >
         Update: Partial<Database['public']['Tables']['questions']['Insert']>
       }
       exams: {
@@ -190,13 +255,32 @@ export interface Database {
           created_at: string
           updated_at: string
         }
-        Insert: Omit<Database['public']['Tables']['exams']['Row'], 'id' | 'created_at' | 'updated_at' | 'questions_count' | 'attempts_count' | 'avg_score'>
+        Insert: Omit<
+          Database['public']['Tables']['exams']['Row'],
+          | 'id'
+          | 'created_at'
+          | 'updated_at'
+          | 'questions_count'
+          | 'attempts_count'
+          | 'avg_score'
+        >
         Update: Partial<Database['public']['Tables']['exams']['Insert']>
       }
       exam_questions: {
-        Row: { id: string; exam_id: string; question_id: string; question_order: number; points_override: number | null }
-        Insert: Omit<Database['public']['Tables']['exam_questions']['Row'], 'id'>
-        Update: Partial<Database['public']['Tables']['exam_questions']['Insert']>
+        Row: {
+          id: string
+          exam_id: string
+          question_id: string
+          question_order: number
+          points_override: number | null
+        }
+        Insert: Omit<
+          Database['public']['Tables']['exam_questions']['Row'],
+          'id'
+        >
+        Update: Partial<
+          Database['public']['Tables']['exam_questions']['Insert']
+        >
       }
       exam_attempts: {
         Row: {
@@ -215,7 +299,10 @@ export interface Database {
           ip_address: string | null
           answers_viewed_at: string | null
         }
-        Insert: Omit<Database['public']['Tables']['exam_attempts']['Row'], 'id' | 'started_at'>
+        Insert: Omit<
+          Database['public']['Tables']['exam_attempts']['Row'],
+          'id' | 'started_at'
+        >
         Update: Partial<Database['public']['Tables']['exam_attempts']['Insert']>
       }
       system_settings: {
@@ -225,8 +312,13 @@ export interface Database {
           enable_exam_limit: boolean
           updated_at: string
         }
-        Insert: Omit<Database['public']['Tables']['system_settings']['Row'], 'id'>
-        Update: Partial<Database['public']['Tables']['system_settings']['Insert']>
+        Insert: Omit<
+          Database['public']['Tables']['system_settings']['Row'],
+          'id'
+        >
+        Update: Partial<
+          Database['public']['Tables']['system_settings']['Insert']
+        >
       }
       subscription_plans: {
         Row: {
@@ -239,8 +331,13 @@ export interface Database {
           is_active: boolean
           created_at: string
         }
-        Insert: Omit<Database['public']['Tables']['subscription_plans']['Row'], 'id' | 'created_at'>
-        Update: Partial<Database['public']['Tables']['subscription_plans']['Insert']>
+        Insert: Omit<
+          Database['public']['Tables']['subscription_plans']['Row'],
+          'id' | 'created_at'
+        >
+        Update: Partial<
+          Database['public']['Tables']['subscription_plans']['Insert']
+        >
       }
       student_subscriptions: {
         Row: {
@@ -253,8 +350,13 @@ export interface Database {
           created_at: string
           updated_at: string
         }
-        Insert: Omit<Database['public']['Tables']['student_subscriptions']['Row'], 'id' | 'created_at' | 'updated_at'>
-        Update: Partial<Database['public']['Tables']['student_subscriptions']['Insert']>
+        Insert: Omit<
+          Database['public']['Tables']['student_subscriptions']['Row'],
+          'id' | 'created_at' | 'updated_at'
+        >
+        Update: Partial<
+          Database['public']['Tables']['student_subscriptions']['Insert']
+        >
       }
       transactions: {
         Row: {
@@ -268,7 +370,10 @@ export interface Database {
           created_at: string
           updated_at: string
         }
-        Insert: Omit<Database['public']['Tables']['transactions']['Row'], 'id' | 'created_at' | 'updated_at'>
+        Insert: Omit<
+          Database['public']['Tables']['transactions']['Row'],
+          'id' | 'created_at' | 'updated_at'
+        >
         Update: Partial<Database['public']['Tables']['transactions']['Insert']>
       }
     }
@@ -297,7 +402,10 @@ export type Exam = Database['public']['Tables']['exams']['Row']
 export type ExamAttempt = Database['public']['Tables']['exam_attempts']['Row']
 
 // أنواع مركّبة (مع الـ joins)
-export type StudentWithProfile = Student & { profiles: Profile; grades: Grade | null }
+export type StudentWithProfile = Student & {
+  profiles: Profile
+  grades: Grade | null
+}
 export type QuestionWithRelations = Question & {
   subjects: Subject | null
   grades: Grade | null

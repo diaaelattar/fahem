@@ -19,7 +19,7 @@ export function AIExplainButton({
   correctAnswer,
   studentAnswer,
   subject,
-  grade
+  grade,
 }: AIExplainButtonProps) {
   const [loading, setLoading] = useState(false)
   const [explanation, setExplanation] = useState<string | null>(null)
@@ -44,15 +44,17 @@ export function AIExplainButton({
           correctAnswer,
           studentAnswer,
           subject,
-          grade
-        })
+          grade,
+        }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       setExplanation(data.explanation)
       setExpanded(true)
     } catch (e: any) {
-      setError('تعذر عرض الشرح نظراً لانشغال المساعد الذكي. يرجى المحاولة لاحقاً.')
+      setError(
+        'تعذر عرض الشرح نظراً لانشغال المساعد الذكي. يرجى المحاولة لاحقاً.'
+      )
     } finally {
       setLoading(false)
     }
@@ -66,30 +68,44 @@ export function AIExplainButton({
       <button
         onClick={handleExplain}
         disabled={loading}
-        className="flex items-center gap-2 bg-gradient-to-r from-violet-500 to-purple-600 text-white px-4 py-2.5 rounded-xl text-sm font-bold hover:from-violet-600 hover:to-purple-700 transition-all shadow-lg shadow-purple-200 disabled:opacity-60 w-full justify-center"
+        className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-purple-200 transition-all hover:from-violet-600 hover:to-purple-700 disabled:opacity-60"
       >
         {loading ? (
-          <><Loader2 className="w-4 h-4 animate-spin" /> جاري الشرح بالذكاء الاصطناعي...</>
+          <>
+            <Loader2 className="h-4 w-4 animate-spin" /> جاري الشرح بالذكاء
+            الاصطناعي...
+          </>
         ) : explanation ? (
-          <>{expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />} {expanded ? 'إخفاء الشرح' : 'عرض الشرح'}</>
+          <>
+            {expanded ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : (
+              <ChevronDown className="h-4 w-4" />
+            )}{' '}
+            {expanded ? 'إخفاء الشرح' : 'عرض الشرح'}
+          </>
         ) : (
-          <><Sparkles className="w-4 h-4" /> اشرح لي أكثر 🤖</>
+          <>
+            <Sparkles className="h-4 w-4" /> اشرح لي أكثر 🤖
+          </>
         )}
       </button>
 
       {error && (
-        <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">
+        <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-600">
           {error}
         </div>
       )}
 
       {explanation && expanded && (
-        <div className="mt-3 bg-gradient-to-br from-violet-50 to-purple-50 border-2 border-purple-200 rounded-2xl p-5 text-sm leading-relaxed text-slate-700">
-          <div className="flex items-center gap-2 mb-3 pb-3 border-b border-purple-200">
-            <div className="w-7 h-7 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-white" />
+        <div className="mt-3 rounded-2xl border-2 border-purple-200 bg-gradient-to-br from-violet-50 to-purple-50 p-5 text-sm leading-relaxed text-slate-700">
+          <div className="mb-3 flex items-center gap-2 border-b border-purple-200 pb-3">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-purple-600">
+              <Sparkles className="h-4 w-4 text-white" />
             </div>
-            <span className="font-bold text-purple-800 text-base">شرح مساعد الذكاء الاصطناعي</span>
+            <span className="text-base font-bold text-purple-800">
+              شرح مساعد الذكاء الاصطناعي
+            </span>
           </div>
           <div className="prose prose-sm prose-purple max-w-none whitespace-pre-wrap">
             <MathRenderer text={explanation.replace(/\*\*(.*?)\*\*/g, '$1')} />

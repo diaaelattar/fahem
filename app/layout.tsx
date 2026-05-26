@@ -9,11 +9,25 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: 'استباق مصر | منصة التدريب والتحديات الذكي',
-  description: 'تدرب، تحد، وتفوق في المنهج المصري. أسئلة ذكية + تحديات مباشرة + لوحة الشرف الوطنية',
-  keywords: ['تعليم', 'مصر', 'اختبارات', 'ذكاء اصطناعي', 'إعدادي', 'منصة تعليمية', 'تحدي', 'لغة عربية'],
+  description:
+    'تدرب، تحد، وتفوق في المنهج المصري. أسئلة ذكية + تحديات مباشرة + لوحة الشرف الوطنية',
+  keywords: [
+    'تعليم',
+    'مصر',
+    'اختبارات',
+    'ذكاء اصطناعي',
+    'إعدادي',
+    'منصة تعليمية',
+    'تحدي',
+    'لغة عربية',
+  ],
   authors: [{ name: 'Istabaq Egypt' }],
   manifest: '/manifest.json',
-  appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'استباق' },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'استباق',
+  },
 }
 
 export default function RootLayout({
@@ -24,17 +38,26 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl">
       <head>
-        <meta name="google-site-verification" content="zqZ6-Q1PFmR2Kv8oKfm_-OFt54IiZclnALL2o44lE6o" />
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+        <meta
+          name="google-site-verification"
+          content="zqZ6-Q1PFmR2Kv8oKfm_-OFt54IiZclnALL2o44lE6o"
+        />
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
+        />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta
+          name="apple-mobile-web-app-status-bar-style"
+          content="black-translucent"
+        />
         <meta name="apple-mobile-web-app-title" content="استباق" />
         <meta name="theme-color" content="#1B4F72" />
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
-      <body className="font-sans antialiased bg-background text-foreground min-h-screen">
+      <body className="min-h-screen bg-background font-sans text-foreground antialiased">
         {children}
         <Toaster
           position="top-center"
@@ -43,7 +66,10 @@ export default function RootLayout({
           closeButton
           duration={3500}
           toastOptions={{
-            style: { fontFamily: 'Calibri, Arial, sans-serif', fontSize: '14px' },
+            style: {
+              fontFamily: 'Calibri, Arial, sans-serif',
+              fontSize: '14px',
+            },
           }}
         />
       </body>

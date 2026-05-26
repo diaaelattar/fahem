@@ -4,7 +4,11 @@ import { redirect } from 'next/navigation'
 import { PrintExamClient } from '@/components/admin/PrintExamClient'
 import { TeacherPrintSettingsBar } from '@/components/teacher/TeacherPrintSettingsBar'
 
-export default async function TeacherPrintExamPage({ params }: { params: { id: string } }) {
+export default async function TeacherPrintExamPage({
+  params,
+}: {
+  params: { id: string }
+}) {
   const profile = await getCurrentProfile()
   if (!profile || profile.role !== 'teacher') redirect('/auth/login')
 
@@ -38,7 +42,9 @@ export default async function TeacherPrintExamPage({ params }: { params: { id: s
   // Fetch teacher print settings
   const { data: teacher } = await supabase
     .from('teachers')
-    .select('print_directorate, print_administration, print_school_name, print_academic_year, print_header_type, teacher_display_name, teacher_title, teacher_phone, teacher_social, teacher_logo_url, teacher_watermark_text, show_watermark')
+    .select(
+      'print_directorate, print_administration, print_school_name, print_academic_year, print_header_type, teacher_display_name, teacher_title, teacher_phone, teacher_social, teacher_logo_url, teacher_watermark_text, show_watermark'
+    )
     .eq('id', profile.id)
     .single()
 

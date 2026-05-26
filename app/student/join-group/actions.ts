@@ -30,22 +30,21 @@ export async function joinGroupAction(formData: FormData) {
   }
 
   // 2. Add student to the group
-  const { error: joinError } = await supabase
-    .from('group_students')
-    .insert({
-      group_id: group.id,
-      student_id: profile.id,
-      status: 'active'
-    })
+  const { error: joinError } = await supabase.from('group_students').insert({
+    group_id: group.id,
+    student_id: profile.id,
+    status: 'active',
+  })
 
   if (joinError) {
-    if (joinError.code === '23505') { // Unique violation
+    if (joinError.code === '23505') {
+      // Unique violation
       throw new Error('أنت منضم بالفعل لهذه المجموعة!')
     }
     throw new Error('حدث خطأ أثناء الانضمام للمجموعة')
   }
 
   revalidatePath('/student/dashboard')
-  
+
   return { success: true, groupName: group.name_ar }
 }

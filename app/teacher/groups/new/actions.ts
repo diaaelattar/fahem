@@ -21,13 +21,17 @@ export async function createGroupAction(formData: FormData) {
   const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase()
 
   const supabase = await createClient()
-  
-  const { data, error } = await supabase.from('student_groups').insert({
-    teacher_id: profile.id,
-    name_ar: name,
-    grade_id: gradeId ? parseInt(gradeId) : null,
-    invite_code: inviteCode
-  }).select().single()
+
+  const { data, error } = await supabase
+    .from('student_groups')
+    .insert({
+      teacher_id: profile.id,
+      name_ar: name,
+      grade_id: gradeId ? parseInt(gradeId) : null,
+      invite_code: inviteCode,
+    })
+    .select()
+    .single()
 
   if (error) {
     throw new Error(error.message)
@@ -35,6 +39,6 @@ export async function createGroupAction(formData: FormData) {
 
   revalidatePath('/teacher/dashboard')
   revalidatePath('/teacher/groups')
-  
+
   return data
 }

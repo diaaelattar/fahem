@@ -20,7 +20,8 @@ export default async function StudentGroupDashboardPage() {
   // 2. Fetch student's groups
   const { data: studentGroups } = await supabase
     .from('group_students')
-    .select(`
+    .select(
+      `
       group_id,
       source,
       student_groups (
@@ -34,28 +35,35 @@ export default async function StudentGroupDashboardPage() {
           )
         )
       )
-    `)
+    `
+    )
     .eq('student_id', profile.id)
     .eq('status', 'active')
 
   const groupIds = studentGroups?.map((g: any) => g.group_id) || []
 
   // 3. Fetch exams for these groups
-  const { data: exams } = groupIds.length > 0 ? await supabase
-    .from('exams')
-    .select('id, title, duration_minutes, questions_count, total_points, group_id, student_groups(name_ar)')
-    .in('group_id', groupIds)
-    .eq('is_published', true)
-    .order('created_at', { ascending: false })
-    : { data: [] }
+  const { data: exams } =
+    groupIds.length > 0
+      ? await supabase
+          .from('exams')
+          .select(
+            'id, title, duration_minutes, questions_count, total_points, group_id, student_groups(name_ar)'
+          )
+          .in('group_id', groupIds)
+          .eq('is_published', true)
+          .order('created_at', { ascending: false })
+      : { data: [] }
 
   // 4. Fetch group sessions
-  const { data: sessions } = groupIds.length > 0 ? await supabase
-    .from('group_sessions')
-    .select('*, student_groups(name_ar)')
-    .in('group_id', groupIds)
-    .order('scheduled_at', { ascending: false })
-    : { data: [] }
+  const { data: sessions } =
+    groupIds.length > 0
+      ? await supabase
+          .from('group_sessions')
+          .select('*, student_groups(name_ar)')
+          .in('group_id', groupIds)
+          .order('scheduled_at', { ascending: false })
+      : { data: [] }
 
   // 5. Fetch completed attempts
   const { data: attempts } = await supabase

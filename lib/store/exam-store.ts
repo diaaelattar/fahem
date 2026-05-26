@@ -7,8 +7,12 @@ interface ExamState {
   answers: Record<string, any> // questionId -> studentAnswer
   timeRemainingSeconds: number | null
   isSubmitting: boolean
-  
-  startExam: (examId: string, attemptId: string, durationSeconds: number) => void
+
+  startExam: (
+    examId: string,
+    attemptId: string,
+    durationSeconds: number
+  ) => void
   setAnswer: (questionId: string, answer: any) => void
   tickTime: () => void
   submitExam: () => void
@@ -24,36 +28,42 @@ export const useExamStore = create<ExamState>()(
       timeRemainingSeconds: null,
       isSubmitting: false,
 
-      startExam: (examId, attemptId, durationSeconds) => set({
-        examId,
-        attemptId,
-        answers: {},
-        timeRemainingSeconds: durationSeconds,
-        isSubmitting: false
-      }),
+      startExam: (examId, attemptId, durationSeconds) =>
+        set({
+          examId,
+          attemptId,
+          answers: {},
+          timeRemainingSeconds: durationSeconds,
+          isSubmitting: false,
+        }),
 
-      setAnswer: (questionId, answer) => set((state) => ({
-        answers: {
-          ...state.answers,
-          [questionId]: answer
-        }
-      })),
+      setAnswer: (questionId, answer) =>
+        set((state) => ({
+          answers: {
+            ...state.answers,
+            [questionId]: answer,
+          },
+        })),
 
-      tickTime: () => set((state) => ({
-        timeRemainingSeconds: state.timeRemainingSeconds !== null && state.timeRemainingSeconds > 0
-          ? state.timeRemainingSeconds - 1
-          : 0
-      })),
+      tickTime: () =>
+        set((state) => ({
+          timeRemainingSeconds:
+            state.timeRemainingSeconds !== null &&
+            state.timeRemainingSeconds > 0
+              ? state.timeRemainingSeconds - 1
+              : 0,
+        })),
 
       submitExam: () => set({ isSubmitting: true }),
 
-      clearSession: () => set({
-        examId: null,
-        attemptId: null,
-        answers: {},
-        timeRemainingSeconds: null,
-        isSubmitting: false
-      })
+      clearSession: () =>
+        set({
+          examId: null,
+          attemptId: null,
+          answers: {},
+          timeRemainingSeconds: null,
+          isSubmitting: false,
+        }),
     }),
     {
       name: 'fahem-exam-storage', // unique name for localStorage

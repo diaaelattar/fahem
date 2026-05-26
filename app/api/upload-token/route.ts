@@ -5,11 +5,14 @@ import { createClient } from '@/lib/supabase/server'
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'غير مصرح' }, { status: 401 })
 
     const { fileName } = await request.json()
-    if (!fileName) return NextResponse.json({ error: 'اسم الملف مطلوب' }, { status: 400 })
+    if (!fileName)
+      return NextResponse.json({ error: 'اسم الملف مطلوب' }, { status: 400 })
 
     const adminClient = createAdminClient()
     const { data, error } = await adminClient.storage
@@ -23,6 +26,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ signedUrl: data.signedUrl, token: data.token })
   } catch (error: any) {
     console.error('Upload Token Error:', error)
-    return NextResponse.json({ error: error.message || 'خطأ داخلي' }, { status: 500 })
+    return NextResponse.json(
+      { error: error.message || 'خطأ داخلي' },
+      { status: 500 }
+    )
   }
 }

@@ -72,38 +72,92 @@ export interface ExamFormState {
   bankDifficulty: string
 }
 
-export const EXAM_TYPE_OPTIONS: { value: ExamType; label: string; icon: string; color: string }[] = [
-  { value: 'partial',  label: 'اختبار جزئي',   icon: '📝', color: 'bg-blue-50 text-blue-700 border-blue-200' },
-  { value: 'monthly',  label: 'اختبار شهري',    icon: '📅', color: 'bg-purple-50 text-purple-700 border-purple-200' },
-  { value: 'midterm',  label: 'نصف الترم',      icon: '📊', color: 'bg-orange-50 text-orange-700 border-orange-200' },
-  { value: 'final',    label: 'امتحان نهائي',   icon: '🎓', color: 'bg-red-50 text-red-700 border-red-200' },
-  { value: 'homework', label: 'واجب منزلي',     icon: '🏠', color: 'bg-green-50 text-green-700 border-green-200' },
-  { value: 'custom',   label: 'مخصص',           icon: '⚙️', color: 'bg-slate-50 text-slate-700 border-slate-200' },
+export const EXAM_TYPE_OPTIONS: {
+  value: ExamType
+  label: string
+  icon: string
+  color: string
+}[] = [
+  {
+    value: 'partial',
+    label: 'اختبار جزئي',
+    icon: '📝',
+    color: 'bg-blue-50 text-blue-700 border-blue-200',
+  },
+  {
+    value: 'monthly',
+    label: 'اختبار شهري',
+    icon: '📅',
+    color: 'bg-purple-50 text-purple-700 border-purple-200',
+  },
+  {
+    value: 'midterm',
+    label: 'نصف الترم',
+    icon: '📊',
+    color: 'bg-orange-50 text-orange-700 border-orange-200',
+  },
+  {
+    value: 'final',
+    label: 'امتحان نهائي',
+    icon: '🎓',
+    color: 'bg-red-50 text-red-700 border-red-200',
+  },
+  {
+    value: 'homework',
+    label: 'واجب منزلي',
+    icon: '🏠',
+    color: 'bg-green-50 text-green-700 border-green-200',
+  },
+  {
+    value: 'custom',
+    label: 'مخصص',
+    icon: '⚙️',
+    color: 'bg-slate-50 text-slate-700 border-slate-200',
+  },
 ]
 
 export const TYPE_AR: Record<string, string> = {
-  mcq: 'اختيار متعدد', true_false: 'صح/خطأ', fill_blank: 'ملء فراغ'
+  mcq: 'اختيار متعدد',
+  true_false: 'صح/خطأ',
+  fill_blank: 'ملء فراغ',
 }
 export const DIFF_AR: Record<string, string> = {
-  easy: 'سهل', medium: 'متوسط', hard: 'صعب'
+  easy: 'سهل',
+  medium: 'متوسط',
+  hard: 'صعب',
 }
 export const DIFF_COLOR: Record<string, string> = {
-  easy:   'bg-emerald-100 text-emerald-700 border-emerald-200',
+  easy: 'bg-emerald-100 text-emerald-700 border-emerald-200',
   medium: 'bg-amber-100 text-amber-700 border-amber-200',
-  hard:   'bg-red-100 text-red-700 border-red-200',
+  hard: 'bg-red-100 text-red-700 border-red-200',
 }
 export const TYPE_COLOR: Record<string, string> = {
-  mcq:        'bg-blue-50 text-blue-700 border-blue-200',
+  mcq: 'bg-blue-50 text-blue-700 border-blue-200',
   true_false: 'bg-violet-50 text-violet-700 border-violet-200',
   fill_blank: 'bg-teal-50 text-teal-700 border-teal-200',
 }
 
 export const DEFAULT_FORM: ExamFormState = {
-  title: '', description: '', examType: 'partial', duration: '30',
-  passingScore: '', instructions: '', isPublished: false,
-  availableFrom: '', availableUntil: '', shuffleQuestions: true,
-  shuffleOptions: true, showResultsImmediately: true, allowedAttempts: '1',
+  title: '',
+  description: '',
+  examType: 'partial',
+  duration: '30',
+  passingScore: '',
+  instructions: '',
+  isPublished: false,
+  availableFrom: '',
+  availableUntil: '',
+  shuffleQuestions: true,
+  shuffleOptions: true,
+  showResultsImmediately: true,
+  allowedAttempts: '1',
   groupId: '',
-  subjectId: '', gradeId: '', semesterId: '', unitId: '', lessonId: '',
-  bankSearch: '', bankQuestionType: '', bankDifficulty: '',
+  subjectId: '',
+  gradeId: '',
+  semesterId: '',
+  unitId: '',
+  lessonId: '',
+  bankSearch: '',
+  bankQuestionType: '',
+  bankDifficulty: '',
 }

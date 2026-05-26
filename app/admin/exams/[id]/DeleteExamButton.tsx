@@ -14,7 +14,12 @@ export function DeleteExamButton({ examId, examTitle }: Props) {
   const [deleting, setDeleting] = useState(false)
 
   const handleDelete = async () => {
-    if (!confirm(`هل أنت متأكد من حذف "${examTitle}"؟\n\nلا يمكن التراجع عن هذا الإجراء.`)) return
+    if (
+      !confirm(
+        `هل أنت متأكد من حذف "${examTitle}"؟\n\nلا يمكن التراجع عن هذا الإجراء.`
+      )
+    )
+      return
     setDeleting(true)
 
     try {
@@ -42,9 +47,13 @@ export function DeleteExamButton({ examId, examTitle }: Props) {
     <button
       onClick={handleDelete}
       disabled={deleting}
-      className="flex items-center gap-2 text-red-500 border border-red-200 px-4 py-2 rounded-xl text-sm hover:bg-red-50 transition-colors disabled:opacity-50"
+      className="flex items-center gap-2 rounded-xl border border-red-200 px-4 py-2 text-sm text-red-500 transition-colors hover:bg-red-50 disabled:opacity-50"
     >
-      {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+      {deleting ? (
+        <Loader2 className="h-4 w-4 animate-spin" />
+      ) : (
+        <Trash2 className="h-4 w-4" />
+      )}
       {deleting ? 'جاري الحذف...' : 'حذف الاختبار'}
     </button>
   )

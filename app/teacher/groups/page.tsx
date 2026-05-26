@@ -18,21 +18,23 @@ export default async function TeacherGroupsPage() {
     .order('created_at', { ascending: false })
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="animate-fade-in space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-2xl font-black text-slate-800 flex items-center gap-2">
-            <Users className="w-6 h-6 text-indigo-600" />
+          <h1 className="flex items-center gap-2 text-2xl font-black text-slate-800">
+            <Users className="h-6 w-6 text-indigo-600" />
             مجموعات الطلاب
           </h1>
-          <p className="text-sm text-slate-500 mt-1">أدر مجموعاتك الخاصة وشارك أكواد الانضمام مع طلابك.</p>
+          <p className="mt-1 text-sm text-slate-500">
+            أدر مجموعاتك الخاصة وشارك أكواد الانضمام مع طلابك.
+          </p>
         </div>
         <Link
           href="/teacher/groups/new"
-          className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-indigo-200 transition-all active:scale-95"
+          className="flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 font-bold text-white shadow-lg shadow-indigo-200 transition-all hover:bg-indigo-700 active:scale-95"
         >
-          <PlusCircle className="w-5 h-5" />
+          <PlusCircle className="h-5 w-5" />
           مجموعة جديدة
         </Link>
       </div>

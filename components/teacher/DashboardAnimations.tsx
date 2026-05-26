@@ -2,7 +2,13 @@
 import { motion } from 'framer-motion'
 
 // Animated stat card wrapper
-export function AnimatedStatCard({ children, index }: { children: React.ReactNode; index: number }) {
+export function AnimatedStatCard({
+  children,
+  index,
+}: {
+  children: React.ReactNode
+  index: number
+}) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -16,7 +22,13 @@ export function AnimatedStatCard({ children, index }: { children: React.ReactNod
 }
 
 // Animated section wrapper
-export function AnimatedSection({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
+export function AnimatedSection({
+  children,
+  delay = 0,
+}: {
+  children: React.ReactNode
+  delay?: number
+}) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}

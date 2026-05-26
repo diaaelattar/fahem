@@ -50,9 +50,12 @@ export function parseQuestionsResponse(rawResponse: string): GenerationResult {
     // التحقق من صحة كل سؤال
     const validQuestions = parsed.questions.filter((q: GeneratedQuestion) => {
       return (
-        q.type && ['mcq', 'true_false', 'fill_blank'].includes(q.type) &&
-        q.question_text && q.question_text.length > 5 &&
-        q.correct_answer && q.correct_answer.length > 0
+        q.type &&
+        ['mcq', 'true_false', 'fill_blank'].includes(q.type) &&
+        q.question_text &&
+        q.question_text.length > 5 &&
+        q.correct_answer &&
+        q.correct_answer.length > 0
       )
     })
 
@@ -65,13 +68,12 @@ export function parseQuestionsResponse(rawResponse: string): GenerationResult {
     }
   } catch (error) {
     console.error('خطأ في تحليل استجابة الأسئلة:', error)
-    throw new Error(`فشل في تحليل الأسئلة المولدة: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`)
+    throw new Error(
+      `فشل في تحليل الأسئلة المولدة: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`
+    )
   }
 }
 
 export function sanitizeQuestionText(text: string): string {
-  return text
-    .replace(/\s+/g, ' ')
-    .replace(/[<>]/g, '')
-    .trim()
+  return text.replace(/\s+/g, ' ').replace(/[<>]/g, '').trim()
 }

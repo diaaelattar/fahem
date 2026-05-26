@@ -19,5 +19,11 @@
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", "supabase", "istabaq-egypt-v2", "istabaq-new-pages", "scratch"]
+  "exclude": [
+    "node_modules",
+    "supabase",
+    "istabaq-egypt-v2",
+    "istabaq-new-pages",
+    "scratch"
+  ]
 }

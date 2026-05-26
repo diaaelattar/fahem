@@ -4,13 +4,18 @@ import { ExamInterface } from '@/components/student/ExamInterface'
 
 export const dynamic = 'force-dynamic'
 
-export default async function AdminExamPreviewPage({ params }: { params: { id: string } }) {
+export default async function AdminExamPreviewPage({
+  params,
+}: {
+  params: { id: string }
+}) {
   const supabase = await createClient()
 
   // جلب بيانات الاختبار
   const { data: exam } = await supabase
     .from('exams')
-    .select(`
+    .select(
+      `
       id, 
       title, 
       duration_minutes, 
@@ -19,7 +24,8 @@ export default async function AdminExamPreviewPage({ params }: { params: { id: s
       show_results_immediately, 
       instructions,
       subjects (name_ar)
-    `)
+    `
+    )
     .eq('id', params.id)
     .single()
 
@@ -27,7 +33,8 @@ export default async function AdminExamPreviewPage({ params }: { params: { id: s
 
   // جلب أسئلة الاختبار
   // في وضع المعاينة، نجلب الإجابات الصحيحة والتفسير حتى لو كان اختباراً حقيقياً لكي تعمل دالة التقييم الوهمية
-  const questionsSelect = 'question_order, points_override, questions(id, question_type, context_passage, question_text, options, points, question_image_url, correct_answer, explanation)'
+  const questionsSelect =
+    'question_order, points_override, questions(id, question_type, context_passage, question_text, options, points, question_image_url, correct_answer, explanation)'
 
   const { data: examQuestions } = await supabase
     .from('exam_questions')
@@ -37,8 +44,10 @@ export default async function AdminExamPreviewPage({ params }: { params: { id: s
 
   if (!examQuestions || examQuestions.length === 0) {
     return (
-      <div className="max-w-lg mx-auto text-center py-16">
-        <h2 className="text-xl font-bold mb-2">الاختبار لا يحتوي على أسئلة للمعاينة</h2>
+      <div className="mx-auto max-w-lg py-16 text-center">
+        <h2 className="mb-2 text-xl font-bold">
+          الاختبار لا يحتوي على أسئلة للمعاينة
+        </h2>
       </div>
     )
   }

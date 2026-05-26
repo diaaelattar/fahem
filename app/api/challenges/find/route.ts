@@ -4,15 +4,22 @@ import { createClient } from '@/lib/supabase/server'
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user)
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const { subjectId } = await request.json()
 
     // Get student info
     const { data: studentRaw } = await supabase
-      .from('students').select('id, grade_id').eq('id', user.id).single()
-    if (!studentRaw) return NextResponse.json({ error: 'Student not found' }, { status: 404 })
+      .from('students')
+      .select('id, grade_id')
+      .eq('id', user.id)
+      .single()
+    if (!studentRaw)
+      return NextResponse.json({ error: 'Student not found' }, { status: 404 })
     const student = studentRaw as any
 
     // Look for an open challenge waiting for an opponent (not self, same grade/subject)
@@ -30,7 +37,9 @@ export async function POST(request: NextRequest) {
       // Pick 10 random approved questions
       const { data: qs } = await supabase
         .from('questions')
-        .select('id, question_text, question_type, options, correct_answer, points, difficulty_level')
+        .select(
+          'id, question_text, question_type, options, correct_answer, points, difficulty_level'
+        )
         .eq('subject_id', subjectId)
         .eq('grade_id', student.grade_id)
         .eq('is_approved', true)

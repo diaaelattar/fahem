@@ -1,7 +1,14 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Bell, Check, Info, AlertTriangle, CheckCircle, Clock } from 'lucide-react'
+import {
+  Bell,
+  Check,
+  Info,
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+} from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -32,7 +39,12 @@ export function NotificationsDropdown({ userId }: { userId: string }) {
       .channel('schema-db-changes')
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` },
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${userId}`,
+        },
         (payload) => {
           setNotifications((prev) => [payload.new as Notification, ...prev])
           setUnreadCount((prev) => prev + 1)
@@ -42,7 +54,10 @@ export function NotificationsDropdown({ userId }: { userId: string }) {
 
     // Close on click outside
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false)
       }
     }
@@ -64,7 +79,7 @@ export function NotificationsDropdown({ userId }: { userId: string }) {
 
     if (data) {
       setNotifications(data)
-      setUnreadCount(data.filter(n => !n.is_read).length)
+      setUnreadCount(data.filter((n) => !n.is_read).length)
     }
   }
 
@@ -77,7 +92,7 @@ export function NotificationsDropdown({ userId }: { userId: string }) {
       .eq('user_id', userId)
       .eq('is_read', false)
 
-    setNotifications(notifications.map(n => ({ ...n, is_read: true })))
+    setNotifications(notifications.map((n) => ({ ...n, is_read: true })))
     setUnreadCount(0)
   }
 
@@ -87,9 +102,13 @@ export function NotificationsDropdown({ userId }: { userId: string }) {
         .from('notifications')
         .update({ is_read: true })
         .eq('id', notification.id)
-      
-      setNotifications(notifications.map(n => n.id === notification.id ? { ...n, is_read: true } : n))
-      setUnreadCount(prev => Math.max(0, prev - 1))
+
+      setNotifications(
+        notifications.map((n) =>
+          n.id === notification.id ? { ...n, is_read: true } : n
+        )
+      )
+      setUnreadCount((prev) => Math.max(0, prev - 1))
     }
 
     if (notification.link) {
@@ -100,10 +119,14 @@ export function NotificationsDropdown({ userId }: { userId: string }) {
 
   const getIcon = (type: string) => {
     switch (type) {
-      case 'success': return <CheckCircle className="w-5 h-5 text-emerald-500" />
-      case 'warning': return <AlertTriangle className="w-5 h-5 text-amber-500" />
-      case 'error': return <AlertTriangle className="w-5 h-5 text-red-500" />
-      default: return <Info className="w-5 h-5 text-blue-500" />
+      case 'success':
+        return <CheckCircle className="h-5 w-5 text-emerald-500" />
+      case 'warning':
+        return <AlertTriangle className="h-5 w-5 text-amber-500" />
+      case 'error':
+        return <AlertTriangle className="h-5 w-5 text-red-500" />
+      default:
+        return <Info className="h-5 w-5 text-blue-500" />
     }
   }
 
@@ -113,8 +136,10 @@ export function NotificationsDropdown({ userId }: { userId: string }) {
     const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
 
     if (diffInSeconds < 60) return 'منذ لحظات'
-    if (diffInSeconds < 3600) return `منذ ${Math.floor(diffInSeconds / 60)} دقيقة`
-    if (diffInSeconds < 86400) return `منذ ${Math.floor(diffInSeconds / 3600)} ساعة`
+    if (diffInSeconds < 3600)
+      return `منذ ${Math.floor(diffInSeconds / 60)} دقيقة`
+    if (diffInSeconds < 86400)
+      return `منذ ${Math.floor(diffInSeconds / 3600)} ساعة`
     return `منذ ${Math.floor(diffInSeconds / 86400)} يوم`
   }
 
@@ -122,34 +147,34 @@ export function NotificationsDropdown({ userId }: { userId: string }) {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 rounded-xl hover:bg-slate-100 text-slate-600 transition-colors tap-target flex items-center justify-center"
+        className="tap-target relative flex items-center justify-center rounded-xl p-2 text-slate-600 transition-colors hover:bg-slate-100"
       >
-        <Bell className="w-5 h-5" />
+        <Bell className="h-5 w-5" />
         {unreadCount > 0 && (
-          <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white shadow-sm">
+          <span className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-red-500 text-[10px] font-bold text-white shadow-sm">
             {unreadCount > 9 ? '+9' : unreadCount}
           </span>
         )}
       </button>
 
       {isOpen && (
-        <div className="absolute left-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-50">
-          <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+        <div className="absolute left-0 z-50 mt-2 w-80 overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-xl sm:w-96">
+          <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/50 p-4">
             <h3 className="font-bold text-slate-800">الإشعارات</h3>
             {unreadCount > 0 && (
-              <button 
+              <button
                 onClick={markAllAsRead}
-                className="text-xs font-semibold text-primary hover:text-primary/80 flex items-center gap-1"
+                className="flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary/80"
               >
-                <Check className="w-3 h-3" /> تحديد الكل كمقروء
+                <Check className="h-3 w-3" /> تحديد الكل كمقروء
               </button>
             )}
           </div>
 
           <div className="max-h-[400px] overflow-y-auto">
             {notifications.length === 0 ? (
-              <div className="p-8 text-center text-slate-500 flex flex-col items-center gap-3">
-                <Bell className="w-8 h-8 text-slate-300" />
+              <div className="flex flex-col items-center gap-3 p-8 text-center text-slate-500">
+                <Bell className="h-8 w-8 text-slate-300" />
                 <p>لا توجد إشعارات جديدة</p>
               </div>
             ) : (
@@ -163,25 +188,27 @@ export function NotificationsDropdown({ userId }: { userId: string }) {
                     } ${n.link ? 'cursor-pointer' : ''}`}
                   >
                     <div className="flex gap-3">
-                      <div className="shrink-0 mt-0.5">
-                        {getIcon(n.type)}
-                      </div>
+                      <div className="mt-0.5 shrink-0">{getIcon(n.type)}</div>
                       <div className="flex-1 space-y-1">
-                        <div className="flex justify-between items-start gap-2">
-                          <h4 className={`text-sm font-bold ${!n.is_read ? 'text-slate-800' : 'text-slate-600'}`}>
+                        <div className="flex items-start justify-between gap-2">
+                          <h4
+                            className={`text-sm font-bold ${!n.is_read ? 'text-slate-800' : 'text-slate-600'}`}
+                          >
                             {n.title}
                           </h4>
-                          <span className="text-[10px] text-slate-400 flex items-center gap-1 shrink-0">
-                            <Clock className="w-3 h-3" />
+                          <span className="flex shrink-0 items-center gap-1 text-[10px] text-slate-400">
+                            <Clock className="h-3 w-3" />
                             {timeAgo(n.created_at)}
                           </span>
                         </div>
-                        <p className={`text-xs leading-relaxed ${!n.is_read ? 'text-slate-600' : 'text-slate-500'}`}>
+                        <p
+                          className={`text-xs leading-relaxed ${!n.is_read ? 'text-slate-600' : 'text-slate-500'}`}
+                        >
                           {n.message}
                         </p>
                       </div>
                       {!n.is_read && (
-                        <div className="w-2 h-2 rounded-full bg-primary shrink-0 mt-1.5" />
+                        <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />
                       )}
                     </div>
                   </div>

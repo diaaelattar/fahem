@@ -47,7 +47,11 @@ const inputClass =
 
 const labelClass = 'block text-xs font-bold text-slate-500 mb-1'
 
-export function TeacherPrintSettingsBar({ examId, teacherId, initialSettings }: Props) {
+export function TeacherPrintSettingsBar({
+  examId,
+  teacherId,
+  initialSettings,
+}: Props) {
   const [expanded, setExpanded] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -76,7 +80,7 @@ export function TeacherPrintSettingsBar({ examId, teacherId, initialSettings }: 
     if (stored) {
       try {
         const parsed = JSON.parse(stored)
-        setSettings(prev => ({
+        setSettings((prev) => ({
           ...prev,
           teacherName: parsed.teacherName ?? '',
           classSection: parsed.classSection ?? '',
@@ -90,11 +94,13 @@ export function TeacherPrintSettingsBar({ examId, teacherId, initialSettings }: 
 
   // Dispatch custom event to notify PrintExamClient about settings changes
   useEffect(() => {
-    window.dispatchEvent(new CustomEvent('print-settings-changed', { detail: settings }))
+    window.dispatchEvent(
+      new CustomEvent('print-settings-changed', { detail: settings })
+    )
   }, [settings])
 
   const update = (key: keyof PrintSettings, value: string) =>
-    setSettings(prev => ({ ...prev, [key]: value }))
+    setSettings((prev) => ({ ...prev, [key]: value }))
 
   const handleSave = async () => {
     setSaving(true)
@@ -137,19 +143,22 @@ export function TeacherPrintSettingsBar({ examId, teacherId, initialSettings }: 
   const handlePrint = () => window.print()
 
   return (
-    <div className="print:hidden bg-white border-b border-slate-200 shadow-sm" dir="rtl">
+    <div
+      className="border-b border-slate-200 bg-white shadow-sm print:hidden"
+      dir="rtl"
+    >
       {/* Header bar */}
-      <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
         <button
-          onClick={() => setExpanded(v => !v)}
-          className="flex items-center gap-2 text-slate-700 hover:text-indigo-600 font-bold text-sm transition-colors"
+          onClick={() => setExpanded((v) => !v)}
+          className="flex items-center gap-2 text-sm font-bold text-slate-700 transition-colors hover:text-indigo-600"
         >
-          <Settings2 className="w-4 h-4" />
+          <Settings2 className="h-4 w-4" />
           إعدادات رأس الاختبار
           {expanded ? (
-            <ChevronUp className="w-4 h-4" />
+            <ChevronUp className="h-4 w-4" />
           ) : (
-            <ChevronDown className="w-4 h-4" />
+            <ChevronDown className="h-4 w-4" />
           )}
         </button>
 
@@ -157,17 +166,17 @@ export function TeacherPrintSettingsBar({ examId, teacherId, initialSettings }: 
           <button
             onClick={handleSave}
             disabled={saving}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-sm font-bold transition-all shadow-sm shadow-indigo-200 active:scale-95"
+            className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-bold text-white shadow-sm shadow-indigo-200 transition-all hover:bg-indigo-700 active:scale-95 disabled:opacity-60"
           >
-            <Save className="w-4 h-4" />
+            <Save className="h-4 w-4" />
             {saving ? 'جاري الحفظ…' : saved ? '✓ تم الحفظ' : 'حفظ الإعدادات'}
           </button>
 
           <button
             onClick={handlePrint}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold transition-all shadow-sm shadow-emerald-200 active:scale-95"
+            className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white shadow-sm shadow-emerald-200 transition-all hover:bg-emerald-700 active:scale-95"
           >
-            <Printer className="w-4 h-4" />
+            <Printer className="h-4 w-4" />
             طباعة PDF
           </button>
         </div>
@@ -184,23 +193,26 @@ export function TeacherPrintSettingsBar({ examId, teacherId, initialSettings }: 
             transition={{ duration: 0.25, ease: 'easeInOut' }}
             className="overflow-hidden"
           >
-            <div className="max-w-5xl mx-auto px-4 pb-5">
-              <div className="bg-slate-50 rounded-2xl border border-slate-100 p-5">
-                <p className="text-xs text-slate-400 mb-4 font-medium">
-                  💡 هذه المعلومات ستظهر في رأس ورقة الاختبار عند الطباعة. يتم حفظ بيانات المدرسة تلقائيًا لكل اختباراتك.
+            <div className="mx-auto max-w-5xl px-4 pb-5">
+              <div className="rounded-2xl border border-slate-100 bg-slate-50 p-5">
+                <p className="mb-4 text-xs font-medium text-slate-400">
+                  💡 هذه المعلومات ستظهر في رأس ورقة الاختبار عند الطباعة. يتم
+                  حفظ بيانات المدرسة تلقائيًا لكل اختباراتك.
                 </p>
 
                 {/* Grid of fields */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   {/* Row 1 — global teacher settings */}
                   <div>
-                    <label className={labelClass}>مديرية التربية والتعليم</label>
+                    <label className={labelClass}>
+                      مديرية التربية والتعليم
+                    </label>
                     <input
                       type="text"
                       className={inputClass}
                       placeholder="مثال: القاهرة"
                       value={settings.directorate}
-                      onChange={e => update('directorate', e.target.value)}
+                      onChange={(e) => update('directorate', e.target.value)}
                     />
                   </div>
 
@@ -211,7 +223,7 @@ export function TeacherPrintSettingsBar({ examId, teacherId, initialSettings }: 
                       className={inputClass}
                       placeholder="مثال: مصر الجديدة"
                       value={settings.administration}
-                      onChange={e => update('administration', e.target.value)}
+                      onChange={(e) => update('administration', e.target.value)}
                     />
                   </div>
 
@@ -222,7 +234,7 @@ export function TeacherPrintSettingsBar({ examId, teacherId, initialSettings }: 
                       className={inputClass}
                       placeholder="مثال: مدرسة النور الثانوية"
                       value={settings.schoolName}
-                      onChange={e => update('schoolName', e.target.value)}
+                      onChange={(e) => update('schoolName', e.target.value)}
                     />
                   </div>
 
@@ -233,7 +245,7 @@ export function TeacherPrintSettingsBar({ examId, teacherId, initialSettings }: 
                       className={inputClass}
                       placeholder="مثال: 2024 / 2025"
                       value={settings.academicYear}
-                      onChange={e => update('academicYear', e.target.value)}
+                      onChange={(e) => update('academicYear', e.target.value)}
                     />
                   </div>
 
@@ -245,7 +257,7 @@ export function TeacherPrintSettingsBar({ examId, teacherId, initialSettings }: 
                       className={inputClass}
                       placeholder="مثال: أ. محمد علي"
                       value={settings.teacherName}
-                      onChange={e => update('teacherName', e.target.value)}
+                      onChange={(e) => update('teacherName', e.target.value)}
                     />
                   </div>
 
@@ -256,7 +268,7 @@ export function TeacherPrintSettingsBar({ examId, teacherId, initialSettings }: 
                       className={inputClass}
                       placeholder="مثال: الشعبة أ"
                       value={settings.classSection}
-                      onChange={e => update('classSection', e.target.value)}
+                      onChange={(e) => update('classSection', e.target.value)}
                     />
                   </div>
 
@@ -266,27 +278,62 @@ export function TeacherPrintSettingsBar({ examId, teacherId, initialSettings }: 
                       type="date"
                       className={inputClass}
                       value={settings.examDate}
-                      onChange={e => update('examDate', e.target.value)}
+                      onChange={(e) => update('examDate', e.target.value)}
                     />
                   </div>
                 </div>
 
                 {/* Preview row */}
-                {(settings.directorate || settings.administration || settings.schoolName || settings.teacherName || settings.classSection || settings.examDate) && (
+                {(settings.directorate ||
+                  settings.administration ||
+                  settings.schoolName ||
+                  settings.teacherName ||
+                  settings.classSection ||
+                  settings.examDate) && (
                   <motion.div
                     initial={{ opacity: 0, y: -6 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="mt-4 p-4 border border-dashed border-indigo-200 rounded-xl bg-indigo-50/50 text-sm text-slate-700 leading-relaxed"
+                    className="mt-4 rounded-xl border border-dashed border-indigo-200 bg-indigo-50/50 p-4 text-sm leading-relaxed text-slate-700"
                   >
-                    <p className="font-bold text-indigo-700 mb-2 text-xs">معاينة رأس الاختبار:</p>
+                    <p className="mb-2 text-xs font-bold text-indigo-700">
+                      معاينة رأس الاختبار:
+                    </p>
                     <div className="grid grid-cols-2 gap-1 text-xs font-medium">
-                      {settings.directorate && <span>مديرية التربية والتعليم بـ {settings.directorate}</span>}
-                      {settings.academicYear && <span className="text-right">العام الدراسي: {settings.academicYear}</span>}
-                      {settings.administration && <span>إدارة {settings.administration} التعليمية</span>}
-                      {settings.teacherName && <span className="text-right">المعلم/ة: {settings.teacherName}</span>}
-                      {settings.schoolName && <span>مدرسة {settings.schoolName}</span>}
-                      {settings.classSection && <span className="text-right">الشعبة: {settings.classSection}</span>}
-                      {settings.examDate && <span>تاريخ الامتحان: {new Date(settings.examDate).toLocaleDateString('ar-EG', { day: 'numeric', month: 'long', year: 'numeric' })}</span>}
+                      {settings.directorate && (
+                        <span>
+                          مديرية التربية والتعليم بـ {settings.directorate}
+                        </span>
+                      )}
+                      {settings.academicYear && (
+                        <span className="text-right">
+                          العام الدراسي: {settings.academicYear}
+                        </span>
+                      )}
+                      {settings.administration && (
+                        <span>إدارة {settings.administration} التعليمية</span>
+                      )}
+                      {settings.teacherName && (
+                        <span className="text-right">
+                          المعلم/ة: {settings.teacherName}
+                        </span>
+                      )}
+                      {settings.schoolName && (
+                        <span>مدرسة {settings.schoolName}</span>
+                      )}
+                      {settings.classSection && (
+                        <span className="text-right">
+                          الشعبة: {settings.classSection}
+                        </span>
+                      )}
+                      {settings.examDate && (
+                        <span>
+                          تاريخ الامتحان:{' '}
+                          {new Date(settings.examDate).toLocaleDateString(
+                            'ar-EG',
+                            { day: 'numeric', month: 'long', year: 'numeric' }
+                          )}
+                        </span>
+                      )}
                     </div>
                   </motion.div>
                 )}

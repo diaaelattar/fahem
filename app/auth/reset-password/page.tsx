@@ -18,9 +18,14 @@ export default function ResetPasswordPage() {
   useEffect(() => {
     // Check if the user has an active session from the recovery link
     const checkSession = async () => {
-      const { data: { user }, error } = await supabase.auth.getUser()
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser()
       if (error || !user) {
-        setError('رابط الاستعادة غير صالح أو منتهي الصلاحية. يرجى طلب رابط جديد.')
+        setError(
+          'رابط الاستعادة غير صالح أو منتهي الصلاحية. يرجى طلب رابط جديد.'
+        )
       }
     }
     checkSession()
@@ -28,12 +33,12 @@ export default function ResetPasswordPage() {
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (password.length < 6) {
       setError('كلمة المرور يجب أن تكون 6 أحرف على الأقل')
       return
     }
-    
+
     if (password !== confirmPassword) {
       setError('كلمتا المرور غير متطابقتين')
       return
@@ -41,29 +46,33 @@ export default function ResetPasswordPage() {
 
     setLoading(true)
     setError('')
-    
+
     try {
       const { error: updateError } = await supabase.auth.updateUser({
-        password: password
+        password: password,
       })
-      
+
       if (updateError) {
         setError('حدث خطأ أثناء تحديث كلمة المرور: ' + updateError.message)
         return
       }
 
       setSuccess(true)
-      
-      const { data: { user } } = await supabase.auth.getUser()
-      const { data: profile } = user ? await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .maybeSingle() : { data: null }
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      const { data: profile } = user
+        ? await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .maybeSingle()
+        : { data: null }
 
       // Refresh to synchronize cookies/session with Server Components
       router.refresh()
-      
+
       // Redirect after 3 seconds
       setTimeout(() => {
         if (profile?.role === 'admin') {
@@ -74,7 +83,6 @@ export default function ResetPasswordPage() {
           router.push('/student/dashboard')
         }
       }, 3000)
-
     } catch {
       setError('حدث خطأ غير متوقع.')
     } finally {
@@ -83,42 +91,51 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-hero-pattern flex items-center justify-center p-4" dir="rtl">
+    <div
+      className="bg-hero-pattern flex min-h-screen items-center justify-center p-4"
+      dir="rtl"
+    >
       <div className="w-full max-w-md">
-
         {/* Logo */}
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-flex flex-col items-center gap-2 text-white group">
-            <div className="w-16 h-16 rounded-2xl bg-white/15 backdrop-blur-sm border border-white/30 flex items-center justify-center shadow-xl group-hover:scale-105 transition-transform">
-              <Brain className="w-8 h-8 text-yellow-300" />
+        <div className="mb-8 text-center">
+          <Link
+            href="/"
+            className="group inline-flex flex-col items-center gap-2 text-white"
+          >
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/30 bg-white/15 shadow-xl backdrop-blur-sm transition-transform group-hover:scale-105">
+              <Brain className="h-8 w-8 text-yellow-300" />
             </div>
-            <div className="text-2xl font-display font-bold">استباق مصر</div>
+            <div className="font-display text-2xl font-bold">استباق مصر</div>
           </Link>
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden p-8">
-          <h1 className="text-2xl font-display font-bold text-center mb-2">كلمة مرور جديدة</h1>
-          
+        <div className="overflow-hidden rounded-3xl bg-white p-8 shadow-2xl">
+          <h1 className="mb-2 text-center font-display text-2xl font-bold">
+            كلمة مرور جديدة
+          </h1>
+
           {success ? (
-            <div className="text-center py-6">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce">
-                <CheckCircle2 className="w-8 h-8 text-green-600" />
+            <div className="py-6 text-center">
+              <div className="mx-auto mb-4 flex h-16 w-16 animate-bounce items-center justify-center rounded-full bg-green-100">
+                <CheckCircle2 className="h-8 w-8 text-green-600" />
               </div>
-              <h2 className="text-xl font-bold text-slate-800 mb-2">تم التحديث بنجاح!</h2>
-              <p className="text-slate-600 text-sm mb-6">
+              <h2 className="mb-2 text-xl font-bold text-slate-800">
+                تم التحديث بنجاح!
+              </h2>
+              <p className="mb-6 text-sm text-slate-600">
                 جاري توجيهك إلى لوحة التحكم الخاصة بك...
               </p>
-              <Loader2 className="w-6 h-6 animate-spin text-primary mx-auto" />
+              <Loader2 className="mx-auto h-6 w-6 animate-spin text-primary" />
             </div>
           ) : (
             <>
-              <p className="text-muted-foreground text-center text-sm mb-6">
+              <p className="mb-6 text-center text-sm text-muted-foreground">
                 يرجى إدخال كلمة المرور الجديدة وتأكيدها.
               </p>
 
               {error && (
-                <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm mb-5">
+                <div className="mb-5 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
                   <span className="text-red-500">⚠️</span>
                   {error}
                 </div>
@@ -126,9 +143,11 @@ export default function ResetPasswordPage() {
 
               <form onSubmit={handleUpdatePassword} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-1.5">كلمة المرور الجديدة</label>
+                  <label className="mb-1.5 block text-sm font-bold text-slate-700">
+                    كلمة المرور الجديدة
+                  </label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
                       <Lock className="h-5 w-5 text-slate-400" />
                     </div>
                     <input
@@ -136,7 +155,7 @@ export default function ResetPasswordPage() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       dir="ltr"
-                      className="block w-full pl-3 pr-10 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:border-primary text-sm bg-slate-50 focus:bg-white transition-colors"
+                      className="block w-full rounded-xl border border-border bg-slate-50 py-3 pl-3 pr-10 text-sm transition-colors focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary"
                       placeholder="••••••••"
                       required
                       minLength={6}
@@ -145,9 +164,11 @@ export default function ResetPasswordPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-1.5">تأكيد كلمة المرور</label>
+                  <label className="mb-1.5 block text-sm font-bold text-slate-700">
+                    تأكيد كلمة المرور
+                  </label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
                       <Lock className="h-5 w-5 text-slate-400" />
                     </div>
                     <input
@@ -155,7 +176,7 @@ export default function ResetPasswordPage() {
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       dir="ltr"
-                      className="block w-full pl-3 pr-10 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary focus:border-primary text-sm bg-slate-50 focus:bg-white transition-colors"
+                      className="block w-full rounded-xl border border-border bg-slate-50 py-3 pl-3 pr-10 text-sm transition-colors focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary"
                       placeholder="••••••••"
                       required
                     />
@@ -165,9 +186,13 @@ export default function ResetPasswordPage() {
                 <button
                   type="submit"
                   disabled={loading || error.includes('غير صالح')}
-                  className="w-full flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-white font-bold py-3.5 rounded-xl transition-all disabled:opacity-60 shadow-md mt-4"
+                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-slate-800 py-3.5 font-bold text-white shadow-md transition-all hover:bg-slate-700 disabled:opacity-60"
                 >
-                  {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'حفظ كلمة المرور والدخول'}
+                  {loading ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    'حفظ كلمة المرور والدخول'
+                  )}
                 </button>
               </form>
             </>

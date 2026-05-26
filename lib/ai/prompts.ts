@@ -134,11 +134,11 @@ export const SMART_GEN_PROMPT = (params: PromptParams): string => {
       return `${t}: ${perType + extra} سؤال`
     })
     typesDirective = `أنواع الأسئلة المطلوبة حصراً: ${types.join('، ')}`
-    typeCountBreakdown = `**توزيع الأنواع الإلزامي (التزم بهذه الأرقام تماماً):**\n${breakdown.map(b => `  - ${b}`).join('\n')}`
+    typeCountBreakdown = `**توزيع الأنواع الإلزامي (التزم بهذه الأرقام تماماً):**\n${breakdown.map((b) => `  - ${b}`).join('\n')}`
   } else {
     // توزيع افتراضي ذكي
     const mcqCount = Math.round(count * 0.5)
-    const tfCount  = Math.round(count * 0.2)
+    const tfCount = Math.round(count * 0.2)
     const fillCount = Math.round(count * 0.2)
     const essayCount = count - mcqCount - tfCount - fillCount
     typesDirective = 'تنويع الأنواع المطلوب'
@@ -178,9 +178,13 @@ ${typeCountBreakdown}
 - **المادة الدراسية:** ${params.subject}
 - **الصف الدراسي:** ${params.grade}
 
-${params.customInstructions ? `## تعليمات مخصصة من المدرس (التزم بها بدقة شديدة)
+${
+  params.customInstructions
+    ? `## تعليمات مخصصة من المدرس (التزم بها بدقة شديدة)
 ${params.customInstructions}
-` : ''}
+`
+    : ''
+}
 
 ${passageDirective}
 
@@ -222,17 +226,19 @@ ${SHARED_QUALITY_CRITERIA}
 // ═══════════════════════════════════════════════════════════════
 export const EXACT_EXTRACT_PROMPT = (params: PromptParams): string => {
   const count = params.questionCount || 0
-  const typesText = params.requestedTypes && params.requestedTypes.length > 0 
-    ? `\n5. **الأنواع المسموحة فقط:** (${params.requestedTypes.join(', ')}). تجاهل أي سؤال في المستند لا ينتمي لهذه الأنواع.`
-    : ''
-    
-  const countRule = count > 0
-    ? `> **⛔ قاعدة العدد والأنواع الإلزامية:**
+  const typesText =
+    params.requestedTypes && params.requestedTypes.length > 0
+      ? `\n5. **الأنواع المسموحة فقط:** (${params.requestedTypes.join(', ')}). تجاهل أي سؤال في المستند لا ينتمي لهذه الأنواع.`
+      : ''
+
+  const countRule =
+    count > 0
+      ? `> **⛔ قاعدة العدد والأنواع الإلزامية:**
 1. مطلوب استخراج ما يصل إلى **${count} سؤال** كحد أقصى.
 2. إذا كان المستند الأصلي يحتوي على أسئلة أقل من هذا العدد، **استخرج الموجود فقط وتوقف**.
 3. **محظور تماماً (أحمر):** تأليف، أو اختراع، أو استنتاج أي أسئلة إضافية من عندك لإكمال العدد المطلوب. التزم فقط بما تراه عيناك في المستند المرفق.
 4. إذا كان المستند يحتوي على أكثر من العدد المطلوب، أوقف الاستخراج عند السؤال رقم ${count} بالضبط.${typesText}`
-    : `> **⛔ قاعدة مطابقة الأصل الإلزامية:** استخرج جميع الأسئلة الموجودة في المستند فقط. **محظور تماماً** تأليف أو اختراع أي أسئلة إضافية من عندك.${typesText}`
+      : `> **⛔ قاعدة مطابقة الأصل الإلزامية:** استخرج جميع الأسئلة الموجودة في المستند فقط. **محظور تماماً** تأليف أو اختراع أي أسئلة إضافية من عندك.${typesText}`
 
   return `# الهوية والدور (Role & Identity)
 أنت "آلة رقمنة" دقيقة للامتحانات التعليمية المصرية. مهمتك الوحيدة هي **النسخ الحرفي المطلق** لكل سؤال من المستند كما هو بالكلمة واللفظ والترتيب تماماً، بلا أي تدخل أو تعديل.
@@ -334,11 +340,14 @@ ${MATH_STRICT_RULES}
 `
 }
 
-
 // التصحيح الذكي وتجديد سؤال
 // ═══════════════════════════════════════════════════════════════
 export const REGENERATE_QUESTION_PROMPT = (params: {
-  subject: string; grade: string; learning_outcome: string; question_type: string; originalContext?: string;
+  subject: string
+  grade: string
+  learning_outcome: string
+  question_type: string
+  originalContext?: string
 }): string => `# محرك الأسئلة — تجديد سؤال واحد (SMART_GEN)
 نفس سياق SMART_GEN السابق. مهمتك إنشاء سؤال **جديد ومختلف تماماً** يقيس نفس ناتج التعلم: ${params.learning_outcome}
 نوع السؤال المرجو: ${params.question_type}
@@ -360,10 +369,10 @@ export const REGENERATE_QUESTION_PROMPT = (params: {
 `
 
 export const AI_GRADING_PROMPT = (params: {
-  questionText: string;
-  idealAnswer: string;
-  studentAnswer: string;
-  maxScore: number;
+  questionText: string
+  idealAnswer: string
+  studentAnswer: string
+  maxScore: number
 }): string => `
 # الهوية والدور (Role & Identity)
 أنت نظام تصحيح وتقييم إلكتروني ذكي، معتمد لدى وزارة التربية والتعليم المصرية. مهمتك استلام إجابة الطالب ومطابقتها مع نموذج الإجابة القياسي، واحتساب الدرجة المستحقة، وتقديم تغذية راجعة تربوية بناءة.
@@ -395,7 +404,10 @@ export const AI_GRADING_PROMPT = (params: {
 export const QUESTION_GENERATION_PROMPT = SMART_GEN_PROMPT
 export const LITERAL_EXTRACTION_PROMPT = EXACT_EXTRACT_PROMPT
 
-export const YOUTUBE_ANALYSIS_PROMPT = (transcript: string, title: string): string => `
+export const YOUTUBE_ANALYSIS_PROMPT = (
+  transcript: string,
+  title: string
+): string => `
 أنت محلل محتوى تعليمي متخصص. تم تفريغ النص التالي من فيديو تعليمي على يوتيوب.
 
 **عنوان الفيديو:** ${title}

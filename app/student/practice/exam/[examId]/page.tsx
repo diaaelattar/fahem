@@ -38,11 +38,16 @@ export default async function PracticeExamPage({ params }: Props) {
 
   if (!attempt) {
     return (
-      <div className="max-w-lg mx-auto text-center py-20 animate-fade-in">
-        <div className="text-6xl mb-6">🔒</div>
-        <h1 className="text-2xl font-bold mb-2">لم تُكمل هذا الاختبار بعد</h1>
-        <p className="text-muted-foreground mb-8">يجب إكمال الاختبار أولاً لتتمكن من التدرب على أسئلته</p>
-        <Link href="/student/exams" className="bg-primary text-white px-6 py-3 rounded-xl font-medium">
+      <div className="mx-auto max-w-lg animate-fade-in py-20 text-center">
+        <div className="mb-6 text-6xl">🔒</div>
+        <h1 className="mb-2 text-2xl font-bold">لم تُكمل هذا الاختبار بعد</h1>
+        <p className="mb-8 text-muted-foreground">
+          يجب إكمال الاختبار أولاً لتتمكن من التدرب على أسئلته
+        </p>
+        <Link
+          href="/student/exams"
+          className="rounded-xl bg-primary px-6 py-3 font-medium text-white"
+        >
           الذهاب للاختبارات
         </Link>
       </div>
@@ -52,18 +57,22 @@ export default async function PracticeExamPage({ params }: Props) {
   // جلب أسئلة الاختبار بالإجابات الصحيحة (للتدريب)
   const { data: examQuestions } = await supabase
     .from('exam_questions')
-    .select(`
+    .select(
+      `
       question_order,
       questions(id, question_type, question_text, options, correct_answer, explanation, points, difficulty_level)
-    `)
+    `
+    )
     .eq('exam_id', params.examId)
     .order('question_order')
 
   if (!examQuestions || examQuestions.length === 0) {
     return (
-      <div className="max-w-lg mx-auto text-center py-20">
-        <h1 className="text-2xl font-bold mb-2">لا توجد أسئلة</h1>
-        <Link href="/student/practice" className="text-primary hover:underline">العودة للتدريب</Link>
+      <div className="mx-auto max-w-lg py-20 text-center">
+        <h1 className="mb-2 text-2xl font-bold">لا توجد أسئلة</h1>
+        <Link href="/student/practice" className="text-primary hover:underline">
+          العودة للتدريب
+        </Link>
       </div>
     )
   }
@@ -86,32 +95,42 @@ export default async function PracticeExamPage({ params }: Props) {
   const shuffled = [...questions].sort(() => Math.random() - 0.5)
 
   return (
-    <div className="space-y-6 animate-fade-in pb-12">
+    <div className="animate-fade-in space-y-6 pb-12">
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Link href="/student/practice" className="hover:text-primary transition-colors">مركز التدريب</Link>
+        <Link
+          href="/student/practice"
+          className="transition-colors hover:text-primary"
+        >
+          مركز التدريب
+        </Link>
         <span>/</span>
-        <span className="text-foreground font-bold">{(exam as any).title}</span>
+        <span className="font-bold text-foreground">{(exam as any).title}</span>
       </div>
 
       {/* Header */}
       <div className="card-premium p-6">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-purple-50 flex items-center justify-center text-4xl shrink-0">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-purple-50 text-4xl">
             {(exam.subjects as any)?.icon || '📝'}
           </div>
           <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
-              <History className="w-4 h-4 text-purple-500" />
-              <span className="text-xs font-bold text-purple-600">تدريب من اختبار سابق</span>
+            <div className="mb-1 flex items-center gap-2">
+              <History className="h-4 w-4 text-purple-500" />
+              <span className="text-xs font-bold text-purple-600">
+                تدريب من اختبار سابق
+              </span>
             </div>
             <h1 className="text-2xl font-bold">{(exam as any).title}</h1>
-            <p className="text-muted-foreground text-sm">
-              {(exam.subjects as any)?.name_ar} • {shuffled.length} سؤال • شرح فوري لكل إجابة
+            <p className="text-sm text-muted-foreground">
+              {(exam.subjects as any)?.name_ar} • {shuffled.length} سؤال • شرح
+              فوري لكل إجابة
             </p>
           </div>
-          <div className="text-left shrink-0">
-            <div className={`text-2xl font-bold ${Math.round(attempt.percentage || 0) >= 60 ? 'text-green-600' : 'text-red-500'}`}>
+          <div className="shrink-0 text-left">
+            <div
+              className={`text-2xl font-bold ${Math.round(attempt.percentage || 0) >= 60 ? 'text-green-600' : 'text-red-500'}`}
+            >
               {Math.round(attempt.percentage || 0)}%
             </div>
             <div className="text-xs text-muted-foreground">درجتك السابقة</div>

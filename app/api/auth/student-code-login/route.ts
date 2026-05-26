@@ -14,7 +14,10 @@ export async function POST(req: NextRequest) {
     const { studentCode } = await req.json()
 
     if (!studentCode || typeof studentCode !== 'string') {
-      return NextResponse.json({ error: 'يرجى إدخال كود الطالب' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'يرجى إدخال كود الطالب' },
+        { status: 400 }
+      )
     }
 
     const normalizedCode = studentCode.trim().toUpperCase()
@@ -28,7 +31,10 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (!student) {
-      return NextResponse.json({ error: 'كود الطالب غير موجود. تأكد من الكود مع معلمك.' }, { status: 404 })
+      return NextResponse.json(
+        { error: 'كود الطالب غير موجود. تأكد من الكود مع معلمك.' },
+        { status: 404 }
+      )
     }
 
     // 2. إيجاد بريده الإلكتروني
@@ -39,22 +45,29 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (!profileData?.email) {
-      return NextResponse.json({ error: 'حساب الطالب غير مكتمل. تواصل مع معلمك.' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'حساب الطالب غير مكتمل. تواصل مع معلمك.' },
+        { status: 400 }
+      )
     }
 
     // 3. إنشاء magic link عبر admin client
     const adminClient = createAdminClient()
-    const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
-      type: 'magiclink',
-      email: profileData.email,
-      options: {
-        redirectTo: `${req.nextUrl.origin}/auth/callback?next=/student/dashboard`,
-      },
-    })
+    const { data: linkData, error: linkError } =
+      await adminClient.auth.admin.generateLink({
+        type: 'magiclink',
+        email: profileData.email,
+        options: {
+          redirectTo: `${req.nextUrl.origin}/auth/callback?next=/student/dashboard`,
+        },
+      })
 
     if (linkError || !linkData) {
       console.error('Magic link error:', linkError)
-      return NextResponse.json({ error: 'فشل إنشاء رابط الدخول. حاول مجدداً.' }, { status: 500 })
+      return NextResponse.json(
+        { error: 'فشل إنشاء رابط الدخول. حاول مجدداً.' },
+        { status: 500 }
+      )
     }
 
     // نُرسل الـ action_link للعميل ليقوم بالتوجيه

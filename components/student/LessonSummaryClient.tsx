@@ -14,28 +14,34 @@ export function LessonSummaryClient({ summary }: Props) {
   if (!summary) return null
 
   return (
-    <div className="bg-gradient-to-br from-indigo-50 to-blue-50 border border-indigo-200 rounded-2xl overflow-hidden mb-6 transition-all duration-300">
-      <button 
+    <div className="mb-6 overflow-hidden rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-50 to-blue-50 transition-all duration-300">
+      <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between p-5 text-indigo-900 focus:outline-none"
+        className="flex w-full items-center justify-between p-5 text-indigo-900 focus:outline-none"
       >
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center text-indigo-600">
-            <BookOpen className="w-5 h-5" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-100 text-indigo-600">
+            <BookOpen className="h-5 w-5" />
           </div>
           <div className="text-right">
-            <h3 className="font-bold text-lg">ملخص الدرس الذكي</h3>
-            <p className="text-xs text-indigo-700/70">مراجعة سريعة لأهم قوانين ومفاهيم الدرس</p>
+            <h3 className="text-lg font-bold">ملخص الدرس الذكي</h3>
+            <p className="text-xs text-indigo-700/70">
+              مراجعة سريعة لأهم قوانين ومفاهيم الدرس
+            </p>
           </div>
         </div>
-        <div className="w-8 h-8 bg-white/50 rounded-full flex items-center justify-center">
-          {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/50">
+          {isOpen ? (
+            <ChevronUp className="h-4 w-4" />
+          ) : (
+            <ChevronDown className="h-4 w-4" />
+          )}
         </div>
       </button>
 
       {isOpen && (
-        <div className="p-6 pt-0 border-t border-indigo-100 mt-2">
-          <div className="bg-white/60 rounded-xl p-5 text-sm leading-loose prose prose-sm prose-indigo rtl prose-p:my-2 prose-ul:my-2 max-w-none">
+        <div className="mt-2 border-t border-indigo-100 p-6 pt-0">
+          <div className="prose prose-sm prose-indigo rtl prose-p:my-2 prose-ul:my-2 max-w-none rounded-xl bg-white/60 p-5 text-sm leading-loose">
             <MathRenderer text={summary} />
           </div>
         </div>

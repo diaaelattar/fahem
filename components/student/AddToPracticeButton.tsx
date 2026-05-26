@@ -10,7 +10,11 @@ interface Props {
   studentId: string
 }
 
-export function AddToPracticeButton({ questionIds, attemptId, studentId }: Props) {
+export function AddToPracticeButton({
+  questionIds,
+  attemptId,
+  studentId,
+}: Props) {
   const supabase = createClient() as any
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
@@ -25,7 +29,7 @@ export function AddToPracticeButton({ questionIds, attemptId, studentId }: Props
         await supabase.rpc('add_to_wrong_answers', {
           p_student_id: studentId,
           p_question_id: qId,
-          p_attempt_id: attemptId
+          p_attempt_id: attemptId,
         })
       }
       setDone(true)
@@ -38,8 +42,8 @@ export function AddToPracticeButton({ questionIds, attemptId, studentId }: Props
 
   if (done) {
     return (
-      <div className="flex items-center gap-2 text-sm font-bold text-green-600 bg-green-50 border border-green-200 px-4 py-2 rounded-full">
-        <Check className="w-4 h-4" />
+      <div className="flex items-center gap-2 rounded-full border border-green-200 bg-green-50 px-4 py-2 text-sm font-bold text-green-600">
+        <Check className="h-4 w-4" />
         أُضيفت للتدريب!
       </div>
     )
@@ -49,12 +53,12 @@ export function AddToPracticeButton({ questionIds, attemptId, studentId }: Props
     <button
       onClick={handleAdd}
       disabled={loading}
-      className="flex items-center gap-2 text-sm font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 px-4 py-2 rounded-full hover:bg-indigo-100 hover:border-indigo-400 transition-all disabled:opacity-60"
+      className="flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-bold text-indigo-600 transition-all hover:border-indigo-400 hover:bg-indigo-100 disabled:opacity-60"
     >
       {loading ? (
-        <Loader2 className="w-4 h-4 animate-spin" />
+        <Loader2 className="h-4 w-4 animate-spin" />
       ) : (
-        <BookOpen className="w-4 h-4" />
+        <BookOpen className="h-4 w-4" />
       )}
       {loading ? 'جاري الإضافة...' : `أضف ${questionIds.length} خطأ للتدريب`}
     </button>

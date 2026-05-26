@@ -6,14 +6,19 @@ export type UserRole = 'admin' | 'student' | 'teacher'
 
 export async function getCurrentUser() {
   const supabase = await createClient()
-  const { data: { user }, error } = await supabase.auth.getUser()
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser()
   if (error || !user) return null
   return user
 }
 
 export async function getCurrentProfile() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) return null
 
   const { data: profile } = await supabase
@@ -63,13 +68,13 @@ export function canAccessRoute(role: UserRole, path: string): boolean {
   const studentRoutes = ['/student']
   const teacherRoutes = ['/teacher']
 
-  if (adminRoutes.some(r => path.startsWith(r))) {
+  if (adminRoutes.some((r) => path.startsWith(r))) {
     return role === 'admin'
   }
-  if (studentRoutes.some(r => path.startsWith(r))) {
+  if (studentRoutes.some((r) => path.startsWith(r))) {
     return role === 'student'
   }
-  if (teacherRoutes.some(r => path.startsWith(r))) {
+  if (teacherRoutes.some((r) => path.startsWith(r))) {
     return role === 'teacher'
   }
   return true

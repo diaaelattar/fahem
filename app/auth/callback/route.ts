@@ -9,7 +9,9 @@ export async function GET(request: Request) {
     const supabase = await createClient()
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
       if (user) {
         // تحقق إذا كان البروفايل موجوداً
         const { data: profile } = await supabase
@@ -41,9 +43,11 @@ export async function GET(request: Request) {
         }
 
         // مستخدم Google جديد — إنشاء بروفايل
-        const fullName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'مستخدم'
+        const fullName =
+          user.user_metadata?.full_name || user.email?.split('@')[0] || 'مستخدم'
         const avatarUrl = user.user_metadata?.avatar_url || null
-        const requestedRole = searchParams.get('role') === 'teacher' ? 'teacher' : 'student'
+        const requestedRole =
+          searchParams.get('role') === 'teacher' ? 'teacher' : 'student'
 
         await supabase.from('profiles').upsert({
           id: user.id,
@@ -64,7 +68,7 @@ export async function GET(request: Request) {
         } else {
           await supabase.from('teachers').upsert({
             id: user.id,
-            subscription_status: 'trial'
+            subscription_status: 'trial',
           })
           return NextResponse.redirect(`${origin}/teacher/dashboard`)
         }
@@ -72,5 +76,7 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.redirect(`${origin}/auth/login?error=auth_callback_failed`)
+  return NextResponse.redirect(
+    `${origin}/auth/login?error=auth_callback_failed`
+  )
 }

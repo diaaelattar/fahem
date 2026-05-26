@@ -10,7 +10,12 @@ interface Props {
   placeholder?: string
 }
 
-export function MathLiveInput({ value, onChange, className = '', placeholder = '' }: Props) {
+export function MathLiveInput({
+  value,
+  onChange,
+  className = '',
+  placeholder = '',
+}: Props) {
   const ref = useRef<any>(null)
   const [loaded, setLoaded] = useState(false)
   const [error, setError] = useState(false)
@@ -49,24 +54,34 @@ export function MathLiveInput({ value, onChange, className = '', placeholder = '
   }, [value, loaded])
 
   if (error) {
-    return <div className="text-red-500 text-sm">فشل تحميل لوحة الرياضيات. يرجى التحقق من اتصال الإنترنت.</div>
+    return (
+      <div className="text-sm text-red-500">
+        فشل تحميل لوحة الرياضيات. يرجى التحقق من اتصال الإنترنت.
+      </div>
+    )
   }
 
   if (!loaded) {
     return (
-      <div className={`p-4 bg-slate-100 rounded-xl animate-pulse flex items-center gap-2 text-muted-foreground ${className}`}>
-        <Calculator className="w-5 h-5" /> جاري تحميل لوحة المعادلات...
+      <div
+        className={`flex animate-pulse items-center gap-2 rounded-xl bg-slate-100 p-4 text-muted-foreground ${className}`}
+      >
+        <Calculator className="h-5 w-5" /> جاري تحميل لوحة المعادلات...
       </div>
     )
   }
 
   return (
     <div dir="ltr" className="w-full">
-      {React.createElement('math-field', {
-        ref,
-        class: `w-full px-4 py-3 border border-border rounded-xl focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all bg-white min-h-[50px] shadow-sm ${className}`,
-        style: { fontSize: '1.25rem', fontFamily: 'math' },
-      }, value)}
+      {React.createElement(
+        'math-field',
+        {
+          ref,
+          class: `w-full px-4 py-3 border border-border rounded-xl focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all bg-white min-h-[50px] shadow-sm ${className}`,
+          style: { fontSize: '1.25rem', fontFamily: 'math' },
+        },
+        value
+      )}
     </div>
   )
 }

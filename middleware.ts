@@ -3,9 +3,15 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 // دالة مساعدة لنسخ الكوكيز المحدثة من supabaseResponse إلى استجابة إعادة التوجيه
 // تمنع هذه الدالة فقدان الجلسة عند استخدام NextResponse.redirect
-function redirectWithCookies(request: NextRequest, targetUrl: string, supabaseResponse: NextResponse) {
-  const redirectResponse = NextResponse.redirect(new URL(targetUrl, request.url))
-  supabaseResponse.cookies.getAll().forEach(cookie => {
+function redirectWithCookies(
+  request: NextRequest,
+  targetUrl: string,
+  supabaseResponse: NextResponse
+) {
+  const redirectResponse = NextResponse.redirect(
+    new URL(targetUrl, request.url)
+  )
+  supabaseResponse.cookies.getAll().forEach((cookie) => {
     redirectResponse.cookies.set(cookie.name, cookie.value, {
       path: cookie.path,
       domain: cookie.domain,
@@ -30,10 +36,14 @@ export async function middleware(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() { return request.cookies.getAll() },
+        getAll() {
+          return request.cookies.getAll()
+        },
         setAll(cookiesToSet: any[]) {
           // ── الخطوة 1: حدّث كوكيز الـ request حتى يراها الكود التالي في نفس الطلب
-          cookiesToSet.forEach(({ name, value }: any) => request.cookies.set(name, value))
+          cookiesToSet.forEach(({ name, value }: any) =>
+            request.cookies.set(name, value)
+          )
           // ── الخطوة 2: أنشئ response جديدة تحمل الـ request المحدّث (مع الـ cookies الجديدة في headers)
           //    هذا يضمن أن Server Components تستقبل الـ session المحدّثة
           supabaseResponse = NextResponse.next({ request })
@@ -46,10 +56,12 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   const pathname = request.nextUrl.pathname
 
-  const isAdminRoute   = pathname.startsWith('/admin')
+  const isAdminRoute = pathname.startsWith('/admin')
   const isStudentRoute = pathname.startsWith('/student')
   const isTeacherRoute = pathname.startsWith('/teacher')
   const isProtectedRoute = isAdminRoute || isStudentRoute || isTeacherRoute
@@ -80,7 +92,11 @@ export async function middleware(request: NextRequest) {
       }
       // طالب بدون بروفايل → onboarding
       if (pathname === '/student/onboarding') return supabaseResponse
-      return redirectWithCookies(request, '/student/onboarding', supabaseResponse)
+      return redirectWithCookies(
+        request,
+        '/student/onboarding',
+        supabaseResponse
+      )
     }
 
     // ── حماية المسارات بحسب الدور ─────────────────────────────────────────
@@ -92,12 +108,20 @@ export async function middleware(request: NextRequest) {
 
     // المعلم يحاول الدخول لمسار أدمن أو طالب → لوحة المعلم
     if (profile.role === 'teacher' && (isAdminRoute || isStudentRoute)) {
-      return redirectWithCookies(request, '/teacher/dashboard', supabaseResponse)
+      return redirectWithCookies(
+        request,
+        '/teacher/dashboard',
+        supabaseResponse
+      )
     }
 
     // الطالب يحاول الدخول لمسار أدمن أو معلم → لوحة الطالب
     if (profile.role === 'student' && (isAdminRoute || isTeacherRoute)) {
-      return redirectWithCookies(request, '/student/dashboard', supabaseResponse)
+      return redirectWithCookies(
+        request,
+        '/student/dashboard',
+        supabaseResponse
+      )
     }
 
     // ── فحص اختيار الصف للطالب ──────────────────────────────────────────────
@@ -113,12 +137,20 @@ export async function middleware(request: NextRequest) {
 
       if (!hasGrade && !isOnboardingPage) {
         // طالب لم يختر صفه → Onboarding
-        return redirectWithCookies(request, '/student/onboarding', supabaseResponse)
+        return redirectWithCookies(
+          request,
+          '/student/onboarding',
+          supabaseResponse
+        )
       }
 
       if (hasGrade && isOnboardingPage) {
         // طالب اختار صفه بالفعل ويحاول الدخول للـ Onboarding → Dashboard
-        return redirectWithCookies(request, '/student/dashboard', supabaseResponse)
+        return redirectWithCookies(
+          request,
+          '/student/dashboard',
+          supabaseResponse
+        )
       }
     }
   }
@@ -134,9 +166,17 @@ export async function middleware(request: NextRequest) {
     if (profile?.role === 'admin') {
       return redirectWithCookies(request, '/admin/dashboard', supabaseResponse)
     } else if (profile?.role === 'teacher') {
-      return redirectWithCookies(request, '/teacher/dashboard', supabaseResponse)
+      return redirectWithCookies(
+        request,
+        '/teacher/dashboard',
+        supabaseResponse
+      )
     } else if (profile?.role === 'student') {
-      return redirectWithCookies(request, '/student/dashboard', supabaseResponse)
+      return redirectWithCookies(
+        request,
+        '/student/dashboard',
+        supabaseResponse
+      )
     }
   }
 

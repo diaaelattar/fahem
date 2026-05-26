@@ -1,7 +1,9 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
 export const getGeminiModel = (modelName: string = 'gemini-flash-latest') => {
-  const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY || '')
+  const genAI = new GoogleGenerativeAI(
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY || ''
+  )
   return genAI.getGenerativeModel({
     model: modelName,
     generationConfig: {
@@ -16,7 +18,10 @@ export const getGeminiModel = (modelName: string = 'gemini-flash-latest') => {
 export function parseGeminiJSON(text: string) {
   try {
     // محاولة تنظيف علامات ممركبات Markdown
-    const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim()
+    const cleaned = text
+      .replace(/```json/g, '')
+      .replace(/```/g, '')
+      .trim()
     return JSON.parse(cleaned)
   } catch (error) {
     console.error('فشل في تحليل مخرجات Gemini:', error)

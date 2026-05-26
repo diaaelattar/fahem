@@ -57,7 +57,7 @@ export function AddStudentForm({ groupId }: { groupId: string }) {
       await addStudentToGroupAction(groupId, '', {
         fullName: fullName.trim(),
         email: email.trim() || undefined,
-        parentPhone: parentPhone.trim() || undefined
+        parentPhone: parentPhone.trim() || undefined,
       })
       toast.success(`تم تسجيل الطالب "${fullName}" وإضافته للمجموعة بنجاح`)
       handleClose()
@@ -73,21 +73,28 @@ export function AddStudentForm({ groupId }: { groupId: string }) {
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="text-xs font-bold text-indigo-600 hover:bg-indigo-50 px-3 py-1.5 rounded-full transition-colors flex items-center gap-1"
+        className="flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-bold text-indigo-600 transition-colors hover:bg-indigo-50"
       >
-        <UserPlus className="w-4 h-4" /> إضافة طالب
+        <UserPlus className="h-4 w-4" /> إضافة طالب
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden" dir="rtl">
+        <div className="fixed inset-0 z-50 flex animate-fade-in items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
+          <div
+            className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-xl"
+            dir="rtl"
+          >
             {/* Header */}
-            <div className="flex items-center justify-between p-5 border-b border-border">
-              <h3 className="font-bold text-lg flex items-center gap-2">
-                <UserPlus className="w-5 h-5 text-indigo-500" /> إضافة طالب للمجموعة
+            <div className="flex items-center justify-between border-b border-border p-5">
+              <h3 className="flex items-center gap-2 text-lg font-bold">
+                <UserPlus className="h-5 w-5 text-indigo-500" /> إضافة طالب
+                للمجموعة
               </h3>
-              <button onClick={handleClose} className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors">
-                <X className="w-5 h-5" />
+              <button
+                onClick={handleClose}
+                className="rounded-lg p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+              >
+                <X className="h-5 w-5" />
               </button>
             </div>
 
@@ -95,53 +102,68 @@ export function AddStudentForm({ groupId }: { groupId: string }) {
             <div className="flex border-b border-border">
               <button
                 onClick={() => setActiveTab('search')}
-                className={`flex-1 py-3 text-sm font-bold flex items-center justify-center gap-2 transition-colors ${
+                className={`flex flex-1 items-center justify-center gap-2 py-3 text-sm font-bold transition-colors ${
                   activeTab === 'search'
-                    ? 'text-indigo-600 border-b-2 border-indigo-500 bg-indigo-50/50'
-                    : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+                    ? 'border-b-2 border-indigo-500 bg-indigo-50/50 text-indigo-600'
+                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
                 }`}
               >
-                <Search className="w-4 h-4" /> بحث عن طالب مسجل
+                <Search className="h-4 w-4" /> بحث عن طالب مسجل
               </button>
               <button
                 onClick={() => setActiveTab('register')}
-                className={`flex-1 py-3 text-sm font-bold flex items-center justify-center gap-2 transition-colors ${
+                className={`flex flex-1 items-center justify-center gap-2 py-3 text-sm font-bold transition-colors ${
                   activeTab === 'register'
-                    ? 'text-indigo-600 border-b-2 border-indigo-500 bg-indigo-50/50'
-                    : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+                    ? 'border-b-2 border-indigo-500 bg-indigo-50/50 text-indigo-600'
+                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
                 }`}
               >
-                <UserCheck className="w-4 h-4" /> تسجيل طالب جديد
+                <UserCheck className="h-4 w-4" /> تسجيل طالب جديد
               </button>
             </div>
 
             {/* Search Tab */}
             {activeTab === 'search' && (
-              <form onSubmit={handleSearch} className="p-6 space-y-4">
+              <form onSubmit={handleSearch} className="space-y-4 p-6">
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">البريد الإلكتروني أو كود الطالب</label>
+                  <label className="mb-2 block text-sm font-bold text-slate-700">
+                    البريد الإلكتروني أو كود الطالب
+                  </label>
                   <input
                     type="text"
                     value={searchVal}
-                    onChange={e => setSearchVal(e.target.value)}
+                    onChange={(e) => setSearchVal(e.target.value)}
                     placeholder="مثال: student@email.com أو STU-A1B2C3"
-                    className="w-full px-4 py-3 border-2 border-border rounded-xl text-sm focus:outline-none focus:border-indigo-400 transition-colors"
+                    className="w-full rounded-xl border-2 border-border px-4 py-3 text-sm transition-colors focus:border-indigo-400 focus:outline-none"
                     dir="ltr"
                     autoFocus
                   />
                 </div>
-                <div className="bg-indigo-50 text-indigo-700 text-xs p-3 rounded-lg flex gap-2 leading-relaxed">
+                <div className="flex gap-2 rounded-lg bg-indigo-50 p-3 text-xs leading-relaxed text-indigo-700">
                   <span className="text-lg">💡</span>
-                  <span>سيتمكن الطالب المضاف من رؤية جميع اختبارات وواجبات هذه المجموعة فوراً.</span>
+                  <span>
+                    سيتمكن الطالب المضاف من رؤية جميع اختبارات وواجبات هذه
+                    المجموعة فوراً.
+                  </span>
                 </div>
                 <div className="flex gap-3 pt-2">
-                  <button type="button" onClick={handleClose}
-                    className="flex-1 px-4 py-3 rounded-xl font-bold text-sm text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">
+                  <button
+                    type="button"
+                    onClick={handleClose}
+                    className="flex-1 rounded-xl bg-slate-100 px-4 py-3 text-sm font-bold text-slate-600 transition-colors hover:bg-slate-200"
+                  >
                     إلغاء
                   </button>
-                  <button type="submit" disabled={loading || !searchVal.trim()}
-                    className="flex-[2] bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-colors shadow-lg shadow-indigo-200">
-                    {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'إضافة للمجموعة'}
+                  <button
+                    type="submit"
+                    disabled={loading || !searchVal.trim()}
+                    className="flex flex-[2] items-center justify-center gap-2 rounded-xl bg-indigo-600 py-3 font-bold text-white shadow-lg shadow-indigo-200 transition-colors hover:bg-indigo-700 disabled:opacity-50"
+                  >
+                    {loading ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      'إضافة للمجموعة'
+                    )}
                   </button>
                 </div>
               </form>
@@ -149,53 +171,80 @@ export function AddStudentForm({ groupId }: { groupId: string }) {
 
             {/* Register Tab */}
             {activeTab === 'register' && (
-              <form onSubmit={handleRegister} className="p-6 space-y-4">
+              <form onSubmit={handleRegister} className="space-y-4 p-6">
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">اسم الطالب الكامل <span className="text-red-500">*</span></label>
+                  <label className="mb-2 block text-sm font-bold text-slate-700">
+                    اسم الطالب الكامل <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="text"
                     value={fullName}
-                    onChange={e => setFullName(e.target.value)}
+                    onChange={(e) => setFullName(e.target.value)}
                     placeholder="مثال: أحمد محمد علي"
-                    className="w-full px-4 py-3 border-2 border-border rounded-xl text-sm focus:outline-none focus:border-indigo-400 transition-colors"
+                    className="w-full rounded-xl border-2 border-border px-4 py-3 text-sm transition-colors focus:border-indigo-400 focus:outline-none"
                     required
                     autoFocus
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">البريد الإلكتروني <span className="text-slate-400 font-normal">(اختياري)</span></label>
+                  <label className="mb-2 block text-sm font-bold text-slate-700">
+                    البريد الإلكتروني{' '}
+                    <span className="font-normal text-slate-400">
+                      (اختياري)
+                    </span>
+                  </label>
                   <input
                     type="email"
                     value={email}
-                    onChange={e => setEmail(e.target.value)}
+                    onChange={(e) => setEmail(e.target.value)}
                     placeholder="student@example.com"
-                    className="w-full px-4 py-3 border-2 border-border rounded-xl text-sm focus:outline-none focus:border-indigo-400 transition-colors"
+                    className="w-full rounded-xl border-2 border-border px-4 py-3 text-sm transition-colors focus:border-indigo-400 focus:outline-none"
                     dir="ltr"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">هاتف ولي الأمر <span className="text-slate-400 font-normal">(اختياري)</span></label>
+                  <label className="mb-2 block text-sm font-bold text-slate-700">
+                    هاتف ولي الأمر{' '}
+                    <span className="font-normal text-slate-400">
+                      (اختياري)
+                    </span>
+                  </label>
                   <input
                     type="tel"
                     value={parentPhone}
-                    onChange={e => setParentPhone(e.target.value)}
+                    onChange={(e) => setParentPhone(e.target.value)}
                     placeholder="01XXXXXXXXX"
-                    className="w-full px-4 py-3 border-2 border-border rounded-xl text-sm focus:outline-none focus:border-indigo-400 transition-colors"
+                    className="w-full rounded-xl border-2 border-border px-4 py-3 text-sm transition-colors focus:border-indigo-400 focus:outline-none"
                     dir="ltr"
                   />
                 </div>
-                <div className="bg-amber-50 text-amber-700 text-xs p-3 rounded-lg flex gap-2 leading-relaxed">
+                <div className="flex gap-2 rounded-lg bg-amber-50 p-3 text-xs leading-relaxed text-amber-700">
                   <span className="text-lg">⚠️</span>
-                  <span>سيتم إنشاء حساب جديد للطالب على المنصة وإضافته للمجموعة تلقائياً.</span>
+                  <span>
+                    سيتم إنشاء حساب جديد للطالب على المنصة وإضافته للمجموعة
+                    تلقائياً.
+                  </span>
                 </div>
                 <div className="flex gap-3 pt-2">
-                  <button type="button" onClick={handleClose}
-                    className="flex-1 px-4 py-3 rounded-xl font-bold text-sm text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">
+                  <button
+                    type="button"
+                    onClick={handleClose}
+                    className="flex-1 rounded-xl bg-slate-100 px-4 py-3 text-sm font-bold text-slate-600 transition-colors hover:bg-slate-200"
+                  >
                     إلغاء
                   </button>
-                  <button type="submit" disabled={loading || !fullName.trim()}
-                    className="flex-[2] bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-colors shadow-lg shadow-indigo-200">
-                    {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><UserCheck className="w-5 h-5" /> تسجيل وإضافة</>}
+                  <button
+                    type="submit"
+                    disabled={loading || !fullName.trim()}
+                    className="flex flex-[2] items-center justify-center gap-2 rounded-xl bg-indigo-600 py-3 font-bold text-white shadow-lg shadow-indigo-200 transition-colors hover:bg-indigo-700 disabled:opacity-50"
+                  >
+                    {loading ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <>
+                        <UserCheck className="h-5 w-5" /> تسجيل وإضافة
+                      </>
+                    )}
                   </button>
                 </div>
               </form>

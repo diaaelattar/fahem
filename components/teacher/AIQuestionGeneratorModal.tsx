@@ -2,9 +2,19 @@
 
 import { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { 
-  X, Loader2, Sparkles, Upload, FileText, CheckCircle, 
-  Trash2, Brain, AlertCircle, HelpCircle, ChevronLeft, Check 
+import {
+  X,
+  Loader2,
+  Sparkles,
+  Upload,
+  FileText,
+  CheckCircle,
+  Trash2,
+  Brain,
+  AlertCircle,
+  HelpCircle,
+  ChevronLeft,
+  Check,
 } from 'lucide-react'
 
 interface AIQuestionGeneratorModalProps {
@@ -18,11 +28,11 @@ export function AIQuestionGeneratorModal({
   onClose,
   onAddQuestions,
   subjectId,
-  gradeId
+  gradeId,
 }: AIQuestionGeneratorModalProps) {
   const [activeTab, setActiveTab] = useState<'text' | 'file'>('text')
   const [pastedText, setPastedText] = useState('')
-  
+
   // File Upload State
   const [file, setFile] = useState<File | null>(null)
   const [fileBase64, setFileBase64] = useState<string | null>(null)
@@ -31,7 +41,8 @@ export function AIQuestionGeneratorModal({
   // Generation options
   const [questionCount, setQuestionCount] = useState<number>(5)
   const [requestedTypes, setRequestedTypes] = useState<string[]>(['mcq'])
-  const [targetCognitiveLevel, setTargetCognitiveLevel] = useState<string>('متنوع')
+  const [targetCognitiveLevel, setTargetCognitiveLevel] =
+    useState<string>('متنوع')
   const [customInstructions, setCustomInstructions] = useState('')
   const [passageBased, setPassageBased] = useState(false)
 
@@ -54,7 +65,10 @@ export function AIQuestionGeneratorModal({
     { value: 'متنوع', label: 'متنوع وموازٍ' },
     { value: 'تذكر', label: 'تذكر (معرفي بسيط)' },
     { value: 'فهم وتطبيق', label: 'فهم وتطبيق (متوسط)' },
-    { value: 'مستويات عليا وتفكير ناقد', label: 'مستويات عليا وتفكير ناقد (متقدم)' },
+    {
+      value: 'مستويات عليا وتفكير ناقد',
+      label: 'مستويات عليا وتفكير ناقد (متقدم)',
+    },
   ]
 
   // Convert uploaded file to base64
@@ -65,9 +79,11 @@ export function AIQuestionGeneratorModal({
 
     const validExtensions = ['pdf', 'png', 'jpg', 'jpeg', 'webp']
     const ext = selectedFile.name.split('.').pop()?.toLowerCase() || ''
-    
+
     if (!validExtensions.includes(ext)) {
-      setError('امتداد الملف غير مدعوم! يرجى رفع ملف PDF أو صورة (PNG, JPG, WEBP).')
+      setError(
+        'امتداد الملف غير مدعوم! يرجى رفع ملف PDF أو صورة (PNG, JPG, WEBP).'
+      )
       return
     }
 
@@ -89,19 +105,19 @@ export function AIQuestionGeneratorModal({
   }
 
   const toggleType = (val: string) => {
-    setRequestedTypes(prev => 
-      prev.includes(val) 
-        ? prev.filter(t => t !== val) 
-        : [...prev, val]
+    setRequestedTypes((prev) =>
+      prev.includes(val) ? prev.filter((t) => t !== val) : [...prev, val]
     )
   }
 
   const handleGenerate = async () => {
     setError('')
     setGeneratedQuestions([])
-    
+
     if (activeTab === 'text' && pastedText.trim().length < 20) {
-      setError('يرجى إدخال نص كافٍ (20 حرفاً على الأقل) لتوليد الأسئلة بشكل سليم.')
+      setError(
+        'يرجى إدخال نص كافٍ (20 حرفاً على الأقل) لتوليد الأسئلة بشكل سليم.'
+      )
       return
     }
 
@@ -124,15 +140,18 @@ export function AIQuestionGeneratorModal({
         body: JSON.stringify({
           pastedText: activeTab === 'text' ? pastedText : undefined,
           fileData: activeTab === 'file' ? fileBase64 : undefined,
-          fileExtension: activeTab === 'file' ? file?.name.split('.').pop()?.toLowerCase() : undefined,
+          fileExtension:
+            activeTab === 'file'
+              ? file?.name.split('.').pop()?.toLowerCase()
+              : undefined,
           subjectId,
           gradeId,
           questionCount,
           requestedTypes,
           targetCognitiveLevel,
           customInstructions: customInstructions.trim() || undefined,
-          passageBased
-        })
+          passageBased,
+        }),
       })
 
       const data = await response.json()
@@ -145,7 +164,9 @@ export function AIQuestionGeneratorModal({
       // Select all by default
       setSelectedIndices(new Set(qs.map((_: any, i: number) => i)))
     } catch (err: any) {
-      setError(err.message || 'فشل التوليد، يرجى التحقق من الاتصال والمحاولة مجدداً.')
+      setError(
+        err.message || 'فشل التوليد، يرجى التحقق من الاتصال والمحاولة مجدداً.'
+      )
     } finally {
       setGenerating(false)
     }
@@ -154,18 +175,19 @@ export function AIQuestionGeneratorModal({
   const handleAddSelected = () => {
     const questionsToInsert = generatedQuestions
       .filter((_, idx) => selectedIndices.has(idx))
-      .map(q => ({
+      .map((q) => ({
         id: `ai-${Math.random().toString(36).substr(2, 9)}`,
         question_text: q.question_text || q.text,
         question_type: q.question_type || q.type || 'mcq',
         context_passage: q.context_passage || null,
         difficulty_level: q.difficulty_level || q.difficulty || 'medium',
         points: q.points || 1,
-        options: q.options || (q.question_type === 'true_false' ? ['صح', 'خطأ'] : []),
+        options:
+          q.options || (q.question_type === 'true_false' ? ['صح', 'خطأ'] : []),
         correct_answer: q.correct_answer || q.answer || '',
         explanation: q.explanation || '',
         status: 'approved',
-        is_approved: true
+        is_approved: true,
       }))
 
     onAddQuestions(questionsToInsert)
@@ -173,7 +195,7 @@ export function AIQuestionGeneratorModal({
   }
 
   const toggleSelectQuestion = (idx: number) => {
-    setSelectedIndices(prev => {
+    setSelectedIndices((prev) => {
       const copy = new Set(prev)
       if (copy.has(idx)) copy.delete(idx)
       else copy.add(idx)
@@ -182,86 +204,107 @@ export function AIQuestionGeneratorModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" dir="rtl">
-      <motion.div 
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm"
+      dir="rtl"
+    >
+      <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 10 }}
-        className="bg-white rounded-3xl shadow-2xl border border-slate-100 w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden"
+        className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-2xl"
       >
         {/* Header */}
-        <div className="px-6 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white flex justify-between items-center shrink-0">
+        <div className="flex shrink-0 items-center justify-between bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-4 text-white">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-white/10 rounded-xl">
-              <Sparkles className="w-5 h-5 text-amber-300 animate-pulse" />
+            <div className="rounded-xl bg-white/10 p-2">
+              <Sparkles className="h-5 w-5 animate-pulse text-amber-300" />
             </div>
             <div>
-              <h3 className="font-black text-lg">مساعد التوليد الذكي بالذكاء الاصطناعي (AI)</h3>
-              <p className="text-xs text-indigo-100 font-medium">ارفع درسك أو الصق نصًا وسيتكفل النظام ببناء بنك أسئلتك فوراً</p>
+              <h3 className="text-lg font-black">
+                مساعد التوليد الذكي بالذكاء الاصطناعي (AI)
+              </h3>
+              <p className="text-xs font-medium text-indigo-100">
+                ارفع درسك أو الصق نصًا وسيتكفل النظام ببناء بنك أسئلتك فوراً
+              </p>
             </div>
           </div>
-          <button 
+          <button
             onClick={onClose}
-            className="p-1.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors text-white"
+            className="rounded-full bg-white/10 p-1.5 text-white transition-colors hover:bg-white/20"
           >
-            <X className="w-5 h-5" />
+            <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Content Container */}
-        <div className="p-6 overflow-y-auto flex-1 space-y-6">
+        <div className="flex-1 space-y-6 overflow-y-auto p-6">
           {generatedQuestions.length === 0 ? (
-            <div className="grid md:grid-cols-3 gap-6">
+            <div className="grid gap-6 md:grid-cols-3">
               {/* Settings Form Column */}
-              <div className="md:col-span-2 space-y-4">
+              <div className="space-y-4 md:col-span-2">
                 {/* Tabs selection */}
-                <div className="flex bg-slate-100 rounded-xl p-1">
+                <div className="flex rounded-xl bg-slate-100 p-1">
                   <button
-                    onClick={() => { setActiveTab('text'); setError(''); }}
-                    className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-1.5 ${activeTab === 'text' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                    onClick={() => {
+                      setActiveTab('text')
+                      setError('')
+                    }}
+                    className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-bold transition-all ${activeTab === 'text' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
                   >
-                    <FileText className="w-4 h-4" />
+                    <FileText className="h-4 w-4" />
                     لصق نص الدرس
                   </button>
                   <button
-                    onClick={() => { setActiveTab('file'); setError(''); }}
-                    className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-1.5 ${activeTab === 'file' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                    onClick={() => {
+                      setActiveTab('file')
+                      setError('')
+                    }}
+                    className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-bold transition-all ${activeTab === 'file' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
                   >
-                    <Upload className="w-4 h-4" />
+                    <Upload className="h-4 w-4" />
                     رفع مستند أو صورة (PDF/JPG)
                   </button>
                 </div>
 
                 {activeTab === 'text' ? (
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-500">نص الدرس أو الفقرة التعليمية</label>
+                    <label className="text-xs font-bold text-slate-500">
+                      نص الدرس أو الفقرة التعليمية
+                    </label>
                     <textarea
                       value={pastedText}
                       onChange={(e) => setPastedText(e.target.value)}
                       placeholder="الصق هنا الفقرات التعليمية أو الملخص الدراسي الذي تريد توليد الأسئلة منه..."
-                      className="w-full h-64 border border-slate-200 rounded-2xl p-4 focus:ring-2 focus:ring-indigo-300 focus:outline-none text-sm leading-relaxed"
+                      className="h-64 w-full rounded-2xl border border-slate-200 p-4 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-indigo-300"
                     />
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 block">ملف الدرس</label>
-                    <div 
+                    <label className="block text-xs font-bold text-slate-500">
+                      ملف الدرس
+                    </label>
+                    <div
                       onClick={() => fileInputRef.current?.click()}
-                      className={`border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-all ${file ? 'border-emerald-300 bg-emerald-50/20' : 'border-slate-300 hover:border-indigo-400 bg-slate-50/50 hover:bg-slate-50'}`}
+                      className={`cursor-pointer rounded-2xl border-2 border-dashed p-12 text-center transition-all ${file ? 'border-emerald-300 bg-emerald-50/20' : 'border-slate-300 bg-slate-50/50 hover:border-indigo-400 hover:bg-slate-50'}`}
                     >
-                      <input 
-                        type="file" 
-                        ref={fileInputRef} 
-                        onChange={handleFileChange} 
-                        className="hidden" 
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileChange}
+                        className="hidden"
                         accept=".pdf,.png,.jpg,.jpeg,.webp"
                       />
                       {file ? (
                         <div className="space-y-2">
-                          <CheckCircle className="w-12 h-12 text-emerald-500 mx-auto" />
+                          <CheckCircle className="mx-auto h-12 w-12 text-emerald-500" />
                           <div>
-                            <p className="font-bold text-slate-800">{file.name}</p>
-                            <p className="text-xs text-slate-500">{(file.size / (1024 * 1024)).toFixed(2)} MB</p>
+                            <p className="font-bold text-slate-800">
+                              {file.name}
+                            </p>
+                            <p className="text-xs text-slate-500">
+                              {(file.size / (1024 * 1024)).toFixed(2)} MB
+                            </p>
                           </div>
                           <button
                             onClick={(e) => {
@@ -269,16 +312,20 @@ export function AIQuestionGeneratorModal({
                               setFile(null)
                               setFileBase64(null)
                             }}
-                            className="text-xs text-rose-500 font-bold hover:underline flex items-center gap-1 mx-auto mt-2"
+                            className="mx-auto mt-2 flex items-center gap-1 text-xs font-bold text-rose-500 hover:underline"
                           >
-                            <Trash2 className="w-3.5 h-3.5" /> إزالة الملف
+                            <Trash2 className="h-3.5 w-3.5" /> إزالة الملف
                           </button>
                         </div>
                       ) : (
                         <div className="space-y-2">
-                          <Upload className="w-10 h-10 text-slate-400 mx-auto" />
-                          <p className="font-bold text-slate-700">اسحب أو انقر لرفع ملف</p>
-                          <p className="text-xs text-slate-400">يدعم PDF، أو صور الدرس (الحد الأقصى 8 ميجابايت)</p>
+                          <Upload className="mx-auto h-10 w-10 text-slate-400" />
+                          <p className="font-bold text-slate-700">
+                            اسحب أو انقر لرفع ملف
+                          </p>
+                          <p className="text-xs text-slate-400">
+                            يدعم PDF، أو صور الدرس (الحد الأقصى 8 ميجابايت)
+                          </p>
                         </div>
                       )}
                     </div>
@@ -287,54 +334,65 @@ export function AIQuestionGeneratorModal({
               </div>
 
               {/* Sidebar Config Column */}
-              <div className="space-y-4 bg-slate-50 p-5 rounded-2xl border border-slate-100 flex flex-col justify-between">
+              <div className="flex flex-col justify-between space-y-4 rounded-2xl border border-slate-100 bg-slate-50 p-5">
                 <div className="space-y-4">
-                  <h4 className="font-black text-slate-700 text-sm flex items-center gap-1">
-                    <Brain className="w-4 h-4 text-indigo-500" /> إعدادات الأسئلة
+                  <h4 className="flex items-center gap-1 text-sm font-black text-slate-700">
+                    <Brain className="h-4 w-4 text-indigo-500" /> إعدادات
+                    الأسئلة
                   </h4>
 
                   {/* Question count */}
                   <div className="space-y-1">
                     <div className="flex justify-between text-xs font-bold text-slate-500">
                       <span>عدد الأسئلة المطلوبة</span>
-                      <span className="text-indigo-600">{questionCount} أسئلة</span>
+                      <span className="text-indigo-600">
+                        {questionCount} أسئلة
+                      </span>
                     </div>
                     <input
                       type="range"
                       min={2}
                       max={15}
                       value={questionCount}
-                      onChange={(e) => setQuestionCount(parseInt(e.target.value))}
+                      onChange={(e) =>
+                        setQuestionCount(parseInt(e.target.value))
+                      }
                       className="w-full accent-indigo-600"
                     />
                   </div>
 
                   {/* Cognitive Levels */}
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-500">المستوى المعرفي (بلوم)</label>
+                    <label className="text-xs font-bold text-slate-500">
+                      المستوى المعرفي (بلوم)
+                    </label>
                     <select
                       value={targetCognitiveLevel}
                       onChange={(e) => setTargetCognitiveLevel(e.target.value)}
-                      className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-300"
                     >
-                      {COGNITIVE_LEVELS.map(c => (
-                        <option key={c.value} value={c.value}>{c.label}</option>
+                      {COGNITIVE_LEVELS.map((c) => (
+                        <option key={c.value} value={c.value}>
+                          {c.label}
+                        </option>
                       ))}
                     </select>
                   </div>
 
                   {/* Question Types */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-500">الأنواع المطلوبة</label>
+                    <label className="text-xs font-bold text-slate-500">
+                      الأنواع المطلوبة
+                    </label>
                     <div className="grid grid-cols-2 gap-2">
-                      {QUESTION_TYPES.map(type => {
+                      {QUESTION_TYPES.map((type) => {
                         const active = requestedTypes.includes(type.value)
                         return (
                           <button
                             key={type.value}
                             type="button"
                             onClick={() => toggleType(type.value)}
-                            className={`py-1.5 px-2 rounded-lg text-xs font-bold border transition-all text-center ${active ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm shadow-indigo-100' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                            className={`rounded-lg border px-2 py-1.5 text-center text-xs font-bold transition-all ${active ? 'border-indigo-600 bg-indigo-600 text-white shadow-sm shadow-indigo-100' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}
                           >
                             {type.label}
                           </button>
@@ -345,36 +403,41 @@ export function AIQuestionGeneratorModal({
 
                   {/* Passage-based question */}
                   <div className="flex items-center gap-2 pt-2">
-                    <input 
+                    <input
                       type="checkbox"
                       id="passageBased"
                       checked={passageBased}
                       onChange={(e) => setPassageBased(e.target.checked)}
-                      className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4"
+                      className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                     />
-                    <label htmlFor="passageBased" className="text-xs font-bold text-slate-600 cursor-pointer flex items-center gap-1 select-none">
+                    <label
+                      htmlFor="passageBased"
+                      className="flex cursor-pointer select-none items-center gap-1 text-xs font-bold text-slate-600"
+                    >
                       أسئلة قائمة على قطع ونصوص مشتركة
                       <span title="يربط الأسئلة بفقرة قراءة أو سياق موحد يوضع في context_passage">
-                        <HelpCircle className="w-3 h-3 text-slate-400" />
+                        <HelpCircle className="h-3 w-3 text-slate-400" />
                       </span>
                     </label>
                   </div>
 
                   {/* Custom Instructions */}
                   <div className="space-y-1">
-                    <label className="text-xs font-bold text-slate-500">تعليمات مخصصة إضافية (اختياري)</label>
+                    <label className="text-xs font-bold text-slate-500">
+                      تعليمات مخصصة إضافية (اختياري)
+                    </label>
                     <textarea
                       value={customInstructions}
                       onChange={(e) => setCustomInstructions(e.target.value)}
                       placeholder="مثال: ركز على القواعد النحوية، أو اجعل الاختيارات قريبة الصعوبة..."
-                      className="w-full h-20 border border-slate-200 rounded-xl p-2.5 focus:ring-2 focus:ring-indigo-300 focus:outline-none text-xs"
+                      className="h-20 w-full rounded-xl border border-slate-200 p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-300"
                     />
                   </div>
                 </div>
 
                 {error && (
-                  <div className="p-3 bg-rose-50 border border-rose-100 text-rose-700 text-xs font-bold rounded-xl flex items-start gap-1.5 leading-tight animate-fade-in">
-                    <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
+                  <div className="flex animate-fade-in items-start gap-1.5 rounded-xl border border-rose-100 bg-rose-50 p-3 text-xs font-bold leading-tight text-rose-700">
+                    <AlertCircle className="h-4 w-4 shrink-0 text-rose-500" />
                     <span>{error}</span>
                   </div>
                 )}
@@ -383,16 +446,16 @@ export function AIQuestionGeneratorModal({
                   type="button"
                   disabled={generating}
                   onClick={handleGenerate}
-                  className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:opacity-60 text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-indigo-100 flex items-center justify-center gap-2 mt-4"
+                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-100 hover:from-indigo-700 hover:to-purple-700 disabled:opacity-60"
                 >
                   {generating ? (
                     <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <Loader2 className="h-4 w-4 animate-spin" />
                       جاري صياغة وتوليد الأسئلة...
                     </>
                   ) : (
                     <>
-                      <Sparkles className="w-4 h-4 text-amber-300" />
+                      <Sparkles className="h-4 w-4 text-amber-300" />
                       ابدأ التوليد التلقائي
                     </>
                   )}
@@ -402,24 +465,34 @@ export function AIQuestionGeneratorModal({
           ) : (
             /* Result Preview Screen */
             <div className="space-y-4">
-              <div className="flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-100">
+              <div className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50 p-4">
                 <div>
-                  <h4 className="font-black text-slate-800 text-base">تم التوليد بنجاح! 🎉</h4>
-                  <p className="text-xs text-slate-500 font-medium">راجع الأسئلة أدناه وحدد التي تود استيرادها لاختبارك</p>
+                  <h4 className="text-base font-black text-slate-800">
+                    تم التوليد بنجاح! 🎉
+                  </h4>
+                  <p className="text-xs font-medium text-slate-500">
+                    راجع الأسئلة أدناه وحدد التي تود استيرادها لاختبارك
+                  </p>
                 </div>
                 <div className="flex gap-2">
-                  <button 
+                  <button
                     onClick={() => {
-                      if (selectedIndices.size === generatedQuestions.length) setSelectedIndices(new Set())
-                      else setSelectedIndices(new Set(generatedQuestions.map((_, i) => i)))
+                      if (selectedIndices.size === generatedQuestions.length)
+                        setSelectedIndices(new Set())
+                      else
+                        setSelectedIndices(
+                          new Set(generatedQuestions.map((_, i) => i))
+                        )
                     }}
-                    className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50"
+                    className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50"
                   >
-                    {selectedIndices.size === generatedQuestions.length ? 'إلغاء تحديد الكل' : 'تحديد الكل'}
+                    {selectedIndices.size === generatedQuestions.length
+                      ? 'إلغاء تحديد الكل'
+                      : 'تحديد الكل'}
                   </button>
-                  <button 
+                  <button
                     onClick={() => setGeneratedQuestions([])}
-                    className="px-3 py-1.5 bg-rose-50 border border-rose-100 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-100"
+                    className="rounded-xl border border-rose-100 bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-600 hover:bg-rose-100"
                   >
                     توليد جديد 🔄
                   </button>
@@ -432,51 +505,74 @@ export function AIQuestionGeneratorModal({
                   const selected = selectedIndices.has(idx)
                   const qType = q.question_type || q.type || 'mcq'
                   return (
-                    <div 
+                    <div
                       key={idx}
                       onClick={() => toggleSelectQuestion(idx)}
-                      className={`border rounded-2xl p-5 cursor-pointer transition-all relative ${selected ? 'border-indigo-500 bg-indigo-50/10 shadow-sm' : 'border-slate-200 hover:border-slate-300 bg-white'}`}
+                      className={`relative cursor-pointer rounded-2xl border p-5 transition-all ${selected ? 'border-indigo-500 bg-indigo-50/10 shadow-sm' : 'border-slate-200 bg-white hover:border-slate-300'}`}
                     >
-                      <div className="absolute top-5 left-5 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors shadow-sm" style={{ borderColor: selected ? '#6366f1' : '#cbd5e1', backgroundColor: selected ? '#6366f1' : 'transparent' }}>
-                        {selected && <Check className="w-3.5 h-3.5 text-white" />}
+                      <div
+                        className="absolute left-5 top-5 flex h-6 w-6 items-center justify-center rounded-full border-2 shadow-sm transition-colors"
+                        style={{
+                          borderColor: selected ? '#6366f1' : '#cbd5e1',
+                          backgroundColor: selected ? '#6366f1' : 'transparent',
+                        }}
+                      >
+                        {selected && (
+                          <Check className="h-3.5 w-3.5 text-white" />
+                        )}
                       </div>
 
                       {q.context_passage && (
-                        <div className="bg-slate-50 border-r-4 border-indigo-400 p-3 rounded-lg text-xs mb-3 text-slate-600 leading-relaxed font-medium">
+                        <div className="mb-3 rounded-lg border-r-4 border-indigo-400 bg-slate-50 p-3 text-xs font-medium leading-relaxed text-slate-600">
                           <strong>سياق مشترك:</strong> {q.context_passage}
                         </div>
                       )}
 
-                      <div className="flex items-start gap-2.5 ml-8">
-                        <span className="text-xs bg-slate-100 text-slate-600 border border-slate-200 px-2 py-0.5 rounded font-bold shrink-0">
-                          {QUESTION_TYPES.find(t => t.value === qType)?.label || 'اختيار من متعدد'}
+                      <div className="ml-8 flex items-start gap-2.5">
+                        <span className="shrink-0 rounded border border-slate-200 bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-600">
+                          {QUESTION_TYPES.find((t) => t.value === qType)
+                            ?.label || 'اختيار من متعدد'}
                         </span>
-                        <h5 className="font-bold text-slate-800 text-sm leading-relaxed">{q.question_text || q.text}</h5>
+                        <h5 className="text-sm font-bold leading-relaxed text-slate-800">
+                          {q.question_text || q.text}
+                        </h5>
                       </div>
 
-                      {qType === 'mcq' && q.options && Array.isArray(q.options) && (
-                        <div className="grid grid-cols-2 gap-3 mt-4 ml-8 mr-2">
-                          {q.options.map((opt: string, oIdx: number) => (
-                            <div 
-                              key={oIdx} 
-                              className={`p-2.5 rounded-xl border text-xs font-medium flex items-center gap-2 ${opt === q.correct_answer || opt === q.answer ? 'bg-emerald-50 border-emerald-300 text-emerald-700 font-bold' : 'bg-slate-50/50 border-slate-100 text-slate-500'}`}
-                            >
-                              <span className="w-5 h-5 rounded bg-white border flex items-center justify-center font-bold">{String.fromCharCode(65 + oIdx)}</span>
-                              <span>{opt}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                      {qType === 'mcq' &&
+                        q.options &&
+                        Array.isArray(q.options) && (
+                          <div className="ml-8 mr-2 mt-4 grid grid-cols-2 gap-3">
+                            {q.options.map((opt: string, oIdx: number) => (
+                              <div
+                                key={oIdx}
+                                className={`flex items-center gap-2 rounded-xl border p-2.5 text-xs font-medium ${opt === q.correct_answer || opt === q.answer ? 'border-emerald-300 bg-emerald-50 font-bold text-emerald-700' : 'border-slate-100 bg-slate-50/50 text-slate-500'}`}
+                              >
+                                <span className="flex h-5 w-5 items-center justify-center rounded border bg-white font-bold">
+                                  {String.fromCharCode(65 + oIdx)}
+                                </span>
+                                <span>{opt}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
 
                       {qType === 'true_false' && (
-                        <div className="flex gap-4 mt-4 ml-8">
-                          <span className={`px-4 py-1.5 rounded-xl border text-xs font-bold ${q.correct_answer === 'صح' || q.correct_answer === 'true' || q.correct_answer === true ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-slate-50 text-slate-400 border-slate-100'}`}>صح</span>
-                          <span className={`px-4 py-1.5 rounded-xl border text-xs font-bold ${q.correct_answer === 'خطأ' || q.correct_answer === 'false' || q.correct_answer === false ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-slate-50 text-slate-400 border-slate-100'}`}>خطأ</span>
+                        <div className="ml-8 mt-4 flex gap-4">
+                          <span
+                            className={`rounded-xl border px-4 py-1.5 text-xs font-bold ${q.correct_answer === 'صح' || q.correct_answer === 'true' || q.correct_answer === true ? 'border-emerald-300 bg-emerald-50 text-emerald-700' : 'border-slate-100 bg-slate-50 text-slate-400'}`}
+                          >
+                            صح
+                          </span>
+                          <span
+                            className={`rounded-xl border px-4 py-1.5 text-xs font-bold ${q.correct_answer === 'خطأ' || q.correct_answer === 'false' || q.correct_answer === false ? 'border-emerald-300 bg-emerald-50 text-emerald-700' : 'border-slate-100 bg-slate-50 text-slate-400'}`}
+                          >
+                            خطأ
+                          </span>
                         </div>
                       )}
 
                       {q.explanation && (
-                        <div className="mt-4 ml-8 pt-3 border-t border-slate-100 text-xs text-slate-500 leading-relaxed font-medium">
+                        <div className="ml-8 mt-4 border-t border-slate-100 pt-3 text-xs font-medium leading-relaxed text-slate-500">
                           💡 <strong>التفسير العلمي:</strong> {q.explanation}
                         </div>
                       )}
@@ -489,22 +585,22 @@ export function AIQuestionGeneratorModal({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-between items-center shrink-0">
+        <div className="flex shrink-0 items-center justify-between border-t border-slate-100 bg-slate-50 px-6 py-4">
           <button
             onClick={onClose}
-            className="px-5 py-2.5 border border-slate-200 hover:bg-slate-100 text-slate-600 rounded-xl text-sm font-bold transition-colors"
+            className="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-bold text-slate-600 transition-colors hover:bg-slate-100"
           >
             إلغاء
           </button>
-          
+
           {generatedQuestions.length > 0 && (
             <button
               onClick={handleAddSelected}
               disabled={selectedIndices.size === 0}
-              className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white rounded-xl text-sm font-bold transition-colors flex items-center gap-1.5 shadow-md shadow-indigo-100"
+              className="flex items-center gap-1.5 rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-bold text-white shadow-md shadow-indigo-100 transition-colors hover:bg-indigo-700 disabled:opacity-60"
             >
               استيراد الأسئلة المحددة ({selectedIndices.size})
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="h-4 w-4" />
             </button>
           )}
         </div>

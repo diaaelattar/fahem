@@ -17,7 +17,7 @@ const SidebarContext = createContext<SidebarContextType>({
 export function SidebarProvider({ children }: { children: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(false)
 
-  const toggle = useCallback(() => setIsOpen(v => !v), [])
+  const toggle = useCallback(() => setIsOpen((v) => !v), [])
   const close = useCallback(() => setIsOpen(false), [])
 
   return (

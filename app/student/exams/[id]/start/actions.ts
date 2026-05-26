@@ -12,7 +12,9 @@ export async function startExamAction(formData: FormData) {
   const supabase = await createClient()
 
   // 1. التحقق من إمكانية بدء الاختبار مرة أخرى (أمان)
-  const { data: canAttempt } = await (supabase.rpc as any)('can_attempt_exam', { p_exam_id: examId })
+  const { data: canAttempt } = await (supabase.rpc as any)('can_attempt_exam', {
+    p_exam_id: examId,
+  })
 
   if (!canAttempt?.can_attempt) {
     throw new Error(canAttempt?.reason || 'لا يمكن بدء الاختبار')
@@ -25,8 +27,9 @@ export async function startExamAction(formData: FormData) {
 
   // 2. إنشاء المحاولة الجديدة
   const prevAttempts = canAttempt?.attempts_used || 0
-  const { data: newAttempt, error } = await (supabase
-    .from('exam_attempts') as any)
+  const { data: newAttempt, error } = await (
+    supabase.from('exam_attempts') as any
+  )
     .insert({
       exam_id: examId,
       student_id: profile.id,

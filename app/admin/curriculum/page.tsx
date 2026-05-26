@@ -3,7 +3,15 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/auth/permissions'
-import { BookOpen, GraduationCap, School, Layers, Plus, ChevronLeft, BarChart2 } from 'lucide-react'
+import {
+  BookOpen,
+  GraduationCap,
+  School,
+  Layers,
+  Plus,
+  ChevronLeft,
+  BarChart2,
+} from 'lucide-react'
 import Link from 'next/link'
 
 export default async function CurriculumPage({
@@ -24,12 +32,14 @@ export default async function CurriculumPage({
   // جلب الوحدات مع إحصائياتها
   const { data: units } = await supabase
     .from('units')
-    .select(`
+    .select(
+      `
       id, name_ar, sort_order, is_active, description, semester,
       subjects(id, name_ar, icon),
       grades(id, name_ar),
       lessons(id, name_ar, is_active)
-    `)
+    `
+    )
     .order('sort_order')
 
   // جلب الأسئلة غير المصنفة
@@ -39,13 +49,25 @@ export default async function CurriculumPage({
     .is('unit_id', null)
 
   // جلب المواد والصفوف للفلاتر
-  const { data: subjects } = await supabase.from('subjects').select('id, name_ar, icon').order('id')
-  const { data: grades } = await supabase.from('grades').select('id, name_ar').order('grade_number')
+  const { data: subjects } = await supabase
+    .from('subjects')
+    .select('id, name_ar, icon')
+    .order('id')
+  const { data: grades } = await supabase
+    .from('grades')
+    .select('id, name_ar')
+    .order('grade_number')
 
   // فلترة الوحدات
   let filteredUnits = units || []
-  if (searchParams.grade) filteredUnits = filteredUnits.filter((u: any) => String(u.grades?.id) === searchParams.grade)
-  if (searchParams.subject) filteredUnits = filteredUnits.filter((u: any) => String(u.subjects?.id) === searchParams.subject)
+  if (searchParams.grade)
+    filteredUnits = filteredUnits.filter(
+      (u: any) => String(u.grades?.id) === searchParams.grade
+    )
+  if (searchParams.subject)
+    filteredUnits = filteredUnits.filter(
+      (u: any) => String(u.subjects?.id) === searchParams.subject
+    )
 
   return (
     <div className="space-y-6 pb-20">
@@ -53,46 +75,59 @@ export default async function CurriculumPage({
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">إدارة المناهج</h1>
-          <p className="text-muted-foreground mt-0.5">هيكل هرمي: مادة → وحدة → درس → أسئلة</p>
+          <p className="mt-0.5 text-muted-foreground">
+            هيكل هرمي: مادة → وحدة → درس → أسئلة
+          </p>
         </div>
         <div className="flex gap-2">
-          <Link href="/admin/curriculum/units/new"
-            className="flex items-center gap-2 bg-primary text-white px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-primary/90 transition-colors">
-            <Plus className="w-4 h-4" /> وحدة جديدة
+          <Link
+            href="/admin/curriculum/units/new"
+            className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-primary/90"
+          >
+            <Plus className="h-4 w-4" /> وحدة جديدة
           </Link>
         </div>
       </div>
 
       {/* Alert: Unclassified Questions */}
       {(unclassifiedCount || 0) > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center justify-between">
+        <div className="flex items-center justify-between rounded-2xl border border-amber-200 bg-amber-50 p-4">
           <div className="flex items-center gap-3">
             <span className="text-2xl">⚠️</span>
             <div>
               <p className="font-bold text-amber-800">
                 {unclassifiedCount} سؤال غير مصنف بعد
               </p>
-              <p className="text-xs text-amber-600">هذه الأسئلة لم تُعيَّن لوحدة أو درس بعد</p>
+              <p className="text-xs text-amber-600">
+                هذه الأسئلة لم تُعيَّن لوحدة أو درس بعد
+              </p>
             </div>
           </div>
-          <Link href="/admin/questions?unclassified=true"
-            className="bg-amber-500 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-amber-600 transition-colors">
+          <Link
+            href="/admin/questions?unclassified=true"
+            className="rounded-xl bg-amber-500 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-amber-600"
+          >
             تصنيفها الآن
           </Link>
         </div>
       )}
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-muted rounded-xl p-1 w-fit">
+      <div className="flex w-fit gap-1 rounded-xl bg-muted p-1">
         {[
           { key: 'structure', label: 'الهيكل الهرمي' },
           { key: 'units', label: `الوحدات (${units?.length || 0})` },
           { key: 'stats', label: 'الإحصائيات' },
-        ].map(tab => (
-          <Link key={tab.key} href={`/admin/curriculum?tab=${tab.key}`}
-            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
-              activeTab === tab.key ? 'bg-white shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'
-            }`}>
+        ].map((tab) => (
+          <Link
+            key={tab.key}
+            href={`/admin/curriculum?tab=${tab.key}`}
+            className={`rounded-lg px-4 py-2 text-sm font-bold transition-all ${
+              activeTab === tab.key
+                ? 'bg-white text-primary shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
             {tab.label}
           </Link>
         ))}
@@ -102,59 +137,94 @@ export default async function CurriculumPage({
       {activeTab === 'units' && (
         <div className="space-y-4">
           {/* Filters */}
-          <div className="flex gap-3 flex-wrap">
+          <div className="flex flex-wrap gap-3">
             <form className="flex gap-3">
-              <select name="grade" defaultValue={searchParams.grade || ''}
-                className="border border-border rounded-xl px-3 py-2 text-sm bg-white">
+              <select
+                name="grade"
+                defaultValue={searchParams.grade || ''}
+                className="rounded-xl border border-border bg-white px-3 py-2 text-sm"
+              >
                 <option value="">كل الصفوف</option>
-                {grades?.map((g: any) => <option key={g.id} value={g.id}>{g.name_ar}</option>)}
+                {grades?.map((g: any) => (
+                  <option key={g.id} value={g.id}>
+                    {g.name_ar}
+                  </option>
+                ))}
               </select>
-              <select name="subject" defaultValue={searchParams.subject || ''}
-                className="border border-border rounded-xl px-3 py-2 text-sm bg-white">
+              <select
+                name="subject"
+                defaultValue={searchParams.subject || ''}
+                className="rounded-xl border border-border bg-white px-3 py-2 text-sm"
+              >
                 <option value="">كل المواد</option>
-                {subjects?.map((s: any) => <option key={s.id} value={s.id}>{s.icon} {s.name_ar}</option>)}
+                {subjects?.map((s: any) => (
+                  <option key={s.id} value={s.id}>
+                    {s.icon} {s.name_ar}
+                  </option>
+                ))}
               </select>
-              <button type="submit" className="bg-primary text-white px-4 py-2 rounded-xl text-sm font-bold">فلتر</button>
+              <button
+                type="submit"
+                className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white"
+              >
+                فلتر
+              </button>
             </form>
           </div>
 
           {filteredUnits.length > 0 ? (
             <div className="space-y-8">
-              {['term_1', 'term_2', 'full_year'].map(term => {
-                const termUnits = filteredUnits.filter((u: any) => 
-                  u.semester === term || (!u.semester && term === 'full_year')
+              {['term_1', 'term_2', 'full_year'].map((term) => {
+                const termUnits = filteredUnits.filter(
+                  (u: any) =>
+                    u.semester === term || (!u.semester && term === 'full_year')
                 )
-                
+
                 if (termUnits.length === 0) return null
 
                 const termLabels: any = {
                   term_1: 'الفصل الدراسي الأول',
                   term_2: 'الفصل الدراسي الثاني',
-                  full_year: 'عام دراسي كامل'
+                  full_year: 'عام دراسي كامل',
                 }
 
                 return (
                   <div key={term} className="space-y-4">
-                    <h3 className="font-bold text-lg border-b border-border pb-2 text-primary">{termLabels[term]}</h3>
-                    <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                    <h3 className="border-b border-border pb-2 text-lg font-bold text-primary">
+                      {termLabels[term]}
+                    </h3>
+                    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                       {termUnits.map((unit: any) => {
-                        const lessonCount = unit.lessons?.filter((l: any) => l.is_active).length || 0
+                        const lessonCount =
+                          unit.lessons?.filter((l: any) => l.is_active)
+                            .length || 0
                         return (
-                          <Link key={unit.id} href={`/admin/curriculum/units/${unit.id}`}
-                            className="group bg-white rounded-2xl border border-border p-5 hover:border-primary/30 hover:shadow-md transition-all">
-                            <div className="flex items-start justify-between mb-3">
-                              <div className="text-2xl">{unit.subjects?.icon || '📚'}</div>
-                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${unit.is_active ? 'bg-green-100 text-green-700' : 'bg-muted text-muted-foreground'}`}>
+                          <Link
+                            key={unit.id}
+                            href={`/admin/curriculum/units/${unit.id}`}
+                            className="group rounded-2xl border border-border bg-white p-5 transition-all hover:border-primary/30 hover:shadow-md"
+                          >
+                            <div className="mb-3 flex items-start justify-between">
+                              <div className="text-2xl">
+                                {unit.subjects?.icon || '📚'}
+                              </div>
+                              <span
+                                className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${unit.is_active ? 'bg-green-100 text-green-700' : 'bg-muted text-muted-foreground'}`}
+                              >
                                 {unit.is_active ? 'نشط' : 'معطّل'}
                               </span>
                             </div>
-                            <h3 className="font-bold text-base mb-1 group-hover:text-primary transition-colors">{unit.name_ar}</h3>
-                            <p className="text-xs text-muted-foreground mb-3">
+                            <h3 className="mb-1 text-base font-bold transition-colors group-hover:text-primary">
+                              {unit.name_ar}
+                            </h3>
+                            <p className="mb-3 text-xs text-muted-foreground">
                               {unit.subjects?.name_ar} • {unit.grades?.name_ar}
                             </p>
-                            <div className="flex items-center justify-between pt-3 border-t border-border">
-                              <span className="text-xs font-bold text-muted-foreground">{lessonCount} درس</span>
-                              <ChevronLeft className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                            <div className="flex items-center justify-between border-t border-border pt-3">
+                              <span className="text-xs font-bold text-muted-foreground">
+                                {lessonCount} درس
+                              </span>
+                              <ChevronLeft className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
                             </div>
                           </Link>
                         )
@@ -165,12 +235,16 @@ export default async function CurriculumPage({
               })}
             </div>
           ) : (
-            <div className="bg-white rounded-2xl border border-dashed border-border p-16 text-center">
-              <Layers className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
-              <h3 className="font-bold text-lg mb-2">لا توجد وحدات بعد</h3>
-              <p className="text-muted-foreground text-sm mb-6">أضف وحدات دراسية لكل مادة لتنظيم المحتوى</p>
-              <Link href="/admin/curriculum/units/new"
-                className="bg-primary text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-primary/90">
+            <div className="rounded-2xl border border-dashed border-border bg-white p-16 text-center">
+              <Layers className="mx-auto mb-4 h-12 w-12 text-muted-foreground/30" />
+              <h3 className="mb-2 text-lg font-bold">لا توجد وحدات بعد</h3>
+              <p className="mb-6 text-sm text-muted-foreground">
+                أضف وحدات دراسية لكل مادة لتنظيم المحتوى
+              </p>
+              <Link
+                href="/admin/curriculum/units/new"
+                className="rounded-xl bg-primary px-6 py-3 text-sm font-bold text-white hover:bg-primary/90"
+              >
                 + إضافة وحدة جديدة
               </Link>
             </div>
@@ -182,42 +256,60 @@ export default async function CurriculumPage({
       {activeTab === 'structure' && (
         <div className="space-y-6">
           {(stages || []).map((stage: any) => (
-            <div key={stage.id} className="bg-white rounded-2xl border border-border overflow-hidden shadow-sm">
-              <div className="p-5 border-b bg-slate-50 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white">
-                  <GraduationCap className="w-5 h-5" />
+            <div
+              key={stage.id}
+              className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm"
+            >
+              <div className="flex items-center gap-3 border-b bg-slate-50 p-5">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white">
+                  <GraduationCap className="h-5 w-5" />
                 </div>
                 <h2 className="text-xl font-bold">{stage.name_ar}</h2>
-                <span className="text-xs text-muted-foreground">({stage.grades?.length || 0} صفوف)</span>
+                <span className="text-xs text-muted-foreground">
+                  ({stage.grades?.length || 0} صفوف)
+                </span>
               </div>
               <div className="divide-y divide-border">
                 {(stage.grades || [])
                   .sort((a: any, b: any) => a.grade_number - b.grade_number)
                   .map((grade: any) => {
-                    const gradeUnits = (units || []).filter((u: any) => u.grades?.id === grade.id)
+                    const gradeUnits = (units || []).filter(
+                      (u: any) => u.grades?.id === grade.id
+                    )
                     return (
                       <div key={grade.id} className="p-5">
-                        <div className="flex items-center justify-between mb-4">
-                          <h3 className="font-bold flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-primary inline-block" />
+                        <div className="mb-4 flex items-center justify-between">
+                          <h3 className="flex items-center gap-2 font-bold">
+                            <span className="inline-block h-2 w-2 rounded-full bg-primary" />
                             {grade.name_ar}
-                            <span className="text-xs text-muted-foreground font-normal">({gradeUnits.length} وحدة)</span>
+                            <span className="text-xs font-normal text-muted-foreground">
+                              ({gradeUnits.length} وحدة)
+                            </span>
                           </h3>
-                          <Link href={`/admin/curriculum/units/new?grade=${grade.id}`}
-                            className="flex items-center gap-1 text-primary text-xs font-bold hover:bg-primary/5 px-3 py-1.5 rounded-lg transition-colors">
-                            <Plus className="w-3.5 h-3.5" /> وحدة
+                          <Link
+                            href={`/admin/curriculum/units/new?grade=${grade.id}`}
+                            className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-bold text-primary transition-colors hover:bg-primary/5"
+                          >
+                            <Plus className="h-3.5 w-3.5" /> وحدة
                           </Link>
                         </div>
                         {gradeUnits.length > 0 ? (
-                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
                             {gradeUnits.map((unit: any) => {
                               const lessonCount = unit.lessons?.length || 0
                               return (
-                                <Link key={unit.id} href={`/admin/curriculum/units/${unit.id}`}
-                                  className="group bg-gradient-to-br from-muted/30 to-muted/10 border border-border rounded-xl p-3 hover:bg-white hover:border-primary/30 hover:shadow-sm transition-all">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <span className="text-lg">{unit.subjects?.icon || '📚'}</span>
-                                    <span className="text-sm font-bold truncate group-hover:text-primary transition-colors">{unit.name_ar}</span>
+                                <Link
+                                  key={unit.id}
+                                  href={`/admin/curriculum/units/${unit.id}`}
+                                  className="group rounded-xl border border-border bg-gradient-to-br from-muted/30 to-muted/10 p-3 transition-all hover:border-primary/30 hover:bg-white hover:shadow-sm"
+                                >
+                                  <div className="mb-1 flex items-center gap-2">
+                                    <span className="text-lg">
+                                      {unit.subjects?.icon || '📚'}
+                                    </span>
+                                    <span className="truncate text-sm font-bold transition-colors group-hover:text-primary">
+                                      {unit.name_ar}
+                                    </span>
                                   </div>
                                   <div className="text-[10px] text-muted-foreground">
                                     {unit.subjects?.name_ar} • {lessonCount} درس
@@ -227,8 +319,10 @@ export default async function CurriculumPage({
                             })}
                           </div>
                         ) : (
-                          <div className="text-center py-4 bg-muted/10 border border-dashed border-border rounded-xl">
-                            <p className="text-xs text-muted-foreground">لا توجد وحدات بعد لهذا الصف</p>
+                          <div className="rounded-xl border border-dashed border-border bg-muted/10 py-4 text-center">
+                            <p className="text-xs text-muted-foreground">
+                              لا توجد وحدات بعد لهذا الصف
+                            </p>
                           </div>
                         )}
                       </div>
@@ -242,18 +336,47 @@ export default async function CurriculumPage({
 
       {/* TAB: STATS */}
       {activeTab === 'stats' && (
-        <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {[
-            { label: 'إجمالي الوحدات', value: units?.length || 0, icon: '📦', color: 'bg-blue-50 text-blue-600' },
-            { label: 'إجمالي الدروس', value: units?.reduce((acc: number, u: any) => acc + (u.lessons?.length || 0), 0) || 0, icon: '📖', color: 'bg-purple-50 text-purple-600' },
-            { label: 'أسئلة غير مصنفة', value: unclassifiedCount || 0, icon: '❓', color: 'bg-amber-50 text-amber-600' },
-            { label: 'مواد نشطة', value: subjects?.length || 0, icon: '✅', color: 'bg-green-50 text-green-600' },
+            {
+              label: 'إجمالي الوحدات',
+              value: units?.length || 0,
+              icon: '📦',
+              color: 'bg-blue-50 text-blue-600',
+            },
+            {
+              label: 'إجمالي الدروس',
+              value:
+                units?.reduce(
+                  (acc: number, u: any) => acc + (u.lessons?.length || 0),
+                  0
+                ) || 0,
+              icon: '📖',
+              color: 'bg-purple-50 text-purple-600',
+            },
+            {
+              label: 'أسئلة غير مصنفة',
+              value: unclassifiedCount || 0,
+              icon: '❓',
+              color: 'bg-amber-50 text-amber-600',
+            },
+            {
+              label: 'مواد نشطة',
+              value: subjects?.length || 0,
+              icon: '✅',
+              color: 'bg-green-50 text-green-600',
+            },
           ].map((stat, i) => (
-            <div key={i} className="bg-white rounded-2xl border border-border p-6 text-center">
-              <div className={`w-12 h-12 rounded-2xl ${stat.color} flex items-center justify-center text-2xl mx-auto mb-3`}>
+            <div
+              key={i}
+              className="rounded-2xl border border-border bg-white p-6 text-center"
+            >
+              <div
+                className={`h-12 w-12 rounded-2xl ${stat.color} mx-auto mb-3 flex items-center justify-center text-2xl`}
+              >
                 {stat.icon}
               </div>
-              <div className="text-3xl font-bold mb-1">{stat.value}</div>
+              <div className="mb-1 text-3xl font-bold">{stat.value}</div>
               <div className="text-sm text-muted-foreground">{stat.label}</div>
             </div>
           ))}

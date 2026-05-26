@@ -11,39 +11,48 @@ function getModel(name: string) {
     process.env.GOOGLE_GENERATIVE_AI_API_KEY,
     process.env.GOOGLE_GENERATIVE_AI_API_KEY_2,
     process.env.GOOGLE_GENERATIVE_AI_API_KEY_3,
-    process.env.GOOGLE_GENERATIVE_AI_API_KEY_4
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY_4,
   ].filter(Boolean) as string[]
-  
+
   const selectedKey = keys[Math.floor(Math.random() * keys.length)] || ''
 
-  return new GoogleGenerativeAI(selectedKey).getGenerativeModel({ 
+  return new GoogleGenerativeAI(selectedKey).getGenerativeModel({
     model: name,
-    generationConfig: { temperature: 0.3, maxOutputTokens: 2000 }
+    generationConfig: { temperature: 0.3, maxOutputTokens: 2000 },
   })
 }
 
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
     if (!user) {
       return NextResponse.json({ error: 'غير مصرح' }, { status: 401 })
     }
 
     // Verify Admin
-    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
     if (profile?.role !== 'admin') {
       return NextResponse.json({ error: 'صلاحيات غير كافية' }, { status: 403 })
     }
 
     const { lessonId } = await req.json()
-    if (!lessonId) return NextResponse.json({ error: 'Missing lessonId' }, { status: 400 })
+    if (!lessonId)
+      return NextResponse.json({ error: 'Missing lessonId' }, { status: 400 })
 
     // Fetch lesson data
     const { data: lesson, error: lessonError } = await supabase
       .from('lessons')
-      .select('name_ar, objectives, units(name_ar, subjects(name_ar), grades(name_ar))')
+      .select(
+        'name_ar, objectives, units(name_ar, subjects(name_ar), grades(name_ar))'
+      )
       .eq('id', lessonId)
       .single()
 
@@ -56,7 +65,8 @@ export async function POST(req: NextRequest) {
       .eq('lesson_id', lessonId)
       .not('extracted_text', 'is', null)
 
-    const extractedTexts = documents?.map(d => d.extracted_text).join('\n\n') || ''
+    const extractedTexts =
+      documents?.map((d) => d.extracted_text).join('\n\n') || ''
 
     const unit = lesson.units as any
     const subjectName = unit?.subjects?.name_ar || 'مادة'
@@ -88,7 +98,10 @@ ${extractedTexts ? `محتوى الدرس المستخرج من المستندا
         finalSummary = result.response.text().trim()
         break
       } catch (err: any) {
-        console.warn(`Model ${modelName} failed summary generation:`, err.message)
+        console.warn(
+          `Model ${modelName} failed summary generation:`,
+          err.message
+        )
         lastError = err
       }
     }
@@ -107,9 +120,8 @@ ${extractedTexts ? `محتوى الدرس المستخرج من المستندا
 
     return NextResponse.json({
       success: true,
-      summary: finalSummary
+      summary: finalSummary,
     })
-
   } catch (error: any) {
     console.error('Summary generation error:', error)
     return NextResponse.json(

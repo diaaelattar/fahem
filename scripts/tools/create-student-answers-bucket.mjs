@@ -15,7 +15,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const envPath = path.join(__dirname, '.env.local')
 if (fs.existsSync(envPath)) {
   const envContent = fs.readFileSync(envPath, 'utf-8')
-  envContent.split('\n').forEach(line => {
+  envContent.split('\n').forEach((line) => {
     const [key, ...vals] = line.split('=')
     if (key && vals.length) process.env[key.trim()] = vals.join('=').trim()
   })
@@ -25,7 +25,9 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
 if (!supabaseUrl || !serviceKey) {
-  console.error('❌ Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env.local')
+  console.error(
+    '❌ Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env.local'
+  )
   process.exit(1)
 }
 
@@ -34,15 +36,26 @@ const supabase = createClient(supabaseUrl, serviceKey)
 async function createBucket() {
   console.log('📦 إنشاء bucket: student-answers-images ...')
 
-  const { data: existing } = await supabase.storage.getBucket('student-answers-images')
+  const { data: existing } = await supabase.storage.getBucket(
+    'student-answers-images'
+  )
   if (existing) {
     console.log('✅ الـ bucket موجود بالفعل:', existing.name)
   } else {
-    const { data, error } = await supabase.storage.createBucket('student-answers-images', {
-      public: false, // private - authenticated access only
-      fileSizeLimit: 15 * 1024 * 1024, // 15 MB max per file
-      allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'],
-    })
+    const { data, error } = await supabase.storage.createBucket(
+      'student-answers-images',
+      {
+        public: false, // private - authenticated access only
+        fileSizeLimit: 15 * 1024 * 1024, // 15 MB max per file
+        allowedMimeTypes: [
+          'image/jpeg',
+          'image/png',
+          'image/webp',
+          'image/heic',
+          'image/heif',
+        ],
+      }
+    )
 
     if (error) {
       console.error('❌ فشل إنشاء الـ bucket:', error.message)
@@ -66,7 +79,7 @@ async function createBucket() {
           bucket_id = 'student-answers-images'
           AND auth.uid() IS NOT NULL
         );
-      `
+      `,
     },
     {
       name: 'student_read_own',
@@ -78,7 +91,7 @@ async function createBucket() {
           bucket_id = 'student-answers-images'
           AND auth.uid() IS NOT NULL
         );
-      `
+      `,
     },
     {
       name: 'service_role_all',
@@ -87,14 +100,18 @@ async function createBucket() {
         ON storage.objects FOR ALL
         TO service_role
         USING (bucket_id = 'student-answers-images');
-      `
-    }
+      `,
+    },
   ]
 
   for (const policy of policies) {
-    const { error: policyError } = await supabase.rpc('exec_sql', { sql: policy.sql }).catch(() => ({ error: null }))
+    const { error: policyError } = await supabase
+      .rpc('exec_sql', { sql: policy.sql })
+      .catch(() => ({ error: null }))
     if (policyError) {
-      console.warn(`⚠️  سياسة ${policy.name}: ${policyError.message} (ربما موجودة بالفعل)`)
+      console.warn(
+        `⚠️  سياسة ${policy.name}: ${policyError.message} (ربما موجودة بالفعل)`
+      )
     } else {
       console.log(`✅ سياسة ${policy.name}: تم الإعداد`)
     }
