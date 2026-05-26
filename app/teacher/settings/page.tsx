@@ -8,7 +8,7 @@ export default async function TeacherSettingsPage() {
 
   const { data: teacher } = await supabase
     .from('teachers')
-    .select('subject_id, is_verified, subscription_status, subscription_ends_at, print_directorate, print_administration, print_school_name, print_academic_year')
+    .select('subject_id, is_verified, subscription_status, subscription_ends_at, print_directorate, print_administration, print_school_name, print_academic_year, print_header_type, teacher_display_name, teacher_title, teacher_phone, teacher_social, teacher_logo_url, teacher_watermark_text, show_watermark')
     .eq('id', profile.id)
     .single()
 

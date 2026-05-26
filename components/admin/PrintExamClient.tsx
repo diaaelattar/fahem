@@ -24,13 +24,21 @@ export function PrintExamClient({ exam, questions }: { exam: any; questions: any
     teacherName: '',
     classSection: '',
     examDate: '',
+    headerType: 'official' as 'official' | 'personal' | 'both',
+    displayName: '',
+    title: '',
+    phone: '',
+    social: '',
+    logoUrl: '',
+    watermarkText: '',
+    showWatermark: false,
   })
 
   useEffect(() => {
     const handleSettingsChange = (e: Event) => {
       const customEvent = e as CustomEvent
       if (customEvent.detail) {
-        setLocalSettings(customEvent.detail)
+        setLocalSettings(prev => ({ ...prev, ...customEvent.detail }))
       }
     }
     window.addEventListener('print-settings-changed', handleSettingsChange)
@@ -195,17 +203,83 @@ export function PrintExamClient({ exam, questions }: { exam: any; questions: any
       )}
 
       {/* ─── A4 Print Container ─── */}
-      <div className="max-w-[210mm] mx-auto bg-white shadow-xl print:shadow-none print:w-full print:max-w-none print:m-0">
-        <div className="p-8 print:p-0">
+      <div className="max-w-[210mm] mx-auto bg-white shadow-xl print:shadow-none print:w-full print:max-w-none print:m-0 relative overflow-hidden">
+        
+        {/* Full-page Watermark Overlay */}
+        {localSettings.showWatermark && localSettings.watermarkText && (
+          <div className="absolute inset-0 z-0 pointer-events-none flex flex-wrap content-start justify-center gap-x-24 gap-y-48 opacity-[0.04] pt-48" aria-hidden="true">
+            {Array.from({ length: 30 }).map((_, i) => (
+              <div key={i} className="rotate-[-35deg] text-5xl sm:text-7xl font-black whitespace-nowrap">
+                {localSettings.watermarkText}
+              </div>
+            ))}
+          </div>
+        )}
 
-          {/* Exam Header */}
-          <div className="mb-6 border-b-4 border-double border-slate-800 pb-4 text-center">
-            <h1 className="text-3xl font-black text-slate-900 pb-2">
-              {exam.title}
-            </h1>
-            <p className="text-sm font-bold text-slate-600">
-              المادة: {exam.subjects?.name_ar} | الزمن: {exam.duration_minutes} دقيقة | الدرجة الكلية: {exam.total_points}
-            </p>
+        <div className="p-8 print:p-0 relative z-10">
+
+          {/* Premium Exam Header */}
+          <div className="mb-6 border-b-4 border-double border-slate-800 pb-4 relative">
+            <div className="flex justify-between items-center text-sm font-bold relative z-10">
+              {/* Right Side */}
+              <div className="text-right flex-1 leading-relaxed text-slate-800" dir="rtl">
+                {(localSettings.headerType === 'official' || localSettings.headerType === 'both') && (
+                  <>
+                    <div>محافظة: {localSettings.directorate || '..............'}</div>
+                    <div>إدارة: {localSettings.administration || '..............'}</div>
+                    <div>مدرسة: {localSettings.schoolName || '..............'}</div>
+                  </>
+                )}
+                {localSettings.headerType === 'personal' && (
+                  <>
+                    <div className="text-xl font-black text-indigo-900">{localSettings.displayName || 'اسم المعلم'}</div>
+                    <div className="text-slate-600">{localSettings.title}</div>
+                    <div className="text-slate-500">{localSettings.phone}</div>
+                  </>
+                )}
+              </div>
+
+              {/* Center */}
+              <div className="flex-1 flex flex-col items-center justify-center text-center px-4">
+                {localSettings.logoUrl && (
+                  <img src={localSettings.logoUrl} alt="Logo" className="max-h-20 object-contain mb-2 print:max-h-16" />
+                )}
+                <h1 className="text-2xl font-black text-slate-900 leading-tight">
+                  {exam.title}
+                </h1>
+                <div className="text-sm font-bold text-slate-700 mt-1">
+                  المادة: {exam.subjects?.name_ar}
+                </div>
+              </div>
+
+              {/* Left Side */}
+              <div className="text-left flex-1 leading-relaxed text-slate-800" dir="ltr">
+                {localSettings.headerType === 'both' && (
+                  <>
+                    <div className="text-xl font-black text-right text-indigo-900" dir="rtl">{localSettings.displayName || 'اسم المعلم'}</div>
+                    <div className="text-slate-600 text-right" dir="rtl">{localSettings.title}</div>
+                    <div className="text-slate-500 text-right" dir="rtl">{localSettings.phone}</div>
+                  </>
+                )}
+                {localSettings.headerType !== 'both' && (
+                  <>
+                    <div className="text-right" dir="rtl">العام الدراسي: {localSettings.academicYear || '2024 / 2025'}</div>
+                    <div className="text-right" dir="rtl">زمن الإجابة: {exam.duration_minutes} دقيقة</div>
+                    <div className="text-right" dir="rtl">الدرجة الكلية: {exam.total_points}</div>
+                    {localSettings.examDate && <div className="text-right" dir="rtl">التاريخ: {new Date(localSettings.examDate).toLocaleDateString('ar-EG')}</div>}
+                  </>
+                )}
+              </div>
+            </div>
+            
+            {localSettings.headerType === 'both' && (
+              <div className="flex justify-center gap-6 mt-4 text-sm font-bold text-slate-700 border-t border-slate-300 pt-3 relative z-10">
+                <span>العام: {localSettings.academicYear || '2024 / 2025'}</span>
+                <span>الزمن: {exam.duration_minutes} دقيقة</span>
+                <span>الدرجة: {exam.total_points}</span>
+                {localSettings.examDate && <span>التاريخ: {new Date(localSettings.examDate).toLocaleDateString('ar-EG')}</span>}
+              </div>
+            )}
           </div>
 
             {/* Student row */}

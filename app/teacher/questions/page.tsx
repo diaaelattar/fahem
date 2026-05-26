@@ -36,6 +36,10 @@ export default async function TeacherQuestionsPage({ searchParams }: { searchPar
   const teacherSubjectId = teacherData?.subject_id ?? null
   const teacherSubject = teacherData?.subjects as unknown as { name_ar: string; icon: string } | null
 
+  if (!teacherSubjectId) {
+    redirect('/teacher/settings?error=missing_subject')
+  }
+
   const [
     { data: grades },
     { data: semesters },
@@ -44,13 +48,19 @@ export default async function TeacherQuestionsPage({ searchParams }: { searchPar
     supabase.from('semesters').select('id, name_ar').order('sort_order'),
   ])
 
+  let unitsQuery = supabase
+    .from('units')
+    .select('id, name_ar')
+    .eq('grade_id', searchParams.grade)
+    .eq('subject_id', teacherSubjectId)
+    .order('sort_order')
+
+  if (searchParams.semester) {
+    unitsQuery = unitsQuery.eq('semester_id', searchParams.semester)
+  }
+
   const { data: units } = searchParams.grade && teacherSubjectId
-    ? await supabase
-        .from('units')
-        .select('id, name_ar')
-        .eq('grade_id', searchParams.grade)
-        .eq('subject_id', teacherSubjectId)
-        .order('sort_order')
+    ? await unitsQuery
     : { data: null }
 
   const { data: lessons } = searchParams.unit
@@ -246,7 +256,7 @@ export default async function TeacherQuestionsPage({ searchParams }: { searchPar
             {(semesters as any[])?.map(sem => (
               <a
                 key={sem.id}
-                href={buildHref('semester', String(sem.id))}
+                href={buildHref('semester', String(sem.id), { unit: undefined, lesson: undefined })}
                 className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-all ${
                   isActive('semester', String(sem.id))
                     ? 'bg-amber-500 text-white border-amber-500 shadow-sm'

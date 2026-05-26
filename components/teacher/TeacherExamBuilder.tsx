@@ -66,6 +66,28 @@ export function TeacherExamBuilder({
   const [isAutoSelectOpen, setIsAutoSelectOpen] = useState(false)
   const [isAIModalOpen, setIsAIModalOpen] = useState(false)
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const preSelected = sessionStorage.getItem('pre_selected_exam_questions')
+      if (preSelected) {
+        try {
+          const qs = JSON.parse(preSelected)
+          if (qs && qs.length > 0) {
+            const mapped = qs.map((q: any, i: number) => ({
+              ...q,
+              order: i + 1,
+              points_override: q.points
+            }))
+            setSelectedQuestions(mapped)
+            sessionStorage.removeItem('pre_selected_exam_questions')
+          }
+        } catch (e) {
+          console.error('Failed to parse pre-selected questions', e)
+        }
+      }
+    }
+  }, [])
+
   const totalPoints = selectedQuestions.reduce((s, q) => s + (q.points_override ?? q.points), 0)
 
   // ── Fetch questions — always scoped to teacher's subject ──

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Trash2, Loader2, Info } from 'lucide-react'
 import { MathRenderer } from '@/components/ui/MathRenderer'
 import { QuestionApprovalButtons } from '@/components/admin/QuestionApprovalButtons'
@@ -29,6 +30,13 @@ export function QuestionsListClient({
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [isDeleting, setIsDeleting] = useState(false)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
+  const router = useRouter()
+
+  const handleCreateExam = () => {
+    const selectedQs = questions.filter(q => selectedIds.includes(q.id))
+    sessionStorage.setItem('pre_selected_exam_questions', JSON.stringify(selectedQs))
+    router.push('/teacher/exams/new')
+  }
 
   // Handle individual checkbox toggle
   const toggleSelection = (id: string) => {
@@ -80,35 +88,64 @@ export function QuestionsListClient({
 
   return (
     <>
-      {/* ── الشريط العلوي للحذف الجماعي (يظهر فقط إذا كان هناك تحديد) ── */}
+      {/* ── الشريط العلوي للحذف الجماعي أو إنشاء اختبار (يظهر فقط إذا كان هناك تحديد) ── */}
       {selectedIds.length > 0 && (
-        <div className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-4 flex items-center justify-between sticky top-[72px] z-20 shadow-md animate-in slide-in-from-top-4">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-red-600 font-bold">
-              {selectedIds.length}
+        basePath.includes('/teacher') ? (
+          <div className="bg-purple-50 border border-purple-200 rounded-2xl p-4 mb-4 flex flex-col md:flex-row items-center justify-between gap-4 sticky top-[72px] z-20 shadow-md animate-in slide-in-from-top-4">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 font-bold">
+                {selectedIds.length}
+              </div>
+              <div>
+                <p className="text-purple-900 font-bold text-sm">سؤال محدد</p>
+                <p className="text-purple-700 text-xs">هل تريد تكوين اختبار جديد باستخدام هذه الأسئلة؟</p>
+              </div>
             </div>
-            <div>
-              <p className="text-red-900 font-bold text-sm">سؤال محدد</p>
-              <p className="text-red-700 text-xs">هل أنت متأكد من رغبتك في حذفهم نهائياً؟</p>
+            
+            <div className="flex items-center gap-2 w-full md:w-auto">
+              <button
+                onClick={() => setSelectedIds([])}
+                className="px-3 py-1.5 text-xs font-bold text-purple-600 hover:bg-purple-100 rounded-lg transition-colors"
+              >
+                إلغاء
+              </button>
+              <button
+                onClick={handleCreateExam}
+                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 shadow-sm transition-colors w-full md:w-auto justify-center"
+              >
+                📝 تكوين اختبار من الأسئلة المحددة ({selectedIds.length})
+              </button>
             </div>
           </div>
-          
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setSelectedIds([])}
-              className="px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-100 rounded-lg transition-colors"
-            >
-              إلغاء التحديد
-            </button>
-            <button
-              onClick={() => setShowConfirmModal(true)}
-              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 shadow-sm transition-colors"
-            >
-              <Trash2 className="w-4 h-4" />
-              حذف المحددة
-            </button>
+        ) : (
+          <div className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-4 flex items-center justify-between sticky top-[72px] z-20 shadow-md animate-in slide-in-from-top-4">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-red-600 font-bold">
+                {selectedIds.length}
+              </div>
+              <div>
+                <p className="text-red-900 font-bold text-sm">سؤال محدد</p>
+                <p className="text-red-700 text-xs">هل أنت متأكد من رغبتك في حذفهم نهائياً؟</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setSelectedIds([])}
+                className="px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+              >
+                إلغاء التحديد
+              </button>
+              <button
+                onClick={() => setShowConfirmModal(true)}
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 shadow-sm transition-colors"
+              >
+                <Trash2 className="w-4 h-4" />
+                حذف المحددة
+              </button>
+            </div>
           </div>
-        </div>
+        )
       )}
 
       {/* ── زر تحديد الكل ── */}

@@ -13,6 +13,14 @@ interface PrintSettings {
   teacherName: string
   classSection: string
   examDate: string
+  headerType: 'official' | 'personal' | 'both'
+  displayName: string
+  title: string
+  phone: string
+  social: string
+  logoUrl: string
+  watermarkText: string
+  showWatermark: boolean
 }
 
 interface Props {
@@ -23,6 +31,14 @@ interface Props {
     print_administration?: string | null
     print_school_name?: string | null
     print_academic_year?: string | null
+    print_header_type?: 'official' | 'personal' | 'both' | null
+    teacher_display_name?: string | null
+    teacher_title?: string | null
+    teacher_phone?: string | null
+    teacher_social?: string | null
+    teacher_logo_url?: string | null
+    teacher_watermark_text?: string | null
+    show_watermark?: boolean | null
   }
 }
 
@@ -44,6 +60,14 @@ export function TeacherPrintSettingsBar({ examId, teacherId, initialSettings }: 
     teacherName: '',
     classSection: '',
     examDate: '',
+    headerType: initialSettings.print_header_type || 'official',
+    displayName: initialSettings.teacher_display_name || '',
+    title: initialSettings.teacher_title || '',
+    phone: initialSettings.teacher_phone || '',
+    social: initialSettings.teacher_social || '',
+    logoUrl: initialSettings.teacher_logo_url || '',
+    watermarkText: initialSettings.teacher_watermark_text || '',
+    showWatermark: initialSettings.show_watermark || false,
   })
 
   // Load per-exam fields from localStorage on mount
@@ -75,7 +99,7 @@ export function TeacherPrintSettingsBar({ examId, teacherId, initialSettings }: 
   const handleSave = async () => {
     setSaving(true)
 
-    // Save global teacher settings to Supabase
+    // Save global teacher settings to Supabase — including ALL new fields
     const supabase = createClient()
     await supabase
       .from('teachers')
@@ -84,6 +108,14 @@ export function TeacherPrintSettingsBar({ examId, teacherId, initialSettings }: 
         print_administration: settings.administration,
         print_school_name: settings.schoolName,
         print_academic_year: settings.academicYear,
+        print_header_type: settings.headerType,
+        teacher_display_name: settings.displayName,
+        teacher_title: settings.title,
+        teacher_phone: settings.phone,
+        teacher_social: settings.social,
+        teacher_logo_url: settings.logoUrl,
+        teacher_watermark_text: settings.watermarkText,
+        show_watermark: settings.showWatermark,
       })
       .eq('id', teacherId)
 
