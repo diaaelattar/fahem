@@ -2,10 +2,13 @@ import { getCurrentProfile } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import { BarChart, Users, FileText, CheckCircle, Target } from 'lucide-react'
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { AnalyticsDashboard } from '@/components/teacher/AnalyticsDashboard'
 
 export default async function TeacherReportsPage({ searchParams }: { searchParams: { exam_id?: string, group_id?: string } }) {
   const profile = await getCurrentProfile()
+  if (!profile || profile.role !== 'teacher') redirect('/auth/login')
+
   const supabase = await createClient()
   
   const selectedExamId = searchParams.exam_id
@@ -118,7 +121,7 @@ export default async function TeacherReportsPage({ searchParams }: { searchParam
               <Link 
                 key={group.id} 
                 href={`/teacher/reports?group_id=${group.id}`} 
-                className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors ${selectedGroupId === group.id ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}
+                className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors ${selectedGroupId === String(group.id) ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}
               >
                 {group.name_ar}
               </Link>
@@ -133,7 +136,7 @@ export default async function TeacherReportsPage({ searchParams }: { searchParam
               <Link 
                 key={exam.id} 
                 href={`/teacher/reports?exam_id=${exam.id}${selectedGroupId ? `&group_id=${selectedGroupId}` : ''}`} 
-                className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors ${selectedExamId === exam.id ? 'bg-emerald-600 text-white shadow-md shadow-emerald-200' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-100'}`}
+                className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors ${selectedExamId === String(exam.id) ? 'bg-emerald-600 text-white shadow-md shadow-emerald-200' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-100'}`}
               >
                 {exam.title}
               </Link>

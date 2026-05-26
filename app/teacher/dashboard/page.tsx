@@ -2,10 +2,13 @@ import { getCurrentProfile } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import { Users, FileText, TrendingUp, Link as LinkIcon, PlusCircle, Clock, ShieldCheck, AlertTriangle } from 'lucide-react'
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { AnimatedBanner, AnimatedStatCard, AnimatedSection } from '@/components/teacher/DashboardAnimations'
 
 export default async function TeacherDashboard() {
   const profile = await getCurrentProfile()
+  if (!profile || profile.role !== 'teacher') redirect('/auth/login')
+
   const supabase = await createClient()
 
   // Fetch teacher data including trial status

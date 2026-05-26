@@ -4,12 +4,14 @@ import { TeacherExamBuilder } from '@/components/teacher/TeacherExamBuilder'
 import { ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 import { getCurrentProfile } from '@/lib/auth/permissions'
+import { redirect } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
 
 export default async function NewTeacherExamPage() {
   const supabase = await createClient()
   const profile = await getCurrentProfile()
+  if (!profile || profile.role !== 'teacher') redirect('/auth/login')
 
   const [
     { data: teacherData },

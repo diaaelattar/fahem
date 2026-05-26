@@ -1,6 +1,6 @@
 import { getCurrentProfile } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { Users, ArrowRight, TrendingUp, Calendar, CheckCircle, BookOpen, Info } from 'lucide-react'
 import Link from 'next/link'
 import { AddStudentForm } from './AddStudentForm'
@@ -8,6 +8,8 @@ import { SessionsTab } from './SessionsTab'
 
 export default async function GroupDetailPage({ params }: { params: { id: string } }) {
   const profile = await getCurrentProfile()
+  if (!profile || profile.role !== 'teacher') redirect('/auth/login')
+
   const supabase = await createClient()
 
   // Fetch group + verify ownership

@@ -2,10 +2,13 @@ import { getCurrentProfile } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import { FileText, PlusCircle } from 'lucide-react'
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { AnimatedExamGrid } from '@/components/teacher/AnimatedExamGrid'
 
 export default async function TeacherExamsPage() {
   const profile = await getCurrentProfile()
+  if (!profile || profile.role !== 'teacher') redirect('/auth/login')
+
   const supabase = await createClient()
 
   // Fetch teacher's exams

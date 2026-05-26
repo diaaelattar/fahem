@@ -1,9 +1,12 @@
 import { getCurrentProfile } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
 import { TeacherSettingsClient } from '@/components/teacher/TeacherSettingsClient'
 
 export default async function TeacherSettingsPage() {
   const profile = await getCurrentProfile()
+  if (!profile || profile.role !== 'teacher') redirect('/auth/login')
+
   const supabase = await createClient()
 
   const { data: teacher } = await supabase
