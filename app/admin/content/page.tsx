@@ -7,7 +7,10 @@ export default async function ContentPage() {
   const supabase = await createClient()
 
   const [{ data: subjects }, { data: grades }] = await Promise.all([
-    supabase.from('subjects').select('id, name_ar, icon').order('name_ar'),
+    supabase
+      .from('subjects')
+      .select('id, name_ar, icon, teaching_language, education_types')
+      .order('name_ar'),
     supabase
       .from('grades')
       .select('id, name_ar, grade_number')
@@ -21,7 +24,7 @@ export default async function ContentPage() {
           رفع المحتوى التعليمي
         </h1>
         <p className="mt-1 text-muted-foreground">
-          ارفع محتوى تعليمياً وسيقوم الذكاء الاصطناعي بتحويله إلى أسئلة تفاعلية
+          ارفع محتوى تعليمياً وسيقوم الذكاء الاصطناعي بتحويله إلى أسئلة تفاعلية — يدعم مدارس اللغات والمناهج الإنجليزية
         </p>
       </div>
       <ContentUploader subjects={subjects || []} grades={grades || []} />

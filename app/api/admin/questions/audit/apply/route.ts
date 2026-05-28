@@ -39,6 +39,14 @@ export async function POST(request: NextRequest) {
       is_approved: true,
       status: 'approved',
       updated_at: new Date().toISOString(),
+      // Reset/clear the issues list and mark status as perfect since changes are manually reviewed and approved
+      ai_audit_results: {
+        audit_status: 'perfect',
+        scientific_accuracy_score: 100,
+        latex_compliance_score: 100,
+        issues_found: [],
+        suggestions: null,
+      },
     }
 
     if (

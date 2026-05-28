@@ -5,7 +5,9 @@ import { createClient } from '@supabase/supabase-js'
 export async function saveStudentGradeAction(
   userId: string,
   gradeId: number,
-  educationType: string = 'public'
+  educationType: string = 'public',
+  systemType: string = 'traditional',
+  trackId: string | null = null
 ) {
   // Use Service Role key to bypass RLS and guarantee the update/insert works
   const supabaseAdmin = createClient(
@@ -34,12 +36,14 @@ export async function saveStudentGradeAction(
 
   if (profileError) throw new Error(profileError.message)
 
-  // 3. Ensure student row exists and update grade + education_type
+  // 3. Ensure student row exists and update grade + education_type + system_type + track_id
   const { error: studentError } = await supabaseAdmin.from('students').upsert(
     {
       id: userId,
       grade_id: gradeId,
       education_type: educationType,
+      system_type: systemType,
+      track_id: trackId,
     },
     { onConflict: 'id' }
   )

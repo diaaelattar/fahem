@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { QUESTION_GENERATION_PROMPT, SMART_GEN_PROMPT } from '@/lib/ai/prompts'
 import { parseGeminiJSON } from '@/lib/ai/gemini-client'
+import { checkAIQuota } from '@/lib/security/rate-limiter'
 
 function getGenAI() {
   const keys = [
@@ -164,6 +165,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'هذه الصلاحية للمعلمين فقط' },
         { status: 403 }
+      )
+    }
+
+    // ── فحص كوتا الذكاء الاصطناعي للمعلم ─────────────────────────────────
+    const quota = await checkAIQuota(user.id, '/api/teacher/generate-questions')
+    if (!quota.allowed) {
+      return NextResponse.json(
+        {
+          error: quota.message || 'تجاوزت الحد اليومي للذكاء الاصطناعي',
+          quota: { limit: quota.limit, usage: quota.usage, remaining: quota.remaining },
+        },
+        { status: 429 }
       )
     }
 

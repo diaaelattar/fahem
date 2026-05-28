@@ -22,7 +22,13 @@ import { QuestionPreviewGrid } from './QuestionPreviewGrid'
 import { PDFDocument } from 'pdf-lib'
 
 interface Props {
-  subjects: { id: number; name_ar: string; icon: string }[]
+  subjects: {
+    id: number
+    name_ar: string
+    icon: string
+    teaching_language?: string | null
+    education_types?: string[] | null
+  }[]
   grades: { id: number; name_ar: string; grade_number: number }[]
 }
 
@@ -66,6 +72,9 @@ export function ContentUploader({ subjects, grades }: Props) {
   const [targetCognitiveLevel, setTargetCognitiveLevel] = useState('متنوع')
   const [customInstructions, setCustomInstructions] = useState('')
   const [passageBased, setPassageBased] = useState(false)
+
+  // فلتر نوع التعليم (عربي / لغات)
+  const [eduTypeFilter, setEduTypeFilter] = useState<'all' | 'public' | 'language'>('all')
 
   const [units, setUnits] = useState<any[]>([])
   const [lessons, setLessons] = useState<any[]>([])
@@ -124,6 +133,25 @@ export function ContentUploader({ subjects, grades }: Props) {
       setExpertMsg('')
     }
   }, [subjectId, gradeId])
+
+  // إعادة تعيين المادة عند تغيير نوع التعليم
+  useEffect(() => {
+    setSubjectId('')
+  }, [eduTypeFilter])
+
+  // تصفية المواد حسب نوع التعليم
+  const filteredSubjects = subjects.filter((s) => {
+    if (eduTypeFilter === 'all') return true
+    if (eduTypeFilter === 'language') return (s.education_types || []).includes('language')
+    if (eduTypeFilter === 'public')
+      return (s.education_types || []).includes('public') || (s.education_types || []).includes('azhar')
+    return true
+  })
+
+  // اللغة المختارة للمادة الحالية
+  const selectedSubject = subjects.find((s) => s.id.toString() === subjectId)
+  const selectedTeachingLanguage = selectedSubject?.teaching_language || 'arabic'
+  const isEnglishSubject = selectedTeachingLanguage === 'english'
 
   const applyExpertDefaults = (gradeName: string, subjectName: string) => {
     let qCount = 12
@@ -1040,6 +1068,31 @@ export function ContentUploader({ subjects, grades }: Props) {
             )}
           </div>
 
+          {/* فلتر نوع التعليم */}
+          <div>
+            <label className="mb-1.5 block text-sm font-semibold">نوع المدارس</label>
+            <div className="flex gap-1.5">
+              {([
+                { id: 'all', label: 'الكل', icon: '📚' },
+                { id: 'public', label: 'مدارس عربي', icon: '🏫' },
+                { id: 'language', label: 'مدارس لغات', icon: '🌐' },
+              ] as const).map((et) => (
+                <button
+                  key={et.id}
+                  type="button"
+                  onClick={() => setEduTypeFilter(et.id)}
+                  className={`flex flex-1 items-center justify-center gap-1 rounded-lg border py-1.5 text-xs font-bold transition-all ${
+                    eduTypeFilter === et.id
+                      ? 'border-primary bg-primary text-white'
+                      : 'border-border bg-white text-muted-foreground hover:border-primary/40'
+                  }`}
+                >
+                  {et.icon} {et.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div>
             <label className="mb-1.5 block text-sm font-semibold">
               عنوان المحتوى *
@@ -1064,14 +1117,26 @@ export function ContentUploader({ subjects, grades }: Props) {
                 className="w-full appearance-none rounded-lg border border-border bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
               >
                 <option value="">اختر المادة</option>
-                {subjects.map((s) => (
+                {filteredSubjects.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.icon} {s.name_ar}
+                    {s.teaching_language === 'english' ? ' 🌐' : ''}
                   </option>
                 ))}
               </select>
               <ChevronDown className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             </div>
+            {/* شارة لغة المادة */}
+            {subjectId && (
+              <div className={`mt-2 flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold ${
+                isEnglishSubject
+                  ? 'bg-blue-50 border border-blue-200 text-blue-700'
+                  : 'bg-slate-50 border border-slate-200 text-slate-600'
+              }`}>
+                <span>{isEnglishSubject ? '🇬🇧' : '🇪🇬'}</span>
+                <span>لغة التدريس: {isEnglishSubject ? 'English — سيتم توليد الأسئلة بالإنجليزية تلقائياً' : 'العربية'}</span>
+              </div>
+            )}
           </div>
 
           <div>

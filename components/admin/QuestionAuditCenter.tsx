@@ -14,6 +14,8 @@ import {
   XCircle,
   Filter,
   Pencil,
+  Trash2,
+  Plus,
 } from 'lucide-react'
 import { MathRenderer } from '@/components/ui/MathRenderer'
 import { toast } from 'sonner'
@@ -732,9 +734,19 @@ export function QuestionAuditCenter({
                                       </label>
                                       {result.suggestions.options.map(
                                         (opt: string, i: number) => (
-                                          <div key={i} className="flex gap-2">
+                                          <div key={i} className="flex items-center gap-2">
+                                            <input
+                                              type="radio"
+                                              name={`correct-ans-${q.id}`}
+                                              checked={opt === result.suggestions.correct_answer}
+                                              onChange={() => {
+                                                updateSuggestion(q.id, 'correct_answer', opt)
+                                              }}
+                                              className="h-4 w-4 shrink-0 cursor-pointer accent-green-600 focus:ring-green-500"
+                                              title="تحديد كإجابة صحيحة"
+                                            />
                                             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-100 text-xs font-bold">
-                                              {['أ', 'ب', 'ج', 'د'][i]}
+                                              {['أ', 'ب', 'ج', 'د', 'هـ', 'و'][i] || `${i + 1}`}
                                             </span>
                                             <input
                                               type="text"
@@ -743,42 +755,116 @@ export function QuestionAuditCenter({
                                                 const newOpts = [
                                                   ...result.suggestions.options,
                                                 ]
-                                                newOpts[i] = e.target.value
+                                                const oldVal = newOpts[i]
+                                                const newVal = e.target.value
+                                                newOpts[i] = newVal
                                                 updateSuggestion(
                                                   q.id,
                                                   'options',
                                                   newOpts
                                                 )
+                                                if (result.suggestions.correct_answer === oldVal) {
+                                                  updateSuggestion(
+                                                    q.id,
+                                                    'correct_answer',
+                                                    newVal
+                                                  )
+                                                }
                                               }}
                                               className={`flex-1 rounded-lg border border-slate-200 px-3 py-1.5 font-mono text-sm outline-none focus:ring-2 focus:ring-blue-200 ${getSubjectTextAlignClass(q.subjects?.name_ar)}`}
                                               dir={getSubjectDirection(
                                                 q.subjects?.name_ar
                                               )}
                                             />
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                const newOpts = result.suggestions.options.filter(
+                                                  (_: any, idx: number) => idx !== i
+                                                )
+                                                updateSuggestion(q.id, 'options', newOpts)
+                                                if (result.suggestions.correct_answer === opt) {
+                                                  updateSuggestion(
+                                                    q.id,
+                                                    'correct_answer',
+                                                    newOpts[0] || ''
+                                                  )
+                                                }
+                                              }}
+                                              className="rounded-lg p-1.5 text-red-500 hover:bg-red-50 transition-colors shrink-0"
+                                              title="حذف هذا الخيار"
+                                            >
+                                              <Trash2 className="h-4 w-4" />
+                                            </button>
                                           </div>
                                         )
                                       )}
+                                      
+                                      {/* Add Option Button */}
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const newOpts = [...result.suggestions.options]
+                                          newOpts.push('')
+                                          updateSuggestion(q.id, 'options', newOpts)
+                                        }}
+                                        className="flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors mt-2"
+                                      >
+                                        <Plus className="h-3.5 w-3.5" />
+                                        إضافة خيار جديد
+                                      </button>
+
                                       <div className="pt-2">
                                         <label className="mb-1 block text-[10px] font-bold uppercase text-green-600">
                                           الإجابة الصحيحة المقترحة
                                         </label>
-                                        <input
-                                          type="text"
-                                          value={
-                                            result.suggestions.correct_answer
-                                          }
-                                          onChange={(e) =>
-                                            updateSuggestion(
-                                              q.id,
-                                              'correct_answer',
-                                              e.target.value
-                                            )
-                                          }
-                                          className={`w-full rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 font-mono text-sm text-green-800 outline-none focus:ring-2 focus:ring-green-400 ${getSubjectTextAlignClass(q.subjects?.name_ar)}`}
-                                          dir={getSubjectDirection(
-                                            q.subjects?.name_ar
-                                          )}
-                                        />
+                                        {result.suggestions.options.length > 0 ? (
+                                          <select
+                                            value={result.suggestions.correct_answer}
+                                            onChange={(e) =>
+                                              updateSuggestion(
+                                                q.id,
+                                                'correct_answer',
+                                                e.target.value
+                                              )
+                                            }
+                                            className="w-full rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800 outline-none focus:ring-2 focus:ring-green-400 font-bold"
+                                            dir={getSubjectDirection(q.subjects?.name_ar)}
+                                          >
+                                            {!result.suggestions.options.includes(
+                                              result.suggestions.correct_answer
+                                            ) && (
+                                              <option value={result.suggestions.correct_answer}>
+                                                {result.suggestions.correct_answer} (غير مطابقة للخيارات)
+                                              </option>
+                                            )}
+                                            {result.suggestions.options.map(
+                                              (opt: string, idx: number) => (
+                                                <option key={idx} value={opt}>
+                                                  {['أ', 'ب', 'ج', 'د', 'هـ', 'و'][idx] || `${idx + 1}`} - {opt}
+                                                </option>
+                                              )
+                                            )}
+                                          </select>
+                                        ) : (
+                                          <input
+                                            type="text"
+                                            value={
+                                              result.suggestions.correct_answer
+                                            }
+                                            onChange={(e) =>
+                                              updateSuggestion(
+                                                q.id,
+                                                'correct_answer',
+                                                e.target.value
+                                              )
+                                            }
+                                            className={`w-full rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 font-mono text-sm text-green-800 outline-none focus:ring-2 focus:ring-green-400 ${getSubjectTextAlignClass(q.subjects?.name_ar)}`}
+                                            dir={getSubjectDirection(
+                                              q.subjects?.name_ar
+                                            )}
+                                          />
+                                        )}
                                       </div>
                                     </div>
                                   )}

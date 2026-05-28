@@ -16,6 +16,7 @@ import {
   Globe,
   Library,
   Landmark,
+  GitBranch,
 } from 'lucide-react'
 
 // ====== Types ======
@@ -29,6 +30,7 @@ interface Grade {
   name_ar: string
   stage_id: number
   grade_number: number
+  has_tracks?: boolean
 }
 interface Subject {
   id: number
@@ -38,6 +40,12 @@ interface Subject {
   teaching_language: string | null
   education_types: string[] | null
   category: string | null
+}
+interface Track {
+  id: string
+  name_ar: string
+  name_en: string | null
+  description: string | null
 }
 
 // ====== Config ======
@@ -113,6 +121,35 @@ const LANG_BADGE: Record<
     label: 'عربي',
     flag: '🇪🇬',
     color: 'bg-slate-100 text-slate-600 border border-slate-200',
+  },
+}
+
+const TRACK_ICONS: Record<string, string> = {
+  'الطب وعلوم الحياة': '🧬',
+  'الهندسة وعلوم الحاسب': '⚙️',
+  'الأعمال والاقتصاد': '📊',
+  'الآداب والفنون': '✍️',
+}
+const TRACK_COLORS: Record<string, { card: string; badge: string; icon: string }> = {
+  'الطب وعلوم الحياة': {
+    card: 'border-emerald-300 bg-emerald-50 hover:border-emerald-500',
+    badge: 'bg-emerald-500',
+    icon: 'bg-emerald-100 text-emerald-700',
+  },
+  'الهندسة وعلوم الحاسب': {
+    card: 'border-blue-300 bg-blue-50 hover:border-blue-500',
+    badge: 'bg-blue-500',
+    icon: 'bg-blue-100 text-blue-700',
+  },
+  'الأعمال والاقتصاد': {
+    card: 'border-amber-300 bg-amber-50 hover:border-amber-500',
+    badge: 'bg-amber-500',
+    icon: 'bg-amber-100 text-amber-700',
+  },
+  'الآداب والفنون': {
+    card: 'border-rose-300 bg-rose-50 hover:border-rose-500',
+    badge: 'bg-rose-500',
+    icon: 'bg-rose-100 text-rose-700',
   },
 }
 
@@ -195,7 +232,7 @@ const FALLBACK_SUBJECTS: Record<string, Subject[]> = {
     },
     {
       id: -7,
-      name_ar: 'الرياضيات',
+      name_ar: 'Math',
       name_en: 'Mathematics',
       icon: '🔢',
       teaching_language: 'english',
@@ -204,21 +241,12 @@ const FALLBACK_SUBJECTS: Record<string, Subject[]> = {
     },
     {
       id: -8,
-      name_ar: 'العلوم',
+      name_ar: 'Science',
       name_en: 'Science',
       icon: '🔬',
       teaching_language: 'english',
       education_types: ['language'],
       category: 'علوم',
-    },
-    {
-      id: -9,
-      name_ar: 'اللغة الفرنسية',
-      name_en: 'French',
-      icon: '🇫🇷',
-      teaching_language: 'french',
-      education_types: ['language'],
-      category: 'لغات',
     },
     {
       id: -6,
@@ -323,17 +351,34 @@ export default function OnboardingPage() {
   const [stages, setStages] = useState<Stage[]>([])
   const [grades, setGrades] = useState<Grade[]>([])
   const [subjects, setSubjects] = useState<Subject[]>([])
+  const [tracks, setTracks] = useState<Track[]>([])
 
   const [currentStep, setCurrentStep] = useState(1)
-  const TOTAL_STEPS = 4
+  // الخطوات: 1=مرحلة, 2=صف, 3=نوع التعليم, 4=مسار (اختياري لصف 11-12), 5=معاينة
+  const [totalSteps, setTotalSteps] = useState(4)
 
   const [selectedStage, setSelectedStage] = useState<number | null>(null)
   const [selectedGrade, setSelectedGrade] = useState<number | null>(null)
   const [selectedEduType, setSelectedEduType] = useState<string | null>(null)
+  const [selectedTrack, setSelectedTrack] = useState<string | null>(null)
 
   const [loading, setLoading] = useState(false)
   const [fetching, setFetching] = useState(true)
   const [userName, setUserName] = useState('')
+
+  // هل الصف المختار يحتوي على مسارات بكالوريا؟
+  const selectedGradeObj = grades.find((g) => g.id === selectedGrade)
+  const gradeHasTracks = selectedGradeObj?.has_tracks === true
+
+  // حساب عدد الخطوات: إذا اختار الطالب صفاً بمسارات نضيف خطوة المسار
+  useEffect(() => {
+    if (gradeHasTracks) {
+      setTotalSteps(5)
+    } else {
+      setTotalSteps(4)
+      setSelectedTrack(null) // مسح المسار إذا لم يعد مطلوباً
+    }
+  }, [gradeHasTracks])
 
   useEffect(() => {
     async function init() {
@@ -348,7 +393,7 @@ export default function OnboardingPage() {
       const firstName = user.user_metadata?.full_name?.split(' ')[0] || 'يا بطل'
       setUserName(firstName)
 
-      const [stagesRes, gradesRes, subjectsRes] = await Promise.all([
+      const [stagesRes, gradesRes, subjectsRes, tracksRes] = await Promise.all([
         supabase.from('educational_stages').select('*').order('sort_order'),
         supabase.from('grades').select('*').order('grade_number'),
         supabase
@@ -357,12 +402,17 @@ export default function OnboardingPage() {
             'id, name_ar, name_en, icon, teaching_language, education_types, category'
           )
           .order('id'),
+        supabase
+          .from('curriculum_tracks')
+          .select('id, name_ar, name_en, description')
+          .order('name_ar'),
       ])
 
       if (stagesRes.data) setStages(stagesRes.data)
       if (gradesRes.data) setGrades(gradesRes.data)
       if (subjectsRes.data && subjectsRes.data.length > 0)
         setSubjects(subjectsRes.data as Subject[])
+      if (tracksRes.data) setTracks(tracksRes.data as Track[])
 
       setFetching(false)
     }
@@ -395,6 +445,7 @@ export default function OnboardingPage() {
     accent: 'border-primary bg-primary/5 text-primary',
   }
   const eduTypeConfig = EDU_TYPES.find((e) => e.id === selectedEduType)
+  const selectedTrackObj = tracks.find((t) => t.id === selectedTrack)
 
   const handleSave = async () => {
     if (!selectedGrade || !selectedEduType) return
@@ -404,15 +455,53 @@ export default function OnboardingPage() {
         data: { user },
       } = await supabase.auth.getUser()
       if (!user) return
-      await saveStudentGradeAction(user.id, selectedGrade, selectedEduType)
-      // استخدام window.location.href بدلاً من router.push لإجبار المتصفح على تحديث كامل
-      // يضمن مزامنة كوكيز الجلسة وتحديث حالة الطالب مع الـ middleware والـ Server Components
+      await saveStudentGradeAction(
+        user.id,
+        selectedGrade,
+        selectedEduType,
+        'traditional', // system_type — يمكن تطويره لاحقاً
+        gradeHasTracks && selectedTrack !== 'skip' ? selectedTrack : null
+      )
       window.location.href = '/student/dashboard'
     } catch (err: any) {
       alert('حدث خطأ: ' + err.message)
       setLoading(false)
     }
   }
+
+  // الانتقال للخطوة التالية مع مراعاة خطوة المسار
+  const handleNext = () => {
+    if (currentStep === 2 && !gradeHasTracks) {
+      // تخطي خطوة المسار مباشرة إلى نوع التعليم (ثم معاينة)
+      setCurrentStep(3)
+    } else {
+      setCurrentStep((s) => s + 1)
+    }
+  }
+
+  const handleBack = () => {
+    if (currentStep === 3 && !gradeHasTracks) {
+      // الرجوع مباشرة من نوع التعليم إلى الصف
+      setCurrentStep(2)
+      setSelectedEduType(null)
+    } else if (currentStep === 4 && gradeHasTracks) {
+      setCurrentStep(3)
+      setSelectedTrack(null)
+    } else if (currentStep === totalSteps) {
+      setCurrentStep(totalSteps - 1)
+    } else {
+      setCurrentStep((s) => s - 1)
+      if (currentStep === 3) setSelectedEduType(null)
+      if (currentStep === 2) setSelectedGrade(null)
+    }
+  }
+
+  // رقم الخطوة الحقيقي للعرض
+  const displayStep = currentStep
+  // هل الخطوة الحالية هي معاينة المواد؟
+  const isPreviewStep = gradeHasTracks ? currentStep === 5 : currentStep === 4
+  // هل الخطوة الحالية هي اختيار المسار؟
+  const isTrackStep = gradeHasTracks && currentStep === 4
 
   const StepHeader = ({
     title,
@@ -448,7 +537,7 @@ export default function OnboardingPage() {
         <div className="overflow-hidden rounded-3xl bg-white shadow-2xl">
           {/* Progress Bar */}
           <div className="flex">
-            {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
+            {Array.from({ length: totalSteps }).map((_, i) => (
               <div
                 key={i}
                 className={`h-1.5 flex-1 transition-all duration-500 ${
@@ -461,15 +550,11 @@ export default function OnboardingPage() {
           {/* Step Counter */}
           <div className="flex items-center justify-between px-8 pb-0 pt-5">
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              الخطوة {currentStep} من {TOTAL_STEPS}
+              الخطوة {displayStep} من {totalSteps}
             </span>
             {currentStep > 1 && (
               <button
-                onClick={() => {
-                  setCurrentStep((s) => s - 1)
-                  if (currentStep === 3) setSelectedEduType(null)
-                  if (currentStep === 2) setSelectedGrade(null)
-                }}
+                onClick={handleBack}
                 className="flex items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
               >
                 <ArrowRight className="h-3.5 w-3.5" /> رجوع
@@ -572,6 +657,12 @@ export default function OnboardingPage() {
                             <span className="text-sm font-bold leading-tight">
                               {grade.name_ar}
                             </span>
+                            {grade.has_tracks && (
+                              <span className="mt-1.5 flex items-center gap-0.5 rounded-full bg-violet-100 px-1.5 py-0.5 text-[9px] font-bold text-violet-700">
+                                <GitBranch className="h-2.5 w-2.5" />
+                                بكالوريا
+                              </span>
+                            )}
                             {isSelected && (
                               <CheckCircle className="mt-1.5 h-4 w-4 text-primary" />
                             )}
@@ -580,7 +671,7 @@ export default function OnboardingPage() {
                       })}
                     </div>
                     <button
-                      onClick={() => selectedGrade && setCurrentStep(3)}
+                      onClick={() => selectedGrade && handleNext()}
                       disabled={!selectedGrade}
                       className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 text-lg font-bold text-white shadow-lg shadow-primary/25 transition-all hover:bg-primary/90 disabled:opacity-50"
                     >
@@ -627,7 +718,7 @@ export default function OnboardingPage() {
                       })}
                     </div>
                     <button
-                      onClick={() => selectedEduType && setCurrentStep(4)}
+                      onClick={() => selectedEduType && setCurrentStep(currentStep + 1)}
                       disabled={!selectedEduType}
                       className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 text-lg font-bold text-white shadow-lg shadow-primary/25 transition-all hover:bg-primary/90 disabled:opacity-50"
                     >
@@ -636,20 +727,109 @@ export default function OnboardingPage() {
                   </div>
                 )}
 
-                {/* ===== STEP 4: Subjects Preview + Confirm ===== */}
-                {currentStep === 4 && (
+                {/* ===== STEP 4: Track (للصفوف 11 و 12 فقط) ===== */}
+                {isTrackStep && (
+                  <div className="animate-fade-in">
+                    <StepHeader
+                      title="اختر مسارك الدراسي"
+                      subtitle="مسار البكالوريا يحدد مواد تخصصك لصف 11 و 12"
+                    />
+
+                    {/* شرح المسارات */}
+                    <div className="mb-4 rounded-2xl border border-violet-200 bg-violet-50 p-3 text-xs text-violet-700">
+                      <div className="flex items-center gap-1.5 font-bold">
+                        <GitBranch className="h-3.5 w-3.5" />
+                        نظام البكالوريا المصرية الجديد 2025-2026
+                      </div>
+                      <p className="mt-1 leading-relaxed">
+                        اختر المسار المناسب لاهتماماتك ومستقبلك الجامعي. يمكنك تغييره لاحقاً من إعدادات الحساب.
+                      </p>
+                    </div>
+
+                    <div className="mb-6 space-y-3">
+                      {tracks.map((track) => {
+                        const isSelected = selectedTrack === track.id
+                        const colors = TRACK_COLORS[track.name_ar] || {
+                          card: 'border-slate-200 bg-slate-50 hover:border-slate-400',
+                          badge: 'bg-slate-500',
+                          icon: 'bg-slate-100 text-slate-700',
+                        }
+                        const icon = TRACK_ICONS[track.name_ar] || '📚'
+                        return (
+                          <button
+                            key={track.id}
+                            onClick={() => setSelectedTrack(track.id)}
+                            className={`flex w-full items-start gap-3 rounded-2xl border-2 p-4 text-right transition-all ${
+                              isSelected
+                                ? colors.card + ' scale-[1.01] ring-2 ring-primary/30'
+                                : colors.card
+                            }`}
+                          >
+                            <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-2xl ${colors.icon}`}>
+                              {icon}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-bold leading-tight">
+                                {track.name_ar}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {track.name_en}
+                              </div>
+                              {track.description && (
+                                <p className="mt-1 text-[11px] leading-relaxed text-slate-500 line-clamp-2">
+                                  {track.description}
+                                </p>
+                              )}
+                            </div>
+                            {isSelected && (
+                              <CheckCircle className="h-5 w-5 shrink-0 text-primary" />
+                            )}
+                          </button>
+                        )
+                      })}
+
+                      {/* خيار "لم أحدد بعد" */}
+                      <button
+                        onClick={() => setSelectedTrack('skip')}
+                        className={`flex w-full items-center gap-3 rounded-2xl border-2 border-dashed p-3 text-right text-sm text-muted-foreground transition-all hover:border-slate-300 hover:bg-slate-50 ${
+                          selectedTrack === 'skip' ? 'border-slate-400 bg-slate-50' : 'border-slate-200'
+                        }`}
+                      >
+                        <span className="text-xl">🤔</span>
+                        <span>لم أحدد مساري بعد — يمكن اختياره لاحقاً</span>
+                        {selectedTrack === 'skip' && (
+                          <CheckCircle className="mr-auto h-4 w-4 text-slate-500" />
+                        )}
+                      </button>
+                    </div>
+
+                    <button
+                      onClick={() => selectedTrack && setCurrentStep(currentStep + 1)}
+                      disabled={!selectedTrack}
+                      className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 text-lg font-bold text-white shadow-lg shadow-primary/25 transition-all hover:bg-primary/90 disabled:opacity-50"
+                    >
+                      التالي <ArrowLeft className="h-5 w-5" />
+                    </button>
+                  </div>
+                )}
+
+                {/* ===== STEP PREVIEW: Subjects ===== */}
+                {isPreviewStep && (
                   <div className="animate-fade-in">
                     {/* Summary Badge */}
                     <div
-                      className={`mb-5 flex items-center gap-3 rounded-2xl p-3 ${stageConfig.accent} border-2`}
+                      className={`mb-4 flex items-center gap-3 rounded-2xl p-3 ${stageConfig.accent} border-2`}
                     >
                       <span className="text-2xl">{eduTypeConfig?.emoji}</span>
-                      <div>
+                      <div className="flex-1 min-w-0">
                         <div className="text-sm font-bold">
                           {stageName} — {eduTypeConfig?.label}
                         </div>
                         <div className="text-xs opacity-70">
                           {grades.find((g) => g.id === selectedGrade)?.name_ar}
+                          {selectedTrackObj && selectedTrack !== 'skip' && (
+                            <> &nbsp;•&nbsp; مسار: {selectedTrackObj.name_ar} {TRACK_ICONS[selectedTrackObj.name_ar] || '📚'}</>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -685,6 +865,13 @@ export default function OnboardingPage() {
                         )
                       })}
                     </div>
+
+                    {/* لافتة مدارس اللغات */}
+                    {selectedEduType === 'language' && (
+                      <div className="mb-4 rounded-xl border border-blue-200 bg-blue-50 p-3 text-xs text-blue-700">
+                        🌐 <strong>مدارس اللغات:</strong> ستظهر مواد Math و Science باللغة الإنجليزية مع أسئلة بالإنجليزية الكاملة.
+                      </div>
+                    )}
 
                     <button
                       onClick={handleSave}

@@ -17,17 +17,16 @@ import {
   Send,
   Sparkles,
   Trash2,
-  X,
 } from 'lucide-react'
 
 // ─── أنواع الأقسام ────────────────────────────────────────────────────────────
 const SECTION_TYPES = [
-  { value: 'intro', label: 'مقدمة الدرس', color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/30' },
-  { value: 'content', label: 'نص الدرس الأصلي', color: 'text-indigo-400', bg: 'bg-indigo-500/10', border: 'border-indigo-500/30' },
-  { value: 'vocabulary', label: 'مفردات وكلمات', color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30' },
-  { value: 'rules', label: 'قواعد وأساسيات', color: 'text-violet-400', bg: 'bg-violet-500/10', border: 'border-violet-500/30' },
-  { value: 'examples', label: 'أمثلة مشروحة', color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/30' },
-  { value: 'summary', label: 'ملخص الدرس', color: 'text-rose-400', bg: 'bg-rose-500/10', border: 'border-rose-500/30' },
+  { value: 'intro', label: 'مقدمة الدرس', color: 'text-blue-600', bg: 'bg-blue-50/50', border: 'border-blue-100' },
+  { value: 'content', label: 'نص الدرس الأصلي', color: 'text-indigo-600', bg: 'bg-indigo-50/50', border: 'border-indigo-100' },
+  { value: 'vocabulary', label: 'مفردات وكلمات', color: 'text-emerald-600', bg: 'bg-emerald-50/50', border: 'border-emerald-100' },
+  { value: 'rules', label: 'قواعد وأساسيات', color: 'text-violet-600', bg: 'bg-violet-50/50', border: 'border-violet-100' },
+  { value: 'examples', label: 'أمثلة مشروحة', color: 'text-amber-600', bg: 'bg-amber-50/50', border: 'border-amber-100' },
+  { value: 'summary', label: 'ملخص الدرس', color: 'text-rose-600', bg: 'bg-rose-50/50', border: 'border-rose-100' },
 ] as const
 
 type SectionType = typeof SECTION_TYPES[number]['value']
@@ -92,7 +91,9 @@ export function LessonContentEditor({
   }
 
   function removeSection(id: string) {
-    setSections((prev) => prev.filter((s) => s.id !== id))
+    if (confirm('هل أنت متأكد من حذف هذا القسم؟ لا يمكن التراجع عن هذا الإجراء.')) {
+      setSections((prev) => prev.filter((s) => s.id !== id))
+    }
   }
 
   function updateSection(id: string, field: keyof Section, value: string) {
@@ -187,12 +188,14 @@ export function LessonContentEditor({
 
   // ─── حذف تدريب ────────────────────────────────────────────────────────────
   async function removeExercise(idx: number, exId?: string) {
-    if (exId) {
-      await fetch(`/api/teacher/lessons/${lessonId}/exercises/${exId}`, {
-        method: 'DELETE',
-      })
+    if (confirm('هل أنت متأكد من حذف هذا التدريب؟ لا يمكن التراجع عن هذا الإجراء.')) {
+      if (exId) {
+        await fetch(`/api/teacher/lessons/${lessonId}/exercises/${exId}`, {
+          method: 'DELETE',
+        })
+      }
+      setExercises((prev) => prev.filter((_, i) => i !== idx))
     }
-    setExercises((prev) => prev.filter((_, i) => i !== idx))
   }
 
   const getSectionMeta = (type: string) =>
@@ -203,10 +206,10 @@ export function LessonContentEditor({
       {/* رسالة الحفظ */}
       {saveMsg && (
         <div
-          className={`rounded-xl px-4 py-3 text-sm font-medium ${
+          className={`rounded-2xl px-4 py-3 text-sm font-bold border ${
             saveMsg.startsWith('خطأ')
-              ? 'bg-rose-500/10 text-rose-400'
-              : 'bg-emerald-500/10 text-emerald-400'
+              ? 'bg-rose-50 border-rose-100 text-rose-700'
+              : 'bg-emerald-50 border-emerald-100 text-emerald-700'
           }`}
         >
           {saveMsg}
@@ -214,7 +217,7 @@ export function LessonContentEditor({
       )}
 
       {/* تبويبات */}
-      <div className="flex gap-1 rounded-xl bg-slate-800 p-1">
+      <div className="flex gap-1 rounded-2xl bg-slate-100 p-1">
         {[
           { key: 'content', label: 'أقسام الدرس', icon: BookText },
           { key: 'exercises', label: `التدريبات (${exercises.length})`, icon: Brain },
@@ -222,10 +225,10 @@ export function LessonContentEditor({
           <button
             key={key}
             onClick={() => setActiveTab(key as any)}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-medium transition-all ${
+            className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-sm transition-all ${
               activeTab === key
-                ? 'bg-indigo-600 text-white shadow-lg'
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-100'
+                : 'text-slate-500 hover:text-slate-800 font-medium'
             }`}
           >
             <Icon className="h-4 w-4" />
@@ -242,18 +245,18 @@ export function LessonContentEditor({
             return (
               <div
                 key={section.id}
-                className={`rounded-2xl border ${meta.border} ${meta.bg} p-5 transition-all`}
+                className={`rounded-2xl border ${meta.border} ${meta.bg} p-5 transition-all shadow-sm bg-white`}
               >
                 {/* رأس القسم */}
-                <div className="mb-3 flex items-center gap-3">
-                  <GripVertical className="h-4 w-4 text-slate-500" />
+                <div className="mb-4 flex items-center gap-3">
+                  <GripVertical className="h-4 w-4 text-slate-400" />
 
                   <select
                     value={section.section_type}
                     onChange={(e) =>
                       updateSection(section.id, 'section_type', e.target.value)
                     }
-                    className={`rounded-lg border border-slate-600 bg-slate-800/70 px-3 py-1.5 text-xs font-bold ${meta.color} focus:outline-none`}
+                    className={`rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold ${meta.color} focus:border-indigo-300 focus:outline-none shadow-sm`}
                   >
                     {SECTION_TYPES.map((t) => (
                       <option key={t.value} value={t.value}>
@@ -267,27 +270,27 @@ export function LessonContentEditor({
                     placeholder="عنوان القسم (اختياري)"
                     value={section.title}
                     onChange={(e) => updateSection(section.id, 'title', e.target.value)}
-                    className="flex-1 rounded-lg border border-slate-600 bg-slate-800/50 px-3 py-1.5 text-sm text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none"
+                    className="flex-1 rounded-xl border border-slate-200 bg-white px-3.5 py-1.5 text-sm text-slate-800 placeholder-slate-400 focus:border-indigo-500 focus:outline-none shadow-sm"
                   />
 
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => moveSection(section.id, 'up')}
                       disabled={idx === 0}
-                      className="rounded p-1 text-slate-500 hover:text-white disabled:opacity-30"
+                      className="rounded p-1 text-slate-400 hover:text-slate-800 disabled:opacity-30"
                     >
                       <ChevronUp className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => moveSection(section.id, 'down')}
                       disabled={idx === sections.length - 1}
-                      className="rounded p-1 text-slate-500 hover:text-white disabled:opacity-30"
+                      className="rounded p-1 text-slate-400 hover:text-slate-800 disabled:opacity-30"
                     >
                       <ChevronDown className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => removeSection(section.id)}
-                      className="rounded p-1 text-slate-500 hover:text-rose-400"
+                      className="rounded p-1 text-slate-400 hover:text-rose-600"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -307,9 +310,9 @@ export function LessonContentEditor({
                   value={section.body}
                   onChange={(e) => updateSection(section.id, 'body', e.target.value)}
                   rows={6}
-                  className="w-full resize-y rounded-xl border border-slate-600 bg-slate-900/50 p-4 text-sm leading-relaxed text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none"
+                  className="w-full resize-y rounded-2xl border border-slate-200 bg-white p-4 text-sm leading-relaxed text-slate-800 placeholder-slate-400 focus:border-indigo-500 focus:outline-none shadow-sm"
                 />
-                <div className="mt-1 text-left text-xs text-slate-500">
+                <div className="mt-1 text-left text-xs text-slate-400">
                   {section.body.length} حرف
                 </div>
               </div>
@@ -322,7 +325,7 @@ export function LessonContentEditor({
               <button
                 key={t.value}
                 onClick={() => addSection(t.value)}
-                className={`flex items-center gap-1.5 rounded-lg border border-dashed border-slate-600 px-3 py-2 text-xs font-medium ${t.color} hover:border-current transition-colors`}
+                className={`flex items-center gap-1.5 rounded-xl border border-dashed border-slate-300 bg-white px-3 py-2 text-xs font-bold ${t.color} hover:bg-slate-50 hover:border-indigo-300 transition-all shadow-sm`}
               >
                 <Plus className="h-3 w-3" />
                 {t.label}
@@ -331,21 +334,21 @@ export function LessonContentEditor({
           </div>
 
           {/* زر توليد التدريبات بالذكاء الاصطناعي */}
-          <div className="rounded-2xl border border-indigo-500/20 bg-indigo-500/5 p-5">
+          <div className="rounded-2xl border border-indigo-100 bg-indigo-50/50 p-5">
             <div className="flex items-center justify-between">
               <div>
-                <div className="flex items-center gap-2 font-semibold text-indigo-300">
+                <div className="flex items-center gap-2 font-bold text-indigo-700">
                   <Sparkles className="h-4 w-4" />
                   توليد تدريبات بالذكاء الاصطناعي
                 </div>
-                <p className="mt-1 text-xs text-slate-400">
+                <p className="mt-1 text-xs text-slate-500">
                   سيقرأ الذكاء الاصطناعي نص الدرس ويميز بين النص الأصلي والمقدمات ويولد تدريبات هادفة
                 </p>
               </div>
               <button
                 onClick={generateAiExercises}
                 disabled={aiGenerating}
-                className="flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-indigo-700 disabled:opacity-60"
+                className="flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-indigo-700 disabled:opacity-60 shadow-sm shadow-indigo-100"
               >
                 {aiGenerating ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -356,7 +359,7 @@ export function LessonContentEditor({
               </button>
             </div>
             {aiError && (
-              <div className="mt-3 rounded-lg bg-rose-500/10 px-3 py-2 text-xs text-rose-400">
+              <div className="mt-3 rounded-xl bg-rose-50 border border-rose-100 px-3 py-2 text-xs text-rose-700">
                 {aiError}
               </div>
             )}
@@ -368,15 +371,15 @@ export function LessonContentEditor({
       {activeTab === 'exercises' && (
         <div className="space-y-4">
           {exercises.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-700 p-12 text-center">
-              <Brain className="mx-auto h-10 w-10 text-slate-600" />
-              <p className="mt-3 text-slate-400">لا توجد تدريبات بعد</p>
-              <p className="mt-1 text-xs text-slate-500">
+            <div className="rounded-3xl border border-dashed border-slate-200 bg-white p-12 text-center shadow-sm">
+              <Brain className="mx-auto h-10 w-10 text-slate-300" />
+              <p className="mt-3 font-bold text-slate-500">لا توجد تدريبات بعد</p>
+              <p className="mt-1 text-xs text-slate-400">
                 استخدم زر التوليد بالذكاء الاصطناعي أو أضف تدريبات يدوياً
               </p>
               <button
                 onClick={() => setActiveTab('content')}
-                className="mt-4 flex items-center gap-2 mx-auto rounded-xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-700"
+                className="mt-4 flex items-center gap-2 mx-auto rounded-xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-700 shadow-sm shadow-indigo-100"
               >
                 <Sparkles className="h-4 w-4" />
                 اذهب لتوليد التدريبات
@@ -386,23 +389,23 @@ export function LessonContentEditor({
             exercises.map((ex, idx) => (
               <div
                 key={idx}
-                className="rounded-xl border border-slate-700 bg-slate-800/40 p-5"
+                className="rounded-2xl border border-border bg-white p-5 shadow-sm"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="rounded-full bg-slate-700 px-2 py-0.5 text-xs font-bold text-slate-300">
+                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-600">
                         {idx + 1}
                       </span>
                       <span
-                        className={`text-xs font-medium ${
+                        className={`text-xs font-bold ${
                           ex.question_type === 'mcq'
-                            ? 'text-indigo-400'
+                            ? 'text-indigo-600'
                             : ex.question_type === 'true_false'
-                            ? 'text-emerald-400'
+                            ? 'text-emerald-600'
                             : ex.question_type === 'fill_blank'
-                            ? 'text-amber-400'
-                            : 'text-violet-400'
+                            ? 'text-amber-600'
+                            : 'text-violet-600'
                         }`}
                       >
                         {ex.question_type === 'mcq'
@@ -414,18 +417,18 @@ export function LessonContentEditor({
                           : 'سؤال مقالي'}
                       </span>
                       {ex.source === 'ai_generated' && (
-                        <span className="flex items-center gap-1 rounded-full bg-indigo-500/10 px-2 py-0.5 text-xs text-indigo-400">
+                        <span className="flex items-center gap-1 rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-bold text-indigo-700">
                           <Sparkles className="h-3 w-3" />
                           AI
                         </span>
                       )}
                       <span
-                        className={`rounded-full px-2 py-0.5 text-xs ${
+                        className={`rounded-full px-2 py-0.5 text-xs font-bold ${
                           ex.difficulty_level === 'easy'
-                            ? 'bg-emerald-500/10 text-emerald-400'
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
                             : ex.difficulty_level === 'hard'
-                            ? 'bg-rose-500/10 text-rose-400'
-                            : 'bg-amber-500/10 text-amber-400'
+                            ? 'bg-rose-50 text-rose-700 border border-rose-100'
+                            : 'bg-amber-50 text-amber-700 border border-amber-100'
                         }`}
                       >
                         {ex.difficulty_level === 'easy'
@@ -436,17 +439,17 @@ export function LessonContentEditor({
                       </span>
                     </div>
 
-                    <p className="text-sm font-medium text-white">{ex.question_text}</p>
+                    <p className="text-sm font-bold text-slate-800">{ex.question_text}</p>
 
                     {ex.options && ex.options.length > 0 && (
-                      <div className="mt-2 space-y-1">
+                      <div className="mt-2 space-y-1.5">
                         {ex.options.map((opt, oi) => (
                           <div
                             key={oi}
-                            className={`rounded-lg px-3 py-1.5 text-xs ${
+                            className={`rounded-xl px-3 py-1.5 text-xs ${
                               opt === ex.correct_answer
-                                ? 'bg-emerald-500/15 text-emerald-400 font-bold'
-                                : 'bg-slate-700/50 text-slate-400'
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-100 font-bold'
+                                : 'bg-slate-50 text-slate-600 border border-slate-100'
                             }`}
                           >
                             {opt === ex.correct_answer && '✓ '}
@@ -457,13 +460,13 @@ export function LessonContentEditor({
                     )}
 
                     {ex.question_type !== 'mcq' && (
-                      <div className="mt-2 rounded-lg bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-400">
+                      <div className="mt-2 rounded-xl bg-emerald-50 border border-emerald-100 px-3 py-1.5 text-xs text-emerald-700 font-bold">
                         الإجابة: {ex.correct_answer}
                       </div>
                     )}
 
                     {ex.explanation && (
-                      <div className="mt-2 text-xs text-slate-500 border-t border-slate-700 pt-2">
+                      <div className="mt-2 text-xs text-slate-500 border-t border-slate-100 pt-2">
                         💡 {ex.explanation}
                       </div>
                     )}
@@ -471,7 +474,7 @@ export function LessonContentEditor({
 
                   <button
                     onClick={() => removeExercise(idx, ex.id)}
-                    className="shrink-0 rounded-lg p-1.5 text-slate-500 hover:bg-rose-500/10 hover:text-rose-400 transition"
+                    className="shrink-0 rounded-xl p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -483,8 +486,8 @@ export function LessonContentEditor({
       )}
 
       {/* ─── شريط الحفظ ─────────────────────────────────────────────────────── */}
-      <div className="sticky bottom-4 flex items-center justify-between gap-4 rounded-2xl border border-slate-700 bg-slate-900/95 px-6 py-4 backdrop-blur-sm">
-        <div className="text-xs text-slate-500">
+      <div className="sticky bottom-4 flex items-center justify-between gap-4 rounded-2xl border border-border bg-white/95 px-6 py-4 shadow-lg backdrop-blur-sm">
+        <div className="text-xs text-slate-500 font-medium">
           {sections.filter((s) => s.body.trim()).length} أقسام •{' '}
           {exercises.length} تدريب
         </div>
@@ -492,7 +495,7 @@ export function LessonContentEditor({
           <button
             onClick={() => handleSave('draft')}
             disabled={saving}
-            className="flex items-center gap-2 rounded-xl border border-slate-600 px-4 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-slate-800 disabled:opacity-60"
+            className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-600 transition hover:bg-slate-50 disabled:opacity-60 shadow-sm"
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             حفظ مسودة
@@ -500,7 +503,7 @@ export function LessonContentEditor({
           <button
             onClick={() => handleSave('publish')}
             disabled={saving}
-            className="flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-indigo-700 disabled:opacity-60"
+            className="flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-indigo-700 disabled:opacity-60 shadow-sm shadow-indigo-100"
           >
             {saving ? (
               <Loader2 className="h-4 w-4 animate-spin" />

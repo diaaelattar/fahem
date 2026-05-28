@@ -258,12 +258,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'المستند غير موجود' }, { status: 404 })
 
     const [{ data: subject }, { data: grade }] = (await Promise.all([
-      supabase.from('subjects').select('name_ar').eq('id', subjectId).single(),
+      supabase.from('subjects').select('name_ar, teaching_language').eq('id', subjectId).single(),
       supabase.from('grades').select('name_ar').eq('id', gradeId).single(),
     ])) as [{ data: any }, { data: any }]
 
     const subjectName = subject?.name_ar || 'غير محدد'
     const gradeName = grade?.name_ar || 'غير محدد'
+    // لغة تدريس المادة: arabic أو english (لمدارس اللغات)
+    const teachingLanguage: string = subject?.teaching_language || 'arabic'
+    const isEnglishSubject = teachingLanguage === 'english'
+
+    // تعليمات اللغة للذكاء الاصطناعي
+    const languageInstruction = isEnglishSubject
+      ? `
+## ⚠️ تعليمات لغة التوليد — إلزامية مطلقة
+This subject is taught in ENGLISH (Language Schools / مدارس اللغات). 
+You MUST generate ALL question texts, answer choices, correct answers, and explanations in **ENGLISH ONLY**.
+Use precise Cambridge/IGCSE-aligned scientific and mathematical terminology.
+For complex technical terms, you MAY add an Arabic translation in parentheses to aid student comprehension. Example: "What is the function of the mitochondria (متقدرة الخلية)?"
+`
+      : ''
 
     // ── 4. تحديث الحالة إلى processing ───────────────────────────────────
     await (supabase.from('documents') as any)
@@ -271,6 +285,11 @@ export async function POST(request: NextRequest) {
       .eq('id', documentId)
 
     let finalResult: any = null
+
+    // دمج تعليمات اللغة في التعليمات المخصصة
+    const mergedCustomInstructions = isEnglishSubject
+      ? `${languageInstruction}\n${customInstructions || ''}`
+      : customInstructions
 
     // ── 5. المسار الأول: نص ملصوق مباشرةً ──────────────────────────────
     if (fileType === 'text' && pastedText && pastedText.trim().length >= 50) {
@@ -281,7 +300,7 @@ export async function POST(request: NextRequest) {
         questionCount,
         requestedTypes,
         targetCognitiveLevel,
-        customInstructions,
+        customInstructions: mergedCustomInstructions,
         passageBased,
       }
       const prompt =
@@ -333,7 +352,7 @@ export async function POST(request: NextRequest) {
           questionCount,
           requestedTypes,
           targetCognitiveLevel,
-          customInstructions,
+          customInstructions: mergedCustomInstructions,
           mode: generationMode,
           passageBased,
         }
@@ -409,7 +428,7 @@ export async function POST(request: NextRequest) {
         questionCount,
         requestedTypes,
         targetCognitiveLevel,
-        customInstructions,
+        customInstructions: mergedCustomInstructions,
         passageBased,
       })
       const genResult = await generateTextQuestionsWithFallback(prompt)

@@ -224,10 +224,13 @@ export function TeacherExamBuilder({
     })
   }
 
-  const removeQuestion = (id: string) =>
-    setSelectedQuestions((prev) =>
-      prev.filter((q) => q.id !== id).map((q, i) => ({ ...q, order: i + 1 }))
-    )
+  const removeQuestion = (id: string) => {
+    if (confirm('هل أنت متأكد من رغبتك في حذف هذا السؤال من الاختبار؟')) {
+      setSelectedQuestions((prev) =>
+        prev.filter((q) => q.id !== id).map((q, i) => ({ ...q, order: i + 1 }))
+      )
+    }
+  }
 
   const validate = (): string => {
     if (!form.groupId) return 'يرجى اختيار المجموعة الدراسية'
@@ -571,7 +574,11 @@ export function TeacherExamBuilder({
           </button>
         ) : (
           <button
-            onClick={() => router.back()}
+            onClick={() => {
+              if (confirm('هل أنت متأكد من إلغاء إنشاء/تعديل هذا الاختبار؟ سيتم فقدان أي تغييرات غير محفوظة.')) {
+                router.back()
+              }
+            }}
             className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-500 shadow-sm hover:bg-slate-50"
           >
             إلغاء
