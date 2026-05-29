@@ -1,7 +1,9 @@
 'use client'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
-import { Clock, ClipboardList, CheckCircle } from 'lucide-react'
+import { Clock, ClipboardList, CheckCircle, Share2 } from 'lucide-react'
+import { useState } from 'react'
+import { ExamShareModal } from './ExamShareModal'
 
 const container = {
   hidden: { opacity: 0 },
@@ -14,6 +16,30 @@ const container = {
 const item = {
   hidden: { opacity: 0, y: 20, scale: 0.97 },
   show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.35 } },
+}
+
+// زر المشاركة المنفصل لكل اختبار
+function ShareButton({ examId, examTitle }: { examId: string; examTitle: string }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="flex items-center justify-center gap-1 rounded-lg py-2 text-xs font-bold text-slate-600 transition-colors hover:bg-teal-50 hover:text-teal-600"
+        title="مشاركة الاختبار"
+      >
+        <Share2 className="h-3.5 w-3.5" />
+        مشاركة
+      </button>
+      {open && (
+        <ExamShareModal
+          examId={examId}
+          examTitle={examTitle}
+          onClose={() => setOpen(false)}
+        />
+      )}
+    </>
+  )
 }
 
 export function AnimatedExamGrid({ exams }: { exams: any[] }) {
@@ -54,25 +80,26 @@ export function AnimatedExamGrid({ exams }: { exams: any[] }) {
               {exam.questions_count || 0} أسئلة
             </div>
           </div>
-          <div className="mt-auto grid grid-cols-3 gap-2 border-t border-slate-100 bg-slate-50 p-4">
+          <div className="mt-auto grid grid-cols-4 gap-2 border-t border-slate-100 bg-slate-50 p-4">
             <Link
               href={`/teacher/exams/${exam.id}/edit`}
               className="rounded-lg py-2 text-center text-xs font-bold text-slate-600 transition-colors hover:bg-indigo-50 hover:text-indigo-600"
             >
-              تعديل الأسئلة
+              تعديل
             </Link>
             <Link
               href={`/teacher/reports?exam_id=${exam.id}`}
               className="rounded-lg py-2 text-center text-xs font-bold text-slate-600 transition-colors hover:bg-emerald-50 hover:text-emerald-600"
             >
-              النتائج والتقارير
+              النتائج
             </Link>
             <Link
               href={`/teacher/exams/${exam.id}/print`}
               className="rounded-lg py-2 text-center text-xs font-bold text-slate-600 transition-colors hover:bg-purple-50 hover:text-purple-600"
             >
-              🖨️ معاينة وطباعة
+              🖨️ طباعة
             </Link>
+            <ShareButton examId={exam.id} examTitle={exam.title} />
           </div>
         </motion.div>
       ))}

@@ -41,7 +41,8 @@ export default async function TeacherLessonsPage({
   const teacherSubjectId = teacherData?.subject_id ?? null
   const teacherSubject = teacherData?.subjects as unknown as { name_ar: string; icon: string } | null
 
-  if (!teacherSubjectId) redirect('/teacher/settings?error=missing_subject')
+  // (إذا لم يكن للمعلم مادة، فاللياوت يُعيد توجيهه تلقائياً لـ teacher-onboarding)
+  if (!teacherSubjectId) redirect('/auth/teacher-onboarding')
 
   // جلب الصفوف والوحدات
   const [{ data: grades }, unitsRes] = await Promise.all([

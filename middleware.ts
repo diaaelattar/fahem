@@ -67,6 +67,13 @@ export async function middleware(request: NextRequest) {
   const isTeacherRoute = pathname.startsWith('/teacher')
   const isProtectedRoute = isAdminRoute || isStudentRoute || isTeacherRoute
 
+  // ── مسارات الضيف العامة — لا تحتاج auth ─────────────────────────────────
+  const isGuestExamRoute = pathname.startsWith('/exam/')
+  const isGuestExamAPI = pathname.startsWith('/api/exam/guest')
+  if (isGuestExamRoute || isGuestExamAPI) {
+    return supabaseResponse
+  }
+
   // ── 0. حماية IP على مسارات المصادقة ضد هجمات التخمين (Brute-Force) ─────────────
   if (pathname.startsWith('/auth/') || pathname.startsWith('/api/auth/')) {
     const ip =

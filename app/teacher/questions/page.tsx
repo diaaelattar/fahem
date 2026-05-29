@@ -53,7 +53,7 @@ export default async function TeacherQuestionsPage({
   } | null
 
   if (!teacherSubjectId) {
-    redirect('/teacher/settings?error=missing_subject')
+    redirect('/auth/teacher-onboarding')
   }
 
   const [{ data: grades }, { data: semesters }] = await Promise.all([

@@ -19,26 +19,11 @@ import {
 
 interface Props {
   profile: { id: string; full_name: string; email?: string }
-  teacher: {
-    subject_id?: string
-    is_verified?: boolean
-    subscription_status?: string
-    subscription_ends_at?: string
-    print_directorate?: string | null
-    print_administration?: string | null
-    print_school_name?: string | null
-    print_academic_year?: string | null
-    print_header_type?: 'official' | 'personal' | 'both'
-    teacher_display_name?: string | null
-    teacher_title?: string | null
-    teacher_phone?: string | null
-    teacher_social?: string | null
-    teacher_logo_url?: string | null
-    teacher_watermark_text?: string | null
-    show_watermark?: boolean
-  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  teacher: Record<string, any>
   subjectName: string
   allSubjects?: { id: number; name_ar: string }[]
+  errorMsg?: string | null
 }
 
 const inputCls =
@@ -50,6 +35,7 @@ export function TeacherSettingsClient({
   teacher,
   subjectName,
   allSubjects,
+  errorMsg,
 }: Props) {
   const supabase = createClient()
 
@@ -216,6 +202,17 @@ export function TeacherSettingsClient({
 
   return (
     <div className="mx-auto max-w-4xl space-y-8">
+      {/* ── Error banner (from redirect) ── */}
+      {errorMsg && (
+        <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4">
+          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+          <div>
+            <p className="font-bold text-amber-800">تنبيه</p>
+            <p className="text-sm text-amber-700">{errorMsg}</p>
+          </div>
+        </div>
+      )}
+
       {/* ── Page title ── */}
       <div>
         <h1 className="text-2xl font-black text-slate-900">⚙️ الإعدادات</h1>

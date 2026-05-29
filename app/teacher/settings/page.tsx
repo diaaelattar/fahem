@@ -3,17 +3,25 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { TeacherSettingsClient } from '@/components/teacher/TeacherSettingsClient'
 
-export default async function TeacherSettingsPage() {
+interface SearchParams {
+  error?: string
+}
+
+export default async function TeacherSettingsPage({
+  searchParams,
+}: {
+  searchParams: SearchParams
+}) {
   const profile = await getCurrentProfile()
   if (!profile || profile.role !== 'teacher') redirect('/auth/login')
 
   const supabase = await createClient()
 
+  // Use select('*') to avoid schema-cache errors when new columns haven't been
+  // applied to the live DB yet — the component handles missing keys gracefully.
   const { data: teacher } = await supabase
     .from('teachers')
-    .select(
-      'subject_id, is_verified, subscription_status, subscription_ends_at, print_directorate, print_administration, print_school_name, print_academic_year, print_header_type, teacher_display_name, teacher_title, teacher_phone, teacher_social, teacher_logo_url, teacher_watermark_text, show_watermark'
-    )
+    .select('*')
     .eq('id', profile.id)
     .single()
 
@@ -30,12 +38,19 @@ export default async function TeacherSettingsPage() {
     .select('id, name_ar')
     .order('name_ar')
 
+  // Map error codes to Arabic messages
+  const errorMessages: Record<string, string> = {
+    missing_subject: 'يجب تحديد المادة الدراسية أولاً قبل استخدام هذه الخاصية.',
+  }
+  const errorMsg = searchParams.error ? errorMessages[searchParams.error] ?? null : null
+
   return (
     <TeacherSettingsClient
       profile={profile}
       teacher={teacher || {}}
       subjectName={subject?.name_ar || ''}
       allSubjects={subjects || []}
+      errorMsg={errorMsg}
     />
   )
 }
