@@ -35,17 +35,18 @@ export function TeacherOnboardingForm({ subjects }: { subjects: Subject[] }) {
       } = await supabase.auth.getUser()
       if (!user) throw new Error('غير مسجل الدخول')
 
-      const { error: updateError } = await supabase
-        .from('teachers')
-        .update({ subject_id: selectedSubject })
-        .eq('id', user.id)
+      const { error: updateError } = await supabase.from('teachers').upsert({
+        id: user.id,
+        subject_id: selectedSubject,
+        subscription_status: 'trial',
+      })
 
       if (updateError) throw updateError
 
       router.push('/teacher/dashboard')
       router.refresh()
-    } catch (err: any) {
-      setError(err.message || 'حدث خطأ أثناء حفظ البيانات')
+    } catch (err: unknown) {
+      setError((err as Error).message || 'حدث خطأ أثناء حفظ البيانات')
       setLoading(false)
     }
   }
