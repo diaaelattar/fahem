@@ -52,8 +52,15 @@ export default async function TeacherQuestionsPage({
     icon: string
   } | null
 
+  // الـ layout يتحقق من subject_id ويحيل إلى onboarding عند الحاجة
+  // إزالة الـ redirect المكرر هنا يمنع سلسلة الإحالة الخاطئة
   if (!teacherSubjectId) {
-    redirect('/auth/teacher-onboarding')
+    // في حال نادر: إذا لم تكن المادة محددة، لا يُعاد توجيه المستخدم خارج بوابة المعلم
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <p className="text-lg font-bold text-slate-500">لم يتم تحديد مادتك بعد. يرجى إعداد حسابك من الإعدادات.</p>
+      </div>
+    )
   }
 
   const [{ data: grades }, { data: semesters }] = await Promise.all([

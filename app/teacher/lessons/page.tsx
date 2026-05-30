@@ -41,8 +41,15 @@ export default async function TeacherLessonsPage({
   const teacherSubjectId = teacherData?.subject_id ?? null
   const teacherSubject = teacherData?.subjects as unknown as { name_ar: string; icon: string } | null
 
-  // (إذا لم يكن للمعلم مادة، فاللياوت يُعيد توجيهه تلقائياً لـ teacher-onboarding)
-  if (!teacherSubjectId) redirect('/auth/teacher-onboarding')
+  // الـ layout يضمن بالفعل وجود subject_id ويحيل إلى onboarding عند الحاجة.
+  // إزالة الـ redirect المكرر هنا يمنع سلسلة الإحالة الخاطئة (lessons → onboarding → dashboard).
+  if (!teacherSubjectId) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <p className="text-lg font-bold text-slate-500">لم يتم تحديد مادتك بعد. يرجى إعداد حسابك من الإعدادات.</p>
+      </div>
+    )
+  }
 
   // جلب الصفوف والوحدات
   const [{ data: grades }, unitsRes] = await Promise.all([
