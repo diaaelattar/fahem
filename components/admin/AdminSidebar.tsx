@@ -17,6 +17,7 @@ import {
   X,
   GraduationCap,
   Megaphone,
+  School,
 } from 'lucide-react'
 
 const navItems = [
@@ -27,6 +28,7 @@ const navItems = [
   { href: '/admin/exams', icon: ClipboardList, label: 'الاختبارات' },
   { href: '/admin/students', icon: Users, label: 'الطلاب' },
   { href: '/admin/teachers', icon: GraduationCap, label: 'المعلمون' },
+  { href: '/admin/schools', icon: School, label: 'المدارس' },
   { href: '/admin/announcements', icon: Megaphone, label: 'إعلانات المنصة' },
   { href: '/admin/reports', icon: BarChart3, label: 'التقارير' },
 ]

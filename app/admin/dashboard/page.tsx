@@ -11,6 +11,7 @@ import {
   Award,
   TrendingDown,
   Minus,
+  School,
 } from 'lucide-react'
 
 export default async function AdminDashboardPage() {
@@ -34,6 +35,7 @@ export default async function AdminDashboardPage() {
     { data: recentAttempts },
     { count: passedCount },
     { count: totalCompletedAttempts },
+    { count: schoolsCount },
   ] = await Promise.all([
     supabase.from('students').select('*', { count: 'exact', head: true }),
     supabase
@@ -72,6 +74,9 @@ export default async function AdminDashboardPage() {
       .from('exam_attempts')
       .select('*', { count: 'exact', head: true })
       .not('completed_at', 'is', null),
+    supabase
+      .from('schools')
+      .select('*', { count: 'exact', head: true }),
   ])
 
   const calcChange = (
@@ -102,6 +107,13 @@ export default async function AdminDashboardPage() {
       icon: Users,
       color: 'bg-blue-500',
       change: calcChange(studentsCount ?? 0, studentsLastMonth ?? 0),
+    },
+    {
+      label: 'المدارس المسجلة',
+      value: schoolsCount ?? 0,
+      icon: School,
+      color: 'bg-rose-500',
+      change: { text: 'بوابة المدارس', positive: true },
     },
     {
       label: 'الاختبارات المنشورة',
@@ -137,7 +149,7 @@ export default async function AdminDashboardPage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         {stats.map((stat) => (
           <div key={stat.label} className="stat-card">
             <div className="mb-4 flex items-start justify-between">
@@ -178,7 +190,7 @@ export default async function AdminDashboardPage() {
       {/* Quick Actions */}
       <div className="rounded-2xl border border-border bg-white p-6">
         <h2 className="mb-4 text-lg font-bold">الإجراءات السريعة</h2>
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
           {[
             {
               href: '/admin/content',
@@ -197,6 +209,12 @@ export default async function AdminDashboardPage() {
               label: 'إدارة الطلاب',
               icon: '👤',
               color: 'bg-purple-50 hover:bg-purple-100 text-purple-700',
+            },
+            {
+              href: '/admin/schools',
+              label: 'إدارة المدارس',
+              icon: '🏫',
+              color: 'bg-rose-50 hover:bg-rose-100 text-rose-700',
             },
             {
               href: '/admin/reports',
