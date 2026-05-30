@@ -5,7 +5,6 @@ import {
   ClipboardList,
   HelpCircle,
   TrendingUp,
-  FileText,
   CheckCircle,
   Clock,
   Award,
@@ -248,6 +247,7 @@ export default async function AdminDashboardPage() {
         </div>
         {recentAttempts && recentAttempts.length > 0 ? (
           <div className="divide-y divide-border">
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
             {recentAttempts.map((attempt: any) => (
               <div
                 key={attempt.id}
