@@ -65,7 +65,9 @@ export async function middleware(request: NextRequest) {
   const isAdminRoute = pathname.startsWith('/admin')
   const isStudentRoute = pathname.startsWith('/student')
   const isTeacherRoute = pathname.startsWith('/teacher')
-  const isProtectedRoute = isAdminRoute || isStudentRoute || isTeacherRoute
+  const isSchoolAdminRoute = pathname.startsWith('/school')
+  const isProtectedRoute =
+    isAdminRoute || isStudentRoute || isTeacherRoute || isSchoolAdminRoute
 
   // ── مسارات الضيف العامة — لا تحتاج auth ─────────────────────────────────
   const isGuestExamRoute = pathname.startsWith('/exam/')
@@ -89,11 +91,12 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // ── 0b. حماية مسارات API الخاصة بالمعلمين والأدمن ───────────────────────────────
+  // ── 0b. حماية مسارات API الخاصة بالمعلمين والأدمن والمدارس ───────────────────────────────
   const isTeacherAPI = pathname.startsWith('/api/teacher/')
   const isAdminAPI = pathname.startsWith('/api/admin/')
+  const isSchoolAPI = pathname.startsWith('/api/school/')
 
-  if (isTeacherAPI || isAdminAPI) {
+  if (isTeacherAPI || isAdminAPI || isSchoolAPI) {
     if (!user) {
       return NextResponse.json({ error: 'غير مصرح. يرجى تسجيل الدخول أولاً.' }, { status: 401 })
     }
@@ -115,6 +118,13 @@ export async function middleware(request: NextRequest) {
     if (isAdminAPI && apiProfile?.role !== 'admin') {
       return NextResponse.json(
         { error: 'صلاحيات غير كافية. هذا المسار للمسؤولين فقط.' },
+        { status: 403 }
+      )
+    }
+
+    if (isSchoolAPI && apiProfile?.role !== 'school_admin' && apiProfile?.role !== 'admin') {
+      return NextResponse.json(
+        { error: 'صلاحيات غير كافية. هذا المسار لمديري المدارس فقط.' },
         { status: 403 }
       )
     }
@@ -155,13 +165,18 @@ export async function middleware(request: NextRequest) {
 
     // ── حماية المسارات بحسب الدور ─────────────────────────────────────────
 
-    // الأدمن يحاول الدخول لمسار طالب أو معلم → لوحة الأدمن
-    if (profile.role === 'admin' && (isStudentRoute || isTeacherRoute)) {
+    // الأدمن يحاول الدخول لمسار طالب أو معلم أو مدرسة → لوحة الأدمن
+    if (profile.role === 'admin' && (isStudentRoute || isTeacherRoute || isSchoolAdminRoute)) {
       return redirectWithCookies(request, '/admin/dashboard', supabaseResponse)
     }
 
-    // المعلم يحاول الدخول لمسار أدمن أو طالب → لوحة المعلم
-    if (profile.role === 'teacher' && (isAdminRoute || isStudentRoute)) {
+    // مدير المدرسة يحاول الدخول لمسار أدمن أو طالب أو معلم → لوحة المدرسة
+    if (profile.role === 'school_admin' && (isAdminRoute || isStudentRoute || isTeacherRoute)) {
+      return redirectWithCookies(request, '/school/dashboard', supabaseResponse)
+    }
+
+    // المعلم يحاول الدخول لمسار أدمن أو طالب أو مدرسة → لوحة المعلم
+    if (profile.role === 'teacher' && (isAdminRoute || isStudentRoute || isSchoolAdminRoute)) {
       return redirectWithCookies(
         request,
         '/teacher/dashboard',
@@ -169,8 +184,8 @@ export async function middleware(request: NextRequest) {
       )
     }
 
-    // الطالب يحاول الدخول لمسار أدمن أو معلم → لوحة الطالب
-    if (profile.role === 'student' && (isAdminRoute || isTeacherRoute)) {
+    // الطالب يحاول الدخول لمسار أدمن أو معلم أو مدرسة → لوحة الطالب
+    if (profile.role === 'student' && (isAdminRoute || isTeacherRoute || isSchoolAdminRoute)) {
       return redirectWithCookies(
         request,
         '/student/dashboard',
@@ -219,6 +234,12 @@ export async function middleware(request: NextRequest) {
 
     if (profile?.role === 'admin') {
       return redirectWithCookies(request, '/admin/dashboard', supabaseResponse)
+    } else if (profile?.role === 'school_admin') {
+      return redirectWithCookies(
+        request,
+        '/school/dashboard',
+        supabaseResponse
+      )
     } else if (profile?.role === 'teacher') {
       return redirectWithCookies(
         request,

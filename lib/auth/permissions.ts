@@ -2,7 +2,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 
-export type UserRole = 'admin' | 'student' | 'teacher'
+export type UserRole = 'admin' | 'school_admin' | 'student' | 'teacher'
 
 export async function getCurrentUser() {
   const supabase = await createClient()
@@ -60,6 +60,15 @@ export async function requireTeacher() {
   if (profile.role === 'admin') redirect('/admin/dashboard')
   if (profile.role === 'student') redirect('/student/dashboard')
   if (profile.role !== 'teacher') redirect('/auth/login')
+  return profile
+}
+
+export async function requireSchoolAdmin() {
+  const profile = await getCurrentProfile()
+  if (!profile) redirect('/auth/school/login')
+  if (profile.role === 'student') redirect('/student/dashboard')
+  if (profile.role === 'teacher') redirect('/teacher/dashboard')
+  if (profile.role !== 'school_admin' && profile.role !== 'admin') redirect('/auth/school/login')
   return profile
 }
 

@@ -10,7 +10,7 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-export type Role = 'admin' | 'student'
+export type Role = 'admin' | 'school_admin' | 'teacher' | 'student'
 export type QuestionType = 'mcq' | 'true_false' | 'fill_blank'
 export type DifficultyLevel = 'easy' | 'medium' | 'hard'
 export type ProcessingStatus = 'pending' | 'processing' | 'completed' | 'failed'
@@ -46,6 +46,7 @@ export interface Database {
           role: Role
           is_active: boolean
           is_premium: boolean | null
+          school_id: string | null
           created_at: string
           updated_at: string
         }
