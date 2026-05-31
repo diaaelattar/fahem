@@ -34,6 +34,11 @@ export function SchoolManagerClient({ initialSchools }: SchoolManagerClientProps
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  // حساب مدير المدرسة تلقائياً
+  const [adminName, setAdminName] = useState('')
+  const [adminEmail, setAdminEmail] = useState('')
+  const [adminPassword, setAdminPassword] = useState('')
+
   const filteredSchools = schools.filter((s) =>
     s.name?.toLowerCase().includes(search.toLowerCase()) ||
     s.slug?.toLowerCase().includes(search.toLowerCase())
@@ -45,22 +50,32 @@ export function SchoolManagerClient({ initialSchools }: SchoolManagerClientProps
     setLoading(true)
 
     try {
-      const { data, error: insertError } = await supabase
-        .from('schools')
-        .insert({
+      const response = await fetch('/api/admin/create-school', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           name,
-          slug: slug.toLowerCase().trim(),
+          slug,
           governorate,
           district,
           type,
-          stage
-        })
-        .select()
+          stage,
+          adminName: adminName.trim() || null,
+          adminEmail: adminEmail.trim() || null,
+          adminPassword: adminPassword || null,
+        }),
+      })
 
-      if (insertError) throw new Error(insertError.message)
+      const result = await response.json()
 
-      if (data && data[0]) {
-        setSchools([data[0], ...schools])
+      if (!response.ok) {
+        throw new Error(result.error || 'حدث خطأ غير متوقع أثناء التسجيل.')
+      }
+
+      if (result.success && result.school) {
+        setSchools([result.school, ...schools])
         handleCloseModal()
       }
     } catch (err: any) {
@@ -113,6 +128,9 @@ export function SchoolManagerClient({ initialSchools }: SchoolManagerClientProps
     setType('private')
     setStage('all')
     setError('')
+    setAdminName('')
+    setAdminEmail('')
+    setAdminPassword('')
   }
 
   return (
@@ -221,7 +239,7 @@ export function SchoolManagerClient({ initialSchools }: SchoolManagerClientProps
       {/* مودال إضافة مدرسة جديدة */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl space-y-6 relative overflow-hidden animate-in fade-in zoom-in-95 duration-200" dir="rtl">
+          <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl space-y-6 relative overflow-y-auto max-h-[90vh] animate-in fade-in zoom-in-95 duration-200" dir="rtl">
             <div className="flex justify-between items-start">
               <div className="flex items-center gap-2 text-slate-800">
                 <School className="h-5 w-5 text-primary" />
@@ -325,6 +343,53 @@ export function SchoolManagerClient({ initialSchools }: SchoolManagerClientProps
                     <option value="secondary">ثانوي</option>
                     <option value="all">الكل</option>
                   </select>
+                </div>
+              </div>
+
+              <div className="border-t border-slate-100 pt-4 space-y-4">
+                <div className="text-xs font-bold text-slate-400 flex items-center gap-1.5 uppercase">
+                  <span>👤 حساب مدير المدرسة (اختياري)</span>
+                </div>
+                
+                <div>
+                  <label className="mb-1.5 block text-[11px] font-bold text-slate-500 uppercase">
+                    اسم مدير الحساب
+                  </label>
+                  <input
+                    type="text"
+                    value={adminName}
+                    onChange={(e) => setAdminName(e.target.value)}
+                    placeholder="أحمد علي"
+                    className="w-full bg-white text-slate-800 placeholder-slate-400 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-primary focus:outline-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="mb-1.5 block text-[11px] font-bold text-slate-500 uppercase">
+                      البريد الإلكتروني للقرين
+                    </label>
+                    <input
+                      type="email"
+                      value={adminEmail}
+                      onChange={(e) => setAdminEmail(e.target.value)}
+                      placeholder="admin@school.com"
+                      className="w-full bg-white text-slate-800 placeholder-slate-400 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-primary focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-[11px] font-bold text-slate-500 uppercase">
+                      كلمة مرور الحساب
+                    </label>
+                    <input
+                      type="password"
+                      value={adminPassword}
+                      onChange={(e) => setAdminPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full bg-white text-slate-800 placeholder-slate-400 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:border-primary focus:outline-none"
+                    />
+                  </div>
                 </div>
               </div>
 
