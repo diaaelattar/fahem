@@ -56,8 +56,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'فشل إنشاء الدعوة: ' + insertError.message }, { status: 500 })
     }
 
-    // 5. توليد رابط الدعوة الكامل
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    // 5. توليد رابط الدعوة الكامل ديناميكياً بناءً على النطاق المستضيف للطلب
+    const host = req.headers.get('host') || 'localhost:3000'
+    const protocol = req.headers.get('x-forwarded-proto') || 'http'
+    const appUrl = `${protocol}://${host}`
     const inviteLink = `${appUrl}/auth/invite/${token}`
 
     return NextResponse.json({ success: true, inviteLink })
