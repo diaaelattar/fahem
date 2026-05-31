@@ -280,12 +280,18 @@ export default function LoginPage() {
                 إنشاء حساب مجاني <ArrowRight className="h-4 w-4 rotate-180" />
               </Link>
             </p>
-            <div className="border-t border-border pt-3">
+            <div className="border-t border-border pt-3 space-y-2">
               <Link
                 href="/auth/student-login"
                 className="inline-flex w-full items-center justify-center gap-2 rounded-xl border-2 border-indigo-200 bg-indigo-50 px-4 py-2.5 text-sm font-bold text-indigo-700 transition-colors hover:bg-indigo-100"
               >
                 🎓 طالب مُضاف من معلمك؟ ادخل بالكود
+              </Link>
+              <Link
+                href="/auth/school/login"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border-2 border-cyan-200 bg-cyan-50 px-4 py-2.5 text-sm font-bold text-cyan-700 transition-colors hover:bg-cyan-100"
+              >
+                🏫 بوابة الإدارة المدرسية والمنشآت
               </Link>
             </div>
           </div>
