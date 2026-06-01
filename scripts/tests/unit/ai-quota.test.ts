@@ -24,6 +24,8 @@ const FAKE_ROUTE = '/api/ai/explain-question'
 
 describe('checkAIQuota — AI Quota System', () => {
   beforeEach(() => {
+    process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://fake-supabase-url.supabase.co'
+    process.env.SUPABASE_SERVICE_ROLE_KEY = 'fake-service-role-key'
     mockRpc.mockReset()
   })
 

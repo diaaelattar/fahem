@@ -150,7 +150,11 @@ export async function POST(req: NextRequest) {
     } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'غير مصرح' }, { status: 401 })
+      // إعادة 401 مع Retry-After header لمساعدة الـ client على معالجة انتهاء JWT
+      return NextResponse.json(
+        { error: 'انتهت صلاحية الجلسة. يرجى تسجيل الدخول مجدداً.' },
+        { status: 401, headers: { 'Retry-After': '0' } }
+      )
     }
 
     const body = await req.json()
@@ -158,11 +162,12 @@ export async function POST(req: NextRequest) {
     if (!attemptId)
       return NextResponse.json({ error: 'Missing attemptId' }, { status: 400 })
 
-    // 1. Fetch Attempt
+    // 1. Fetch Attempt — مع التحقق من ملكية الطالب للمحاولة (أمان)
     const { data: attempt, error: attemptError } = await supabase
       .from('exam_attempts')
       .select('*, exams(total_points, passing_score)')
       .eq('id', attemptId)
+      .eq('student_id', user.id) // 🔒 تحقق من أن المحاولة تعود للطالب الحالي
       .single()
 
     if (attemptError || !attempt) throw new Error('Attempt not found')
@@ -202,15 +207,31 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 2. Fetch Questions
-    const { data: examQuestions } = await supabase
-      .from('exam_questions')
-      .select(
-        'points_override, questions(id, question_type, correct_answer, points, question_text, explanation)'
-      )
-      .eq('exam_id', attempt.exam_id)
+    // 2. Fetch Questions — مع Pagination لتجنب بطء الامتحانات الكبيرة (إصلاح م1)
+    const PAGE_SIZE = 50
+    let allExamQuestions: any[] = []
+    let from = 0
+    let hasMore = true
 
-    if (!examQuestions) throw new Error('Questions not found')
+    while (hasMore) {
+      const { data: page, error: pageError } = await supabase
+        .from('exam_questions')
+        .select(
+          'points_override, questions(id, question_type, correct_answer, points, question_text, explanation)'
+        )
+        .eq('exam_id', attempt.exam_id)
+        .range(from, from + PAGE_SIZE - 1)
+
+      if (pageError) throw pageError
+      if (!page || page.length === 0) break
+
+      allExamQuestions = [...allExamQuestions, ...page]
+      if (page.length < PAGE_SIZE) hasMore = false
+      from += PAGE_SIZE
+    }
+
+    const examQuestions = allExamQuestions
+    if (!examQuestions.length) throw new Error('Questions not found')
 
     let totalScore = 0
     let pointsToExclude = 0
@@ -390,12 +411,13 @@ export async function POST(req: NextRequest) {
           )
           aiFeedback = aiEval.feedback
         } catch (e) {
-          console.error('Failed to parse AI grading:', aiResultStr)
-          // Fallback: AI Busy -> Exclude from total points
+          console.error('Failed to parse AI grading:', aiResultStr, e)
+          // 🔧 إصلاح: isCorrect=false وليس true — لتجنب تقارير أداء مضللة
+          // السؤال يُستبعد من التقييم الكلي (pointsToExclude) ويُوضع للمراجعة اليدوية
           aiFeedback =
-            'تعذر التصحيح نظراً لانشغال المساعد الذكي. (تم استبعاد هذا السؤال من التقييم ولن يؤثر على درجاتك)'
+            'سيتم مراجعة هذا السؤال يدوياً من قِبل المعلم. (لن يؤثر على درجاتك في الوقت الحالي)'
           scoreAwarded = 0
-          isCorrect = true // Show as "neutral" or not explicitly red
+          isCorrect = false // 🔒 لا يجوز اعتبار السؤال صح عند فشل التصحيح
           pointsToExclude += qPoints
         }
       }

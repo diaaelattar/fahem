@@ -1,11 +1,28 @@
 import { createClient } from '@supabase/supabase-js'
 
-// ─── 1. إعداد عميل Supabase المسؤول للعمليات الأمنية والحسابية ─────────────────
-// نستخدم مفتاح الـ Service Role لتجنب تجاوز صلاحيات RLS أثناء تسجيل استهلاك الـ AI
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+// ─── التحقق من أن هذا الملف يعمل فقط على الخادم ───────────────────────────
+if (typeof window !== 'undefined') {
+  throw new Error(
+    '[rate-limiter] يجب استخدام هذا الملف فقط على الخادم (Server-Side). لا تستورده في Client Components.'
+  )
+}
+
+// ─── عميل Supabase المسؤول للعمليات الأمنية ──────────────────────────────────
+// نستخدم مفتاح Service Role لتجاوز RLS في سجلات Rate Limiting
+function getAdminClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (!url || !key) {
+    throw new Error(
+      'NEXT_PUBLIC_SUPABASE_URL أو SUPABASE_SERVICE_ROLE_KEY غير معرّفين في متغيرات البيئة'
+    )
+  }
+
+  return createClient(url, key, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  })
+}
 
 interface QuotaCheckResult {
   allowed: boolean
@@ -19,14 +36,15 @@ interface QuotaCheckResult {
 
 /**
  * دالة التحقق من كوتا الذكاء الاصطناعي اليومية للمستخدم
- * @param userId معرف المستخدم
- * @param apiRoute مسار الـ API المستدعى
+ * تستخدم دالة DB ذرية لتجنب Race Conditions
  */
 export async function checkAIQuota(
   userId: string,
   apiRoute: string
 ): Promise<QuotaCheckResult> {
   try {
+    const supabaseAdmin = getAdminClient()
+
     const { data, error } = await supabaseAdmin.rpc('check_and_log_ai_usage', {
       p_user_id: userId,
       p_api_route: apiRoute,
@@ -34,7 +52,7 @@ export async function checkAIQuota(
 
     if (error) {
       console.error('[AI Quota System Error]', error.message)
-      // في حالة حدوث خطأ بالنظام، نسمح بالعملية كفالباك لمنع تعطيل الخدمة
+      // في حالة خطأ في النظام، نسمح بالعملية لمنع تعطيل الخدمة
       return {
         allowed: true,
         limit: 100,
@@ -65,15 +83,16 @@ export async function checkAIQuota(
 
     if (!result.allowed) {
       if (result.role === 'student' && !result.is_premium) {
-        friendlyResult.message = `عفواً، لقد استنفذت الحد اليومي المجاني للاستخدام اليومي (${result.limit} عمليات). يرجى الترقية إلى باقة VIP للحصول على استخدام شبه غير محدود!`
+        friendlyResult.message = `عفواً، لقد استنفذت الحد اليومي المجاني للاستخدام (${result.limit} عمليات). يرجى الترقية إلى باقة VIP للحصول على استخدام شبه غير محدود!`
       } else {
-        friendlyResult.message = `عفواً، لقد تجاوزت الحد الأقصى للاستخدام اليومي الوقائي للـ AI اليوم (${result.limit} عملية). يرجى المحاولة مرة أخرى غداً.`
+        friendlyResult.message = `عفواً، لقد تجاوزت الحد الأقصى للاستخدام اليومي للـ AI اليوم (${result.limit} عملية). يرجى المحاولة مرة أخرى غداً.`
       }
     }
 
     return friendlyResult
-  } catch (err: any) {
-    console.error('[AI Quota Unexpected Exception]', err.message)
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[AI Quota Unexpected Exception]', msg)
     return {
       allowed: true,
       limit: 100,
@@ -85,37 +104,54 @@ export async function checkAIQuota(
   }
 }
 
-// ─── 2. نظام الـ Memory-based Rate Limiter للمسارات العامة (كحماية للـ Auth) ───
-const ipRequestCache = new Map<string, { count: number; resetTime: number }>()
+// ─── DB-based IP Rate Limiter (يعمل في Serverless/Edge) ──────────────────────
+// يحل مشكلة Memory Map التي لا تعمل عبر Instances متعددة في Vercel
 
 /**
- * دالة التحقق من معدل الطلبات للـ IP للحماية ضد هجمات القوة الغاشمة (Brute-Force)
- * @param ip عنوان الـ IP للطلب
- * @param limit الحد الأقصى للطلبات في الفترة
- * @param windowMs طول الفترة الزمنية بالمللي ثانية (مثال: دقيقة واحدة)
+ * التحقق من معدل الطلبات لعنوان IP
+ * يستخدم قاعدة البيانات للتخزين المركزي بدلاً من الذاكرة المحلية
  */
-export function checkIPRateLimit(
+export async function checkIPRateLimit(
   ip: string,
-  limit: number = 30,
+  limit: number = 20,
   windowMs: number = 60000
-): { allowed: boolean; remaining: number; resetTime: number } {
-  const now = Date.now()
-  const entry = ipRequestCache.get(ip)
+): Promise<{ allowed: boolean; remaining: number; resetTime: number }> {
+  try {
+    const supabaseAdmin = getAdminClient()
+    const windowSeconds = Math.ceil(windowMs / 1000)
 
-  if (!entry || now > entry.resetTime) {
-    // إدخال جديد أو انتهت صلاحية الفترة السابقة
-    const resetTime = now + windowMs
-    ipRequestCache.set(ip, { count: 1, resetTime })
-    return { allowed: true, remaining: limit - 1, resetTime }
+    const { data, error } = await supabaseAdmin.rpc(
+      'check_and_log_ip_rate_limit',
+      {
+        p_ip: ip,
+        p_endpoint: 'auth',
+        p_limit: limit,
+        p_window_seconds: windowSeconds,
+      }
+    )
+
+    if (error) {
+      console.error('[IP Rate Limit DB Error]', error.message)
+      // Fail-open: إذا فشل النظام، اسمح بالطلب
+      return { allowed: true, remaining: limit, resetTime: Date.now() + windowMs }
+    }
+
+    const result = data as {
+      allowed: boolean
+      count: number
+      limit: number
+      remaining: number
+    }
+
+    return {
+      allowed: result.allowed,
+      remaining: result.remaining,
+      resetTime: Date.now() + windowMs,
+    }
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[IP Rate Limit Exception]', msg)
+    // Fail-open للحفاظ على الخدمة
+    return { allowed: true, remaining: limit, resetTime: Date.now() + windowMs }
   }
-
-  // تحديث العداد الحالي
-  entry.count += 1
-  const remaining = Math.max(0, limit - entry.count)
-
-  if (entry.count > limit) {
-    return { allowed: false, remaining: 0, resetTime: entry.resetTime }
-  }
-
-  return { allowed: true, remaining, resetTime: entry.resetTime }
 }

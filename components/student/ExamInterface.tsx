@@ -27,6 +27,7 @@ import {
   getSubjectDirection,
   getSubjectTextAlignClass,
 } from '@/lib/utils/subject-formatting'
+import { submitExamSafely } from '@/lib/utils/exam-submit'
 
 interface Question {
   id: string
@@ -424,35 +425,21 @@ export function ExamInterface({
     }
 
     try {
-      // 1. Save answers
-      const answersWithImages = { ...answers }
-      const answersPayload = {
-        answers: answersWithImages,
-      }
-      const { error: updateError } = await supabase
-        .from('exam_attempts')
-        .update(answersPayload)
-        .eq('id', attemptId)
-      if (updateError) {
-        console.error('Error saving answers:', updateError)
-        throw new Error('فشل حفظ الإجابات: ' + updateError.message)
-      }
-
-      // 2. Grade Exam using AI Semantic Endpoint
-      const res = await fetch('/api/exams/grade', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ attemptId, imageAnswers }),
+      const gradingResult = await submitExamSafely({
+        attemptId,
+        answers: answers as Record<string, string>,
+        imageAnswers,
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'فشل التقييم')
 
-      setResult(data)
+      if (!gradingResult.success) {
+        throw new Error(gradingResult.error || 'فشل التقييم')
+      }
+
+      setResult(gradingResult)
       setSubmitted(true)
       clearSession() // clear local storage
     } catch (err: any) {
       alert('حدث خطأ أثناء تسليم الاختبار: ' + err.message)
-      // We can't revert storeSubmitting easily without a custom action, but page refresh will reset if needed
     }
   }, [
     answers,

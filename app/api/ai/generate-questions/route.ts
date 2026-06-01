@@ -7,6 +7,10 @@ import {
   GenerationMode,
 } from '@/lib/ai/prompts'
 import { parseGeminiJSON } from '@/lib/ai/gemini-client'
+import {
+  AdminGenerateQuestionsSchema,
+  formatZodError,
+} from '@/lib/schemas/ai-generation'
 
 // ─── إعداد Gemini ───────────────────────────────────────────────────────────
 function getGenAI() {
@@ -217,19 +221,32 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'غير مصرح' }, { status: 401 })
 
-    const { data: profile } = (await supabase
-      .from('profiles')
-      .select('role')
+    // ── 1b. تحقق من صلاحية الأدمن — جدول admins مباشرة (أكثر أماناً من profiles.role) ──
+    const { data: adminRecord } = await supabase
+      .from('admins')
+      .select('id')
       .eq('id', user.id)
-      .single()) as { data: any }
-    if (profile?.role !== 'admin')
+      .maybeSingle()
+
+    if (!adminRecord)
       return NextResponse.json(
         { error: 'هذه الخاصية للمديرين فقط' },
         { status: 403 }
       )
 
-    // ── 2. استلام البيانات ────────────────────────────────────────────────
-    const body = await request.json()
+    // ── 2. استلام البيانات مع Zod Validation ──
+    const rawBody = await request.json()
+    const validation = AdminGenerateQuestionsSchema.safeParse(rawBody)
+    if (!validation.success) {
+      return NextResponse.json(
+        {
+          error: 'بيانات غير صحيحة',
+          details: formatZodError(validation.error),
+        },
+        { status: 400 }
+      )
+    }
+
     const {
       documentId,
       fileType,
@@ -240,18 +257,18 @@ export async function POST(request: NextRequest) {
       fileData,
       chunkIndex,
       totalChunks,
-      generationMode = 'SMART_GEN',
-      questionCount = 12,
+      generationMode,
+      questionCount,
       requestedTypes,
       targetCognitiveLevel,
       customInstructions,
       passageBased,
-    } = body
+    } = validation.data
 
-    // ── 3. جلب المستند وبيانات المنهج ────────────────────────────────────
+    // ── 3. جلب المستند — تحديد الأعمدة المطلوبة فقط (إصلاح SELECT *) ──
     const { data: doc } = (await supabase
       .from('documents')
-      .select('*')
+      .select('id, file_url, file_type, processing_status, subject_id, grade_id')
       .eq('id', documentId)
       .single()) as { data: any }
     if (!doc)
@@ -360,33 +377,52 @@ For complex technical terms, you MAY add an Arabic translation in parentheses to
       finalResult = directGen.result
       const actualModel = directGen.modelUsed
 
-      // حفظ النص المستخرج في الخلفية (للأرشفة فقط، غير إلزامي)
-      try {
-        const model = getGenAI().getGenerativeModel({ model: actualModel })
-        const extractRes = await model.generateContent([
-          {
-            inlineData: {
-              mimeType,
-              data: fileBuffer.toString('base64'),
-            },
-          },
-          {
-            text: `استخرج كامل النص العربي الموجود في هذا المستند بدقة. من الضروري تحويل أي معادلات أو أسس أو كسور رياضية إلى صيغة LaTeX الصحيحة.`,
-          },
-        ])
-        const extractedText = extractRes.response.text()
-        if (extractedText.length > 50) {
-          await (supabase.from('documents') as any)
-            .update({ extracted_text: extractedText })
-            .eq('id', documentId)
+      // إصلاح ِ13: دمج استخراج النص مع توليد الأسئلة — بدلاً من طلبين منفصلين لنفس الملف
+      // نستخرج النص من حقل extracted_text الذي تطلب من Gemini تضمينه في الاستجابة
+      const rawResult = directGen.result as any
+      const extractedTextFromResult: string =
+        rawResult?.extracted_text ||
+        rawResult?.metadata?.extracted_text ||
+        ''
+
+      if (extractedTextFromResult.length > 50) {
+        // حفظ النص من نفس الطلب (بدون تكلفة إضافية)
+        ;(supabase.from('documents') as any)
+          .update({ extracted_text: extractedTextFromResult })
+          .eq('id', documentId)
+          .then(() => {})
+          .catch(() => {})
+      } else {
+        // Fallback: استخراج النص في الخلفية فقط إذا لم يتضمنه النموذج
+        try {
+          const model = getGenAI().getGenerativeModel({ model: actualModel })
+          const extractRes = await model.generateContent([
+            { inlineData: { mimeType, data: fileBuffer.toString('base64') } },
+            { text: 'استخرج كامل النص العربي الموجود في هذا المستند بدقة. من الضروري تحويل أي معادلات أو أسس أو كسور رياضية إلى صيغة LaTeX الصحيحة.' },
+          ])
+          const txt = extractRes.response.text()
+          if (txt.length > 50) {
+            ;(supabase.from('documents') as any)
+              .update({ extracted_text: txt })
+              .eq('id', documentId)
+              .then(() => {})
+              .catch(() => {})
+          }
+        } catch {
+          /* لا يُوقف العملية الرئيسية */
         }
-      } catch {
-        /* لا يُوقف العملية */
       }
 
       // ── 7. المسار الثالث: DOCX ─────────────────────────────────────────
     } else if (doc.file_url && fileType === 'docx') {
+      // إصلاح م5: فحص استجابة الجلب قبل استخدام البيانات
       const fileResponse = await fetch(doc.file_url)
+      if (!fileResponse.ok) {
+        return NextResponse.json(
+          { error: `فشل جلب ملف DOCX من التخزين (خطأ ${fileResponse.status})` },
+          { status: 400 }
+        )
+      }
       const fileBuffer = Buffer.from(await fileResponse.arrayBuffer())
 
       let extractedText = ''
@@ -400,22 +436,16 @@ For complex technical terms, you MAY add an Arabic translation in parentheses to
         console.error('mammoth error:', e)
       }
 
-      // Fallback: إذا فشل mammoth، أرسل كـ binary text لـ Gemini
+      // إصلاح م5: لا نُرسل DOCX binary لـ Gemini — البيانات ستكون مشوّهة تماماً
+      // يُنصح المستخدم بتحويل الملف لـ PDF أو الصق النص مباشرة
       if (extractedText.length < 50) {
-        const model = getGenAI().getGenerativeModel({ model: GEMINI_MODEL })
-        const r = await model.generateContent([
-          {
-            text: `فيما يلي محتوى ملف Word. حوّله إلى نص عربي قابل للقراءة:\n${fileBuffer.toString('utf-8').slice(0, 5000)}`,
-          },
-        ])
-        extractedText = r.response.text()
-      }
-
-      if (extractedText.length < 30) {
+        await (supabase.from('documents') as any)
+          .update({ processing_status: 'failed' })
+          .eq('id', documentId)
         return NextResponse.json(
           {
             error:
-              'تعذّر قراءة محتوى ملف Word. جرّب تحويله لـ PDF أو الصق النص مباشرة.',
+              'تعذّر قراءة محتوى ملف Word. يرجى تحويله إلى PDF أو نسخ النص ولصقه مباشرة في الحقل المخصص.',
           },
           { status: 400 }
         )

@@ -4,6 +4,10 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 import { QUESTION_GENERATION_PROMPT, SMART_GEN_PROMPT } from '@/lib/ai/prompts'
 import { parseGeminiJSON } from '@/lib/ai/gemini-client'
 import { checkAIQuota } from '@/lib/security/rate-limiter'
+import {
+  TeacherGenerateQuestionsSchema,
+  formatZodError,
+} from '@/lib/schemas/ai-generation'
 
 function getGenAI() {
   const keys = [
@@ -180,20 +184,31 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // ── 2. استلام البيانات من الطلب ──
-    const body = await request.json()
+    // ── 2. استلام البيانات من الطلب مع Zod Validation ──
+    const rawBody = await request.json()
+    const validation = TeacherGenerateQuestionsSchema.safeParse(rawBody)
+    if (!validation.success) {
+      return NextResponse.json(
+        {
+          error: 'بيانات غير صحيحة',
+          details: formatZodError(validation.error),
+        },
+        { status: 400 }
+      )
+    }
+
     const {
       pastedText,
       fileData,
       fileExtension,
       subjectId,
       gradeId,
-      questionCount = 5,
+      questionCount,
       requestedTypes,
       targetCognitiveLevel,
       customInstructions,
       passageBased,
-    } = body
+    } = validation.data
 
     if (!subjectId || !gradeId) {
       return NextResponse.json(
