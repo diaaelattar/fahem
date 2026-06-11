@@ -67,6 +67,36 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser()
   const pathname = request.nextUrl.pathname
 
+  // ── Session Timeout لمديري المدارس (30 دقيقة خمول) ─────────────────────
+  // يتوافق مع FERPA / NIST 800-63B: المستخدمون الإداريون يجب أن تنتهي جلساتهم تلقائياً
+  const SCHOOL_SESSION_TIMEOUT_MS = 30 * 60 * 1000 // 30 دقيقة
+  const isSchoolRoute = pathname.startsWith('/school')
+
+  if (user && isSchoolRoute) {
+    const lastActivity = request.cookies.get('school_last_activity')?.value
+    const now = Date.now()
+
+    if (lastActivity) {
+      const elapsed = now - parseInt(lastActivity, 10)
+      if (elapsed > SCHOOL_SESSION_TIMEOUT_MS) {
+        // انتهت الجلسة → تسجيل خروج وإعادة توجيه
+        await supabase.auth.signOut()
+        const loginRedirect = redirectWithCookies(request, '/auth/school/login', supabaseResponse)
+        loginRedirect.cookies.delete('school_last_activity')
+        return loginRedirect
+      }
+    }
+
+    // تحديث وقت آخر نشاط عند كل طلب
+    supabaseResponse.cookies.set('school_last_activity', String(now), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: SCHOOL_SESSION_TIMEOUT_MS / 1000,
+      path: '/school',
+    })
+  }
+
   const isAdminRoute = pathname.startsWith('/admin')
   const isStudentRoute = pathname.startsWith('/student')
   const isTeacherRoute = pathname.startsWith('/teacher')

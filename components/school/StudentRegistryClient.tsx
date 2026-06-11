@@ -14,13 +14,37 @@ import {
   Loader2,
   AlertCircle,
   Upload,
-  UserPlus
+  UserPlus,
+  CheckCircle2
 } from 'lucide-react'
 
 interface StudentRegistryClientProps {
   initialStudents: any[]
   schoolClasses: any[]
   grades: any[]
+}
+
+// ======= Toast Component =======
+function Toast({ message, type, onClose }: { message: string; type: 'success' | 'error'; onClose: () => void }) {
+  return (
+    <div
+      className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl border text-sm font-semibold animate-in slide-in-from-bottom-4 duration-300 ${
+        type === 'success'
+          ? 'bg-emerald-950/90 border-emerald-800/50 text-emerald-300 backdrop-blur-xl'
+          : 'bg-red-950/90 border-red-800/50 text-red-300 backdrop-blur-xl'
+      }`}
+      role="alert"
+      aria-live="assertive"
+    >
+      {type === 'success'
+        ? <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-400" aria-hidden="true" />
+        : <AlertCircle className="h-5 w-5 shrink-0 text-red-400" aria-hidden="true" />}
+      <span>{message}</span>
+      <button onClick={onClose} className="mr-1 text-current opacity-60 hover:opacity-100 transition-opacity" aria-label="إغلاق الإشعار">
+        <X className="h-4 w-4" />
+      </button>
+    </div>
+  )
 }
 
 export function StudentRegistryClient({ initialStudents, schoolClasses, grades }: StudentRegistryClientProps) {
@@ -36,6 +60,14 @@ export function StudentRegistryClient({ initialStudents, schoolClasses, grades }
   const [inviteError, setInviteError] = useState('')
   const [generatedLink, setGeneratedLink] = useState('')
   const [copied, setCopied] = useState(false)
+
+  // Toast notification
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
+
+  const showToast = (message: string, type: 'success' | 'error') => {
+    setToast({ message, type })
+    setTimeout(() => setToast(null), 4000)
+  }
 
   // فلاتر التصفية
   const filteredStudents = students.filter((s) => {
@@ -79,8 +111,10 @@ export function StudentRegistryClient({ initialStudents, schoolClasses, grades }
       }
 
       setGeneratedLink(data.inviteLink)
+      showToast('تم توليد رابط دعوة الطالب بنجاح ✓', 'success')
     } catch (err: any) {
       setInviteError(err.message || 'فشل توليد رابط الدعوة.')
+      showToast(err.message || 'فشل توليد رابط الدعوة.', 'error')
     } finally {
       setLoadingInvite(false)
     }
@@ -103,6 +137,10 @@ export function StudentRegistryClient({ initialStudents, schoolClasses, grades }
 
   return (
     <div className="space-y-6" dir="rtl">
+      {/* Toast Notification */}
+      {toast && (
+        <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
+      )}
       {/* الترويسة وإجراءات الإضافة */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

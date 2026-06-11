@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import crypto from 'crypto'
+import { logSchoolAudit, getClientIP } from '@/lib/audit/school-audit'
 
 export async function POST(req: Request) {
   try {
@@ -61,6 +62,20 @@ export async function POST(req: Request) {
     const protocol = req.headers.get('x-forwarded-proto') || 'http'
     const appUrl = `${protocol}://${host}`
     const inviteLink = `${appUrl}/auth/invite/${token}`
+
+    // 6. تسجيل حدث الدعوة في سجل التدقيق (ISO 27001 A.12.4)
+    await logSchoolAudit({
+      schoolId,
+      actorId:    user.id,
+      actorEmail: user.email ?? undefined,
+      actorRole:  profile.role,
+      action:     'INVITE',
+      entityType: role === 'teacher' ? 'teacher' : 'student',
+      entityName: email.toLowerCase().trim(),
+      metadata:   { role, token, expiresIn: '7 days' },
+      ipAddress:  getClientIP(new Headers(Object.fromEntries(req.headers))),
+      userAgent:  req.headers.get('user-agent') ?? undefined,
+    })
 
     return NextResponse.json({ success: true, inviteLink })
   } catch (err: any) {

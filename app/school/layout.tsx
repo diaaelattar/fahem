@@ -61,7 +61,7 @@ export default async function SchoolLayout({
           </div>
 
           <div className="hidden lg:block">
-            <h1 className="text-lg font-bold text-white">بوابة الإدارة المدرسية الذكية</h1>
+            <h1 className="text-lg font-bold text-white" id="school-portal-title">بوابة الإدارة المدرسية الذكية</h1>
           </div>
 
           {/* تفاصيل الحساب الحالي للتأكيد */}
@@ -76,7 +76,7 @@ export default async function SchoolLayout({
         </header>
 
         {/* جسم الصفحة الرئيسي للمحتوى */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-950 relative">
+        <main id="main-content" className="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-950 relative" tabIndex={-1}>
           {/* تأثيرات تدرج خفيفة في الخلفية لجمالية الواجهات */}
           <div className="absolute top-[10%] right-[10%] w-[400px] h-[400px] rounded-full bg-cyan-900/5 blur-[100px] pointer-events-none z-0" />
           <div className="absolute bottom-[10%] left-[10%] w-[400px] h-[400px] rounded-full bg-indigo-900/5 blur-[100px] pointer-events-none z-0" />
@@ -87,26 +87,63 @@ export default async function SchoolLayout({
         </main>
 
         {/* الملاحة السفلية للهواتف المحمولة */}
-        <div className="lg:hidden h-16 border-t border-slate-900 bg-slate-900/80 backdrop-blur-md flex items-center justify-around px-2 py-1 z-20 shrink-0">
-          <Link href="/school/dashboard" className="flex flex-col items-center justify-center text-slate-400 hover:text-cyan-400 transition-colors">
-            <LayoutDashboard className="h-5 w-5" />
+        <nav
+          className="lg:hidden h-16 border-t border-slate-900 bg-slate-900/80 backdrop-blur-md flex items-center justify-around px-2 py-1 z-20 shrink-0"
+          role="navigation"
+          aria-label="التنقل السريع"
+        >
+          <Link
+            href="/school/dashboard"
+            className="flex flex-col items-center justify-center text-slate-400 hover:text-cyan-400 transition-colors"
+            aria-label="الصفحة الرئيسية — لوحة القيادة"
+          >
+            <LayoutDashboard className="h-5 w-5" aria-hidden="true" />
             <span className="text-[10px] mt-1">الرئيسية</span>
           </Link>
-          <Link href="/school/teachers" className="flex flex-col items-center justify-center text-slate-400 hover:text-cyan-400 transition-colors">
-            <Users className="h-5 w-5" />
+          <Link
+            href="/school/teachers"
+            className="flex flex-col items-center justify-center text-slate-400 hover:text-cyan-400 transition-colors"
+            aria-label="إدارة أعضاء هيئة التدريس"
+          >
+            <Users className="h-5 w-5" aria-hidden="true" />
             <span className="text-[10px] mt-1">المعلمون</span>
           </Link>
-          <Link href="/school/students" className="flex flex-col items-center justify-center text-slate-400 hover:text-cyan-400 transition-colors">
-            <GraduationCap className="h-5 w-5" />
+          <Link
+            href="/school/students"
+            className="flex flex-col items-center justify-center text-slate-400 hover:text-cyan-400 transition-colors"
+            aria-label="إدارة شؤون الطلاب"
+          >
+            <GraduationCap className="h-5 w-5" aria-hidden="true" />
             <span className="text-[10px] mt-1">الطلاب</span>
           </Link>
-          <Link href="/school/classes" className="flex flex-col items-center justify-center text-slate-400 hover:text-cyan-400 transition-colors">
-            <BookOpen className="h-5 w-5" />
+          <Link
+            href="/school/classes"
+            className="flex flex-col items-center justify-center text-slate-400 hover:text-cyan-400 transition-colors"
+            aria-label="إدارة الفصول الدراسية"
+          >
+            <BookOpen className="h-5 w-5" aria-hidden="true" />
             <span className="text-[10px] mt-1">الفصول</span>
           </Link>
-          <Link href="/school/settings" className="flex flex-col items-center justify-center text-slate-400 hover:text-cyan-400 transition-colors">
-            <Settings className="h-5 w-5" />
+          <Link
+            href="/school/settings"
+            className="flex flex-col items-center justify-center text-slate-400 hover:text-cyan-400 transition-colors"
+            aria-label="إعدادات المدرسة"
+          >
+            <Settings className="h-5 w-5" aria-hidden="true" />
             <span className="text-[10px] mt-1">الإعدادات</span>
+          </Link>
+        </nav>
+        {/* شريط الخصوصية السفلي — مخفي في الهواتف، ظاهر في سطح المكتب */}
+        <div className="hidden lg:flex items-center justify-between px-6 py-2 border-t border-slate-900/60 bg-slate-950/30 text-[10px] text-slate-600 shrink-0">
+          <span>جلستك تنتهي تلقائياً بعد 30 دقيقة من الخمول للحفاظ على أمان بياناتك.</span>
+          <Link
+            href="/privacy-policy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-slate-400 transition-colors underline-offset-2 hover:underline"
+            aria-label="قراءة سياسة الخصوصية"
+          >
+            سياسة الخصوصية
           </Link>
         </div>
       </div>

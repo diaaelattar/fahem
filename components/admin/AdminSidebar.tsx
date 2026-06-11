@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { useSidebar } from './SidebarContext'
 import {
   Brain,
@@ -20,29 +20,55 @@ import {
   School,
 } from 'lucide-react'
 
-const navItems = [
-  { href: '/admin/dashboard', icon: LayoutDashboard, label: 'لوحة التحكم' },
-  { href: '/admin/content', icon: Upload, label: 'رفع المحتوى' },
-  { href: '/admin/questions', icon: HelpCircle, label: 'بنك الأسئلة' },
-  { href: '/admin/questions/audit', icon: ShieldCheck, label: 'مركز التدقيق' },
-  { href: '/admin/exams', icon: ClipboardList, label: 'الاختبارات' },
-  { href: '/admin/students', icon: Users, label: 'الطلاب' },
-  { href: '/admin/teachers', icon: GraduationCap, label: 'المعلمون' },
-  { href: '/admin/schools', icon: School, label: 'المدارس' },
-  { href: '/admin/announcements', icon: Megaphone, label: 'إعلانات المنصة' },
-  { href: '/admin/reports', icon: BarChart3, label: 'التقارير' },
+const MENU_SECTIONS = [
+  {
+    label: 'الرئيسية',
+    items: [
+      { href: '/admin/dashboard', icon: LayoutDashboard, label: 'لوحة التحكم' },
+    ],
+  },
+  {
+    label: 'إدارة المحتوى',
+    items: [
+      { href: '/admin/content', icon: Upload, label: 'رفع المحتوى' },
+      { href: '/admin/questions', icon: HelpCircle, label: 'بنك الأسئلة' },
+      { href: '/admin/questions/audit', icon: ShieldCheck, label: 'مركز التدقيق', badge: 'جديد', badgeClass: 'bg-indigo-500 text-white' },
+      { href: '/admin/exams', icon: ClipboardList, label: 'الاختبارات' },
+      { href: '/admin/curriculum', icon: BookOpen, label: 'هيكل المناهج' },
+    ],
+  },
+  {
+    label: 'المستخدمون والجهات',
+    items: [
+      { href: '/admin/students', icon: Users, label: 'الطلاب' },
+      { href: '/admin/teachers', icon: GraduationCap, label: 'المعلمون' },
+      { href: '/admin/schools', icon: School, label: 'المدارس' },
+    ],
+  },
+  {
+    label: 'النظام والتقارير',
+    items: [
+      { href: '/admin/announcements', icon: Megaphone, label: 'إعلانات المنصة' },
+      { href: '/admin/reports', icon: BarChart3, label: 'التقارير' },
+    ],
+  },
 ]
 
 export function AdminSidebar() {
   const pathname = usePathname()
   const { isOpen, close } = useSidebar()
 
+  const isActive = (href: string) =>
+    href === '/admin/dashboard'
+      ? pathname === href
+      : pathname === href || pathname.startsWith(href)
+
   return (
     <>
       {/* ── Overlay (mobile only) ── */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-30 bg-black/50 lg:hidden"
+          className="fixed inset-0 z-30 bg-black/40 backdrop-blur-sm lg:hidden transition-all duration-300"
           onClick={close}
           aria-hidden="true"
         />
@@ -50,31 +76,33 @@ export function AdminSidebar() {
 
       {/* ── Sidebar panel ── */}
       <aside
-        className={`fixed bottom-0 right-0 top-0 z-40 flex w-64 flex-col border-l border-border bg-white shadow-xl transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'} `}
+        className={`fixed bottom-0 right-0 top-0 z-40 flex w-64 flex-col border-l border-slate-100 bg-white/95 backdrop-blur-md shadow-xl transition-all duration-300 ease-in-out ${
+          isOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'
+        } `}
       >
         {/* Logo row */}
-        <div className="flex items-center justify-between border-b border-border p-5">
+        <div className="flex shrink-0 items-center justify-between border-b border-slate-100 p-5">
           <Link
             href="/admin/dashboard"
-            className="flex items-center gap-3"
+            className="flex items-center gap-3 transition-opacity hover:opacity-85"
             onClick={close}
           >
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary shadow-sm">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-blue-700 shadow-md">
               <Brain className="h-6 w-6 text-white" />
             </div>
             <div>
-              <div className="font-display text-base font-bold leading-none text-primary">
+              <div className="font-display text-[15px] font-black text-slate-800 leading-none">
                 استباق مصر
               </div>
-              <div className="mt-0.5 text-xs text-muted-foreground">
-                لوحة المدير
+              <div className="mt-1 text-[11px] font-bold text-slate-400">
+                لوحة المدير العام
               </div>
             </div>
           </Link>
           {/* Close btn — visible on mobile only */}
           <button
             onClick={close}
-            className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted lg:hidden"
+            className="rounded-xl p-1.5 text-slate-400 hover:bg-slate-50 hover:text-slate-600 lg:hidden transition-colors"
             aria-label="إغلاق القائمة"
           >
             <X className="h-5 w-5" />
@@ -82,49 +110,82 @@ export function AdminSidebar() {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 space-y-0.5 overflow-y-auto p-3">
-          <div className="mt-1 px-3 py-2 text-xs font-semibold text-muted-foreground">
-            القائمة الرئيسية
-          </div>
-          {navItems.map(({ href, icon: Icon, label }) => {
-            const active =
-              pathname === href ||
-              (href !== '/admin/dashboard' && pathname.startsWith(href))
-            return (
-              <Link
-                key={href}
-                href={href}
-                onClick={close}
-                className={`sidebar-link ${active ? 'active' : ''}`}
-              >
-                <Icon className="h-4 w-4 shrink-0" />
-                {label}
-              </Link>
-            )
-          })}
+        <nav className="flex-1 overflow-y-auto p-3 space-y-5">
+          {MENU_SECTIONS.map((section) => (
+            <div key={section.label} className="space-y-1">
+              <p className="px-3 text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">
+                {section.label}
+              </p>
 
-          <div className="mt-4 px-3 py-2 text-xs font-semibold text-muted-foreground">
-            المناهج
-          </div>
-          <Link
-            href="/admin/curriculum"
-            onClick={close}
-            className={`sidebar-link ${pathname.startsWith('/admin/curriculum') ? 'active' : ''}`}
-          >
-            <BookOpen className="h-4 w-4 shrink-0" />
-            هيكل المناهج
-          </Link>
+              <div className="space-y-0.5">
+                {section.items.map(({ href, icon: Icon, label, badge, badgeClass }) => {
+                  const active = isActive(href)
+                  return (
+                    <Link
+                      key={href}
+                      href={href}
+                      onClick={close}
+                      className={`group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold transition-all duration-200 ${
+                        active
+                          ? 'bg-primary/5 text-primary font-black shadow-sm'
+                          : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
+                      }`}
+                    >
+                      {active && (
+                        <span className="absolute right-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-l-full bg-primary" />
+                      )}
+
+                      <span
+                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all duration-200 ${
+                          active
+                            ? 'bg-primary text-white shadow-md'
+                            : 'bg-slate-50 text-slate-400 group-hover:bg-slate-100 group-hover:text-slate-600'
+                        }`}
+                      >
+                        <Icon className="h-4 w-4" />
+                      </span>
+
+                      <span className="flex-1">{label}</span>
+
+                      {badge && (
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[10px] font-black ${badgeClass}`}
+                        >
+                          {badge}
+                        </span>
+                      )}
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
         {/* Bottom */}
-        <div className="border-t border-border p-3">
+        <div className="border-t border-slate-100 p-3">
           <Link
             href="/admin/settings"
             onClick={close}
-            className={`sidebar-link ${pathname.startsWith('/admin/settings') ? 'active' : ''}`}
+            className={`group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold transition-all duration-200 ${
+              isActive('/admin/settings')
+                ? 'bg-primary/5 text-primary font-black'
+                : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
+            }`}
           >
-            <Settings className="h-4 w-4 shrink-0" />
-            الإعدادات
+            {isActive('/admin/settings') && (
+              <span className="absolute right-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-l-full bg-primary" />
+            )}
+            <span
+              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all duration-200 ${
+                isActive('/admin/settings')
+                  ? 'bg-primary text-white shadow-md'
+                  : 'bg-slate-50 text-slate-400 group-hover:bg-slate-100 group-hover:text-slate-600'
+              }`}
+            >
+              <Settings className="h-4 w-4" />
+            </span>
+            <span className="flex-1">الإعدادات النظام</span>
           </Link>
         </div>
       </aside>

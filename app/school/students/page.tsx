@@ -2,6 +2,7 @@ import { getCurrentProfile } from '@/lib/auth/permissions'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { StudentRegistryClient } from '@/components/school/StudentRegistryClient'
+import { getCachedGrades } from '@/lib/cache/static-data'
 
 export const dynamic = 'force-dynamic'
 
@@ -36,13 +37,8 @@ export default async function SchoolStudentsPage() {
 
   const schoolClasses = classesRaw || []
 
-  // 3. جلب جميع المراحل/الصفوف للتصنيفات العامة للمناهج
-  const { data: gradesRaw } = await supabase
-    .from('grades')
-    .select('id, name_ar')
-    .order('sort_order')
-
-  const grades = gradesRaw || []
+  // 3. جلب الصفوف من الكاش — يمنع تكرار الاستعلام
+  const grades = await getCachedGrades()
 
   return (
     <StudentRegistryClient

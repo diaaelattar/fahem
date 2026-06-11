@@ -2,6 +2,7 @@ import { getCurrentProfile } from '@/lib/auth/permissions'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { ClassManagerClient } from '@/components/school/ClassManagerClient'
+import { getCachedGrades } from '@/lib/cache/static-data'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,18 +29,17 @@ export default async function SchoolClassesPage() {
 
   const classes = classesRaw || []
 
-  // 2. جلب جميع الصفوف المتاحة في النظام لربط الفصول بها
-  const { data: gradesRaw } = await supabase
-    .from('grades')
-    .select('id, name_ar')
-    .order('sort_order')
+  // 2. جلب جميع الصفوف من الكاش — يمنع استعلام DB مكرر في نفس الطلب
+  const grades = await getCachedGrades()
 
-  const grades = gradesRaw || []
-
-  // 3. جلب جميع علاقات ربط الطلاب بالفصول لحساب الأعداد
-  const { data: classStudentsRaw } = await supabase
-    .from('class_students')
-    .select('class_id')
+  // 3. جلب علاقات ربط الطلاب بفصول هذه المدرسة فقط (أمان: مقيّدة بـ school_id)
+  const classIds = classes.map((c) => c.id)
+  const { data: classStudentsRaw } = classIds.length > 0
+    ? await supabase
+        .from('class_students')
+        .select('class_id')
+        .in('class_id', classIds)
+    : { data: [] }
 
   const classStudentCounts: { [classId: string]: number } = {}
   

@@ -28,6 +28,7 @@ export function StudentImportWizard({ schoolClasses, grades }: StudentImportWiza
   const [parsedData, setParsedData] = useState<any[]>([])
   const [gradeId, setGradeId] = useState('')
   const [classId, setClassId] = useState('')
+  const [gdprConsent, setGdprConsent] = useState(false)
   
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -293,13 +294,38 @@ export function StudentImportWizard({ schoolClasses, grades }: StudentImportWiza
             </div>
 
             {error && (
-              <div className="flex items-center gap-2 rounded-xl border border-red-900/30 bg-red-950/20 p-4 text-xs text-red-400">
-                <AlertCircle className="h-4 w-4 shrink-0 text-red-500" />
+              <div className="flex items-center gap-2 rounded-xl border border-red-900/30 bg-red-950/20 p-4 text-xs text-red-400" role="alert">
+                <AlertCircle className="h-4 w-4 shrink-0 text-red-500" aria-hidden="true" />
                 {error}
               </div>
             )}
 
-            <div className="flex justify-between items-center pt-6 border-t border-slate-900">
+            {/* موافقة GDPR صريحة قبل الاستيراد */}
+            <label
+              htmlFor="gdpr-consent-checkbox"
+              className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-colors ${
+                gdprConsent
+                  ? 'border-cyan-700/40 bg-cyan-950/10'
+                  : 'border-slate-800 bg-slate-900/30 hover:border-slate-700'
+              }`}
+            >
+              <input
+                id="gdpr-consent-checkbox"
+                type="checkbox"
+                checked={gdprConsent}
+                onChange={(e) => setGdprConsent(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-slate-600 bg-slate-900 text-cyan-500 focus:ring-cyan-500 focus:ring-offset-slate-950 shrink-0"
+                aria-required="true"
+              />
+              <span className="text-xs text-slate-400 leading-relaxed">
+                <span className="font-bold text-slate-200 block mb-1">إقرار موافقة معالجة البيانات — القانون 151/2020</span>
+                أقرّ بأنني مفوّض من إدارة المدرسة باستيراد هذه البيانات الشخصية للطلاب،
+                وأن معالجتها تتم لأغراض تعليمية صريحة وفقاً لقانون حماية البيانات الشخصية المصري
+                رقم <span className="text-white font-bold">151 لسنة 2020</span> وسياسة خصوصية المنصة.
+              </span>
+            </label>
+
+            <div className="flex justify-between items-center pt-2 border-t border-slate-900">
               <button
                 onClick={() => setStep(2)}
                 className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-xl text-xs font-bold transition-colors"
@@ -308,12 +334,13 @@ export function StudentImportWizard({ schoolClasses, grades }: StudentImportWiza
               </button>
               <button
                 onClick={handleStartImport}
-                disabled={loading}
-                className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-cyan-500/10 disabled:opacity-60"
+                disabled={loading || !gdprConsent}
+                className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-cyan-500/10 disabled:opacity-40 disabled:cursor-not-allowed"
+                aria-disabled={!gdprConsent}
               >
                 {loading ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin text-cyan-200" />
+                    <Loader2 className="h-4 w-4 animate-spin text-cyan-200" aria-hidden="true" />
                     جاري استيراد البيانات...
                   </>
                 ) : (
