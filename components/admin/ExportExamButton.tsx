@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { Download, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
+import { toast } from 'sonner'
+
 interface ExportExamButtonProps {
   examId: string
   examTitle: string
@@ -63,12 +65,12 @@ export function ExportExamButton({ examId, examTitle }: ExportExamButtonProps) {
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
 
-      alert(
+      toast.success(
         'تم تصدير الاختبار بنجاح. يمكنك استخدام هذا الملف لاستيراد الأسئلة في أنظمة أخرى.'
       )
     } catch (error: any) {
       console.error(error)
-      alert('حدث خطأ أثناء تصدير الاختبار: ' + error.message)
+      toast.error('حدث خطأ أثناء تصدير الاختبار: ' + error.message)
     } finally {
       setIsExporting(false)
     }

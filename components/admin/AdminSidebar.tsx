@@ -65,6 +65,13 @@ export function AdminSidebar() {
 
   return (
     <>
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:right-4 focus:z-50 focus:bg-primary focus:text-white focus:px-4 focus:py-2 focus:rounded-xl focus:font-bold focus:text-sm"
+      >
+        تخطى للمحتوى الرئيسي
+      </a>
+
       {/* ── Overlay (mobile only) ── */}
       {isOpen && (
         <div
@@ -76,6 +83,8 @@ export function AdminSidebar() {
 
       {/* ── Sidebar panel ── */}
       <aside
+        role="navigation"
+        aria-label="قائمة التنقل للمدير العام"
         className={`fixed bottom-0 right-0 top-0 z-40 flex w-64 flex-col border-l border-slate-100 bg-white/95 backdrop-blur-md shadow-xl transition-all duration-300 ease-in-out ${
           isOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'
         } `}
@@ -88,7 +97,7 @@ export function AdminSidebar() {
             onClick={close}
           >
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-blue-700 shadow-md">
-              <Brain className="h-6 w-6 text-white" />
+              <Brain className="h-6 w-6 text-white" aria-hidden="true" />
             </div>
             <div>
               <div className="font-display text-[15px] font-black text-slate-800 leading-none">
@@ -105,7 +114,7 @@ export function AdminSidebar() {
             className="rounded-xl p-1.5 text-slate-400 hover:bg-slate-50 hover:text-slate-600 lg:hidden transition-colors"
             aria-label="إغلاق القائمة"
           >
-            <X className="h-5 w-5" />
+            <X className="h-5 w-5" aria-hidden="true" />
           </button>
         </div>
 
@@ -125,6 +134,7 @@ export function AdminSidebar() {
                       key={href}
                       href={href}
                       onClick={close}
+                      aria-current={active ? 'page' : undefined}
                       className={`group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold transition-all duration-200 ${
                         active
                           ? 'bg-primary/5 text-primary font-black shadow-sm'
@@ -142,7 +152,7 @@ export function AdminSidebar() {
                             : 'bg-slate-50 text-slate-400 group-hover:bg-slate-100 group-hover:text-slate-600'
                         }`}
                       >
-                        <Icon className="h-4 w-4" />
+                        <Icon className="h-4 w-4" aria-hidden="true" />
                       </span>
 
                       <span className="flex-1">{label}</span>
@@ -167,6 +177,7 @@ export function AdminSidebar() {
           <Link
             href="/admin/settings"
             onClick={close}
+            aria-current={isActive('/admin/settings') ? 'page' : undefined}
             className={`group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-semibold transition-all duration-200 ${
               isActive('/admin/settings')
                 ? 'bg-primary/5 text-primary font-black'
@@ -183,7 +194,7 @@ export function AdminSidebar() {
                   : 'bg-slate-50 text-slate-400 group-hover:bg-slate-100 group-hover:text-slate-600'
               }`}
             >
-              <Settings className="h-4 w-4" />
+              <Settings className="h-4 w-4" aria-hidden="true" />
             </span>
             <span className="flex-1">الإعدادات النظام</span>
           </Link>

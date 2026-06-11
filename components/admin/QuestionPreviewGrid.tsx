@@ -12,6 +12,7 @@ import {
   Check,
   Filter,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { MathRenderer } from '@/components/ui/MathRenderer'
 
 interface GeneratedQuestion {
@@ -133,9 +134,10 @@ export function QuestionPreviewGrid({
         setOutcomes((prev) => [...prev, data])
         updateQuestion(questionId, 'learning_outcome_id', data.id)
         setNewOutcomeText('')
+        toast.success('تمت إضافة ناتج التعلم بنجاح!')
       }
     } catch (err: any) {
-      alert('خطأ في إضافة ناتج التعلم: ' + err.message)
+      toast.error('خطأ في إضافة ناتج التعلم: ' + err.message)
     }
   }
 

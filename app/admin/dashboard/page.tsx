@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/auth/permissions'
+import Link from 'next/link'
 import {
   Users,
   ClipboardList,
@@ -222,14 +223,14 @@ export default async function AdminDashboardPage() {
               color: 'bg-orange-50 hover:bg-orange-100 text-orange-700',
             },
           ].map((action) => (
-            <a
+            <Link
               key={action.href}
               href={action.href}
               className={`${action.color} card-hover rounded-xl p-4 text-center transition-all`}
             >
               <div className="mb-2 text-2xl">{action.icon}</div>
               <div className="text-sm font-semibold">{action.label}</div>
-            </a>
+            </Link>
           ))}
         </div>
       </div>
@@ -238,12 +239,12 @@ export default async function AdminDashboardPage() {
       <div className="overflow-hidden rounded-2xl border border-border bg-white">
         <div className="flex items-center justify-between border-b border-border p-6">
           <h2 className="text-lg font-bold">آخر النتائج</h2>
-          <a
+          <Link
             href="/admin/reports"
             className="text-sm text-primary hover:underline"
           >
             عرض الكل
-          </a>
+          </Link>
         </div>
         {recentAttempts && recentAttempts.length > 0 ? (
           <div className="divide-y divide-border">

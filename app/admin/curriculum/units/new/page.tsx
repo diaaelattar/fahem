@@ -6,6 +6,7 @@ import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { BookOpen, Save, ArrowRight } from 'lucide-react'
+import Link from 'next/link'
 
 export default function NewUnitPage() {
   const router = useRouter()
@@ -80,12 +81,12 @@ export default function NewUnitPage() {
     <div className="mx-auto max-w-2xl animate-fade-in space-y-6 pb-12">
       {/* Header */}
       <div>
-        <a
+        <Link
           href="/admin/curriculum?tab=units"
           className="mb-4 flex w-fit items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-primary"
         >
           <ArrowRight className="h-4 w-4" /> العودة للوحدات
-        </a>
+        </Link>
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
             <BookOpen className="h-6 w-6 text-primary" />
@@ -274,12 +275,12 @@ export default function NewUnitPage() {
             )}
             {loading ? 'جاري الحفظ...' : 'حفظ الوحدة'}
           </button>
-          <a
+          <Link
             href="/admin/curriculum?tab=units"
             className="rounded-xl border border-border px-6 py-3 font-medium transition-colors hover:bg-muted"
           >
             إلغاء
-          </a>
+          </Link>
         </div>
       </form>
     </div>

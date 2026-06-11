@@ -18,6 +18,7 @@ import {
   Eye,
 } from 'lucide-react'
 import { MathRenderer } from '@/components/ui/MathRenderer'
+import { toast } from 'sonner'
 
 interface HandwrittenAnswer {
   id: string
@@ -158,7 +159,7 @@ export function HandwrittenGradingPanel({
         )
       )
     } catch (err: any) {
-      alert('فشل حفظ الدرجة: ' + err.message)
+      toast.error('فشل حفظ الدرجة: ' + err.message)
     } finally {
       setSaving((prev) => ({ ...prev, [answerId]: false }))
     }

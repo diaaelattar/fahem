@@ -188,12 +188,12 @@ export default async function QuestionsPage({
               ` • ${subjects.find((s) => s.id == (searchParams.subject as any))?.name_ar}`}
           </p>
         </div>
-        <a
+        <Link
           href="/admin/questions/new"
           className="rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary/90"
         >
           + إضافة سؤال
-        </a>
+        </Link>
       </div>
 
       {/* ── منظومة الفلترة التعليمية ── */}
@@ -210,7 +210,7 @@ export default async function QuestionsPage({
           </div>
           <div className="flex flex-wrap gap-2">
             {(grades as any[])?.map((g) => (
-              <a
+              <Link
                 key={g.id}
                 href={buildHref('grade', String(g.id), {
                   subject: undefined,
@@ -225,7 +225,7 @@ export default async function QuestionsPage({
                 }`}
               >
                 {g.name_ar}
-              </a>
+              </Link>
             ))}
           </div>
         </div>
@@ -242,7 +242,7 @@ export default async function QuestionsPage({
           </div>
           <div className="flex flex-wrap gap-2">
             {(subjects as any[])?.map((s) => (
-              <a
+              <Link
                 key={s.id}
                 href={buildHref('subject', String(s.id), {
                   unit: undefined,
@@ -255,7 +255,7 @@ export default async function QuestionsPage({
                 }`}
               >
                 <span>{s.icon}</span> {s.name_ar}
-              </a>
+              </Link>
             ))}
           </div>
         </div>
@@ -272,7 +272,7 @@ export default async function QuestionsPage({
           </div>
           <div className="flex flex-wrap gap-2">
             {(semesters as any[])?.map((sem) => (
-              <a
+              <Link
                 key={sem.id}
                 href={buildHref('semester', String(sem.id))}
                 className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${
@@ -282,7 +282,7 @@ export default async function QuestionsPage({
                 }`}
               >
                 {sem.name_ar}
-              </a>
+              </Link>
             ))}
           </div>
         </div>
@@ -300,7 +300,7 @@ export default async function QuestionsPage({
             </div>
             <div className="flex flex-wrap gap-2">
               {(units as any[]).map((u) => (
-                <a
+                <Link
                   key={u.id}
                   href={buildHref('unit', String(u.id), { lesson: undefined })}
                   className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${
@@ -310,7 +310,7 @@ export default async function QuestionsPage({
                   }`}
                 >
                   {u.name_ar}
-                </a>
+                </Link>
               ))}
             </div>
           </div>
@@ -327,7 +327,7 @@ export default async function QuestionsPage({
             </div>
             <div className="flex flex-wrap gap-2">
               {(lessons as any[]).map((l) => (
-                <a
+                <Link
                   key={l.id}
                   href={buildHref('lesson', String(l.id))}
                   className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${
@@ -337,7 +337,7 @@ export default async function QuestionsPage({
                   }`}
                 >
                   {l.name_ar}
-                </a>
+                </Link>
               ))}
             </div>
           </div>
@@ -352,7 +352,7 @@ export default async function QuestionsPage({
             </p>
             <div className="flex flex-wrap gap-1.5">
               {Object.entries(TYPE_LABELS).map(([type, { label, color }]) => (
-                <a
+                <Link
                   key={type}
                   href={buildHref('type', type)}
                   className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all ${
@@ -362,7 +362,7 @@ export default async function QuestionsPage({
                   }`}
                 >
                   {label}
-                </a>
+                </Link>
               ))}
             </div>
           </div>
@@ -378,7 +378,7 @@ export default async function QuestionsPage({
                 ['medium', 'متوسط'],
                 ['hard', 'صعب'],
               ].map(([d, label]) => (
-                <a
+                <Link
                   key={d}
                   href={buildHref('difficulty', d)}
                   className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all ${
@@ -388,7 +388,7 @@ export default async function QuestionsPage({
                   }`}
                 >
                   {label}
-                </a>
+                </Link>
               ))}
             </div>
           </div>
@@ -400,7 +400,7 @@ export default async function QuestionsPage({
             </p>
             <div className="flex flex-wrap gap-1.5">
               {Object.entries(BLOOM_LABELS).map(([k, { ar, color }]) => (
-                <a
+                <Link
                   key={k}
                   href={buildHref('bloom', k)}
                   className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all ${
@@ -410,7 +410,7 @@ export default async function QuestionsPage({
                   }`}
                 >
                   {ar}
-                </a>
+                </Link>
               ))}
             </div>
           </div>
@@ -427,7 +427,7 @@ export default async function QuestionsPage({
                 ['approved', 'معتمد'],
                 ['rejected', 'مرفوض'],
               ].map(([s, label]) => (
-                <a
+                <Link
                   key={s}
                   href={buildHref('status', s)}
                   className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all ${
@@ -437,7 +437,7 @@ export default async function QuestionsPage({
                   }`}
                 >
                   {label}
-                </a>
+                </Link>
               ))}
             </div>
           </div>
@@ -446,13 +446,13 @@ export default async function QuestionsPage({
         {/* مسح الفلاتر */}
         {hasFilters && (
           <div className="px-4 pb-3">
-            <a
+            <Link
               href="/admin/questions"
               className="inline-flex items-center gap-1.5 text-xs font-bold text-red-500 transition-colors hover:text-red-700"
             >
               <X className="h-3.5 w-3.5" />
               مسح جميع الفلاتر
-            </a>
+            </Link>
           </div>
         )}
       </div>
@@ -488,19 +488,19 @@ export default async function QuestionsPage({
               : 'ارفع محتوى ليقوم الذكاء الاصطناعي بتوليد أسئلة'}
           </p>
           {hasFilters ? (
-            <a
+            <Link
               href="/admin/questions"
               className="inline-block rounded-xl bg-muted px-6 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted/80"
             >
               مسح الفلاتر
-            </a>
+            </Link>
           ) : (
-            <a
+            <Link
               href="/admin/content"
               className="inline-block rounded-xl bg-primary px-6 py-2.5 text-sm font-medium text-white hover:bg-primary/90"
             >
               رفع محتوى جديد
-            </a>
+            </Link>
           )}
         </div>
       )}

@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/auth/permissions'
+import Link from 'next/link'
 import {
   ClipboardList,
   Users,
@@ -34,19 +35,19 @@ export default async function ExamsPage() {
           <p className="mt-1 text-muted-foreground">إنشاء وإدارة الاختبارات</p>
         </div>
         <div className="flex gap-2">
-          <a
+          <Link
             href="/admin/exams/batch"
             className="flex items-center gap-2 rounded-xl border border-border bg-white px-4 py-2.5 text-sm font-medium transition-colors hover:bg-muted"
           >
             توليد آلي
-          </a>
-          <a
+          </Link>
+          <Link
             href="/admin/exams/new"
             className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary/90"
           >
             <Plus className="h-4 w-4" />
             اختبار جديد
-          </a>
+          </Link>
         </div>
       </div>
 
@@ -112,18 +113,18 @@ export default async function ExamsPage() {
                 </div>
 
                 <div className="flex shrink-0 gap-2">
-                  <a
+                  <Link
                     href={`/admin/exams/${exam.id}`}
                     className="rounded-lg border border-border px-3 py-1.5 text-sm transition-colors hover:bg-muted"
                   >
                     تعديل
-                  </a>
-                  <a
+                  </Link>
+                  <Link
                     href={`/admin/exams/${exam.id}/reports`}
                     className="rounded-lg border border-border px-3 py-1.5 text-sm transition-colors hover:bg-muted"
                   >
                     التقرير
-                  </a>
+                  </Link>
                 </div>
               </div>
             </div>
@@ -136,12 +137,12 @@ export default async function ExamsPage() {
           <p className="mb-6 text-sm text-muted-foreground">
             أنشئ اختباراً من الأسئلة الموجودة في بنك الأسئلة
           </p>
-          <a
+          <Link
             href="/admin/exams/new"
             className="inline-block rounded-xl bg-primary px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary/90"
           >
             إنشاء أول اختبار
-          </a>
+          </Link>
         </div>
       )}
     </div>

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Loader2, Save, User, Building2, Lock } from 'lucide-react'
 import { toast } from 'sonner'
+import { TwoFactorSetup } from '../school/TwoFactorSetup'
 
 export function SettingsForm({ profile, admin }: { profile: any; admin: any }) {
   const supabase = createClient()
@@ -185,6 +186,12 @@ export function SettingsForm({ profile, admin }: { profile: any; admin: any }) {
           )}
           تغيير كلمة المرور
         </button>
+      </div>
+
+      {/* الأمن والمصادقة الثنائية (2FA) */}
+      <div className="rounded-2xl border border-slate-900 bg-slate-950 p-6 md:p-8 shadow-xl relative overflow-hidden">
+        <div className="absolute top-[-30%] right-[-10%] w-60 h-60 rounded-full bg-cyan-500/5 blur-3xl pointer-events-none" />
+        <TwoFactorSetup />
       </div>
 
       {/* Danger Zone */}

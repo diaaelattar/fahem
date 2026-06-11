@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/auth/permissions'
+import Link from 'next/link'
 import {
   BarChart3,
   Users,
@@ -328,12 +329,12 @@ export default async function AdminReportsPage() {
                     </span>
                   </div>
                 </div>
-                <a
+                <Link
                   href={`/admin/questions/${q.question_id}`}
                   className="shrink-0 rounded-lg border border-primary/30 px-3 py-1.5 text-xs text-primary transition-colors hover:bg-primary/5"
                 >
                   تعديل
-                </a>
+                </Link>
               </div>
             ))}
           </div>

@@ -5,6 +5,8 @@ import { createClient } from '@/lib/supabase/client'
 import { Sparkles, Save, Loader2, RefreshCcw } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
+import { toast } from 'sonner'
+
 interface Props {
   lessonId: number
   initialSummary?: string | null
@@ -28,8 +30,9 @@ export function GenerateSummaryClient({ lessonId, initialSummary }: Props) {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'فشل توليد الملخص')
       setSummary(data.summary)
+      toast.success('تم توليد الملخص بنجاح!')
     } catch (err: any) {
-      alert(err.message)
+      toast.error(err.message)
     } finally {
       setLoading(false)
     }
@@ -43,10 +46,10 @@ export function GenerateSummaryClient({ lessonId, initialSummary }: Props) {
         .update({ summary })
         .eq('id', lessonId)
       if (error) throw error
-      alert('تم حفظ الملخص بنجاح')
+      toast.success('تم حفظ الملخص بنجاح')
       router.refresh()
     } catch (err: any) {
-      alert(err.message)
+      toast.error(err.message)
     } finally {
       setSaving(false)
     }
