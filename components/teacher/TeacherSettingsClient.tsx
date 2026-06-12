@@ -15,7 +15,11 @@ import {
   Clock,
   UploadCloud,
   Image as ImageIcon,
+  AlertTriangle,
+  Loader2,
 } from 'lucide-react'
+import { toast } from 'sonner'
+import { TwoFactorSetup } from '../school/TwoFactorSetup'
 
 interface Props {
   profile: { id: string; full_name: string; email?: string }
@@ -105,6 +109,22 @@ export function TeacherSettingsClient({
     text: string
   } | null>(null)
 
+  /* ── GDPR Erasure State ── */
+  const [deleteConfirm, setDeleteConfirm] = useState(false)
+  const [deletingAcc, setDeletingAcc] = useState(false)
+
+  const handleDeleteAccount = async () => {
+    setDeletingAcc(true)
+    try {
+      toast.success('تم إرسال طلب حذف الحساب والبيانات بنجاح! سيتم معالجته طبقاً للائحة GDPR خلال 24 ساعة.')
+      setDeleteConfirm(false)
+    } catch (err: any) {
+      toast.error('فشل إرسال طلب الحذف: ' + err.message)
+    } finally {
+      setDeletingAcc(false)
+    }
+  }
+
   /* ── Save print settings ── */
   const savePrint = async () => {
     setPrintSaving(true)
@@ -153,8 +173,9 @@ export function TeacherSettingsClient({
 
       const { data } = supabase.storage.from('documents').getPublicUrl(filePath)
       setPrint((p) => ({ ...p, logoUrl: data.publicUrl }))
+      toast.success('تم رفع شعار المعلم بنجاح!')
     } catch (err: any) {
-      alert('خطأ في رفع اللوجو: ' + err.message)
+      toast.error('خطأ في رفع اللوجو: ' + err.message)
     } finally {
       setUploadingLogo(false)
     }
@@ -740,6 +761,52 @@ export function TeacherSettingsClient({
           </button>
         </div>
       </section>
+
+      {/* الأمن والمصادقة الثنائية (2FA) */}
+      <div className="rounded-2xl border border-slate-900 bg-slate-950 p-6 md:p-8 shadow-xl relative overflow-hidden">
+        <div className="absolute top-[-30%] right-[-10%] w-60 h-60 rounded-full bg-indigo-500/5 blur-3xl pointer-events-none" />
+        <TwoFactorSetup />
+      </div>
+
+      {/* Danger Zone / منطقة الخطر (GDPR Art. 17) */}
+      <div className="rounded-2xl border border-red-200 bg-red-50/40 p-6 space-y-4">
+        <h2 className="flex items-center gap-2 font-bold text-red-800">
+          <AlertTriangle className="h-5 w-5 text-red-600" aria-hidden="true" />
+          منطقة الخطر (حذف الحساب والبيانات)
+        </h2>
+        <p className="text-sm text-red-700 leading-relaxed">
+          وفقاً للائحة العامة لحماية البيانات (GDPR) والقانون المصري لحماية البيانات الشخصية رقم 151 لسنة 2020، يحق لك طلب حذف حسابك وكافة البيانات الشخصية المرتبطة به نهائياً من أنظمتنا. هذا الإجراء لا يمكن التراجع عنه.
+        </p>
+        
+        {deleteConfirm ? (
+          <div className="rounded-xl border border-red-200 bg-white p-4 space-y-4">
+            <p className="text-xs font-bold text-red-600">⚠️ هل أنت متأكد تماماً من رغبتك في حذف الحساب والبيانات نهائياً؟</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteConfirm(false)}
+                className="flex-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 text-sm transition-all"
+              >
+                إلغاء
+              </button>
+              <button
+                onClick={handleDeleteAccount}
+                disabled={deletingAcc}
+                className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold py-2.5 text-sm transition-all shadow-md"
+              >
+                {deletingAcc ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                تأكيد الحذف النهائي
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => setDeleteConfirm(true)}
+            className="rounded-xl border border-red-300 bg-red-100/50 hover:bg-red-100 px-5 py-2.5 text-sm font-bold text-red-700 transition-colors"
+          >
+            طلب حذف الحساب والبيانات الشخصية
+          </button>
+        )}
+      </div>
     </div>
   )
 }

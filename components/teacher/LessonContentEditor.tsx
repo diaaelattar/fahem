@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 import {
   BookOpen,
   BookText,
@@ -17,6 +18,7 @@ import {
   Send,
   Sparkles,
   Trash2,
+  AlertCircle,
 } from 'lucide-react'
 
 // ─── أنواع الأقسام ────────────────────────────────────────────────────────────
@@ -85,15 +87,25 @@ export function LessonContentEditor({
   const [saving, setSaving] = useState(false)
   const [saveMsg, setSaveMsg] = useState<string | null>(null)
 
+  const [confirmData, setConfirmData] = useState<{
+    message: string
+    onConfirm: () => void
+  } | null>(null)
+  const confirmModalRef = useRef<HTMLDivElement>(null)
+  useFocusTrap(confirmModalRef, !!confirmData, () => setConfirmData(null))
+
   // ─── إضافة قسم جديد ───────────────────────────────────────────────────────
   function addSection(type: SectionType = 'content') {
     setSections((prev) => [...prev, { id: genId(), section_type: type, title: '', body: '' }])
   }
 
   function removeSection(id: string) {
-    if (confirm('هل أنت متأكد من حذف هذا القسم؟ لا يمكن التراجع عن هذا الإجراء.')) {
-      setSections((prev) => prev.filter((s) => s.id !== id))
-    }
+    setConfirmData({
+      message: 'هل أنت متأكد من حذف هذا القسم؟ لا يمكن التراجع عن هذا الإجراء.',
+      onConfirm: () => {
+        setSections((prev) => prev.filter((s) => s.id !== id))
+      },
+    })
   }
 
   function updateSection(id: string, field: keyof Section, value: string) {
@@ -188,14 +200,17 @@ export function LessonContentEditor({
 
   // ─── حذف تدريب ────────────────────────────────────────────────────────────
   async function removeExercise(idx: number, exId?: string) {
-    if (confirm('هل أنت متأكد من حذف هذا التدريب؟ لا يمكن التراجع عن هذا الإجراء.')) {
-      if (exId) {
-        await fetch(`/api/teacher/lessons/${lessonId}/exercises/${exId}`, {
-          method: 'DELETE',
-        })
-      }
-      setExercises((prev) => prev.filter((_, i) => i !== idx))
-    }
+    setConfirmData({
+      message: 'هل أنت متأكد من حذف هذا التدريب؟ لا يمكن التراجع عن هذا الإجراء.',
+      onConfirm: async () => {
+        if (exId) {
+          await fetch(`/api/teacher/lessons/${lessonId}/exercises/${exId}`, {
+            method: 'DELETE',
+          })
+        }
+        setExercises((prev) => prev.filter((_, i) => i !== idx))
+      },
+    })
   }
 
   const getSectionMeta = (type: string) =>
@@ -514,6 +529,49 @@ export function LessonContentEditor({
           </button>
         </div>
       </div>
+
+      {/* مودال التأكيد الموحد للعمليات الحرجة */}
+      {confirmData && (
+        <div
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="confirm-modal-title"
+        >
+          <div
+            ref={confirmModalRef}
+            className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl space-y-5 text-center animate-in fade-in zoom-in-95 duration-200"
+            dir="rtl"
+          >
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-50 border border-amber-200">
+              <AlertCircle className="h-6 w-6 text-amber-500" aria-hidden="true" />
+            </div>
+            
+            <div className="space-y-2">
+              <h3 id="confirm-modal-title" className="text-base font-extrabold text-slate-800">تأكيد الإجراء</h3>
+              <p className="text-sm text-slate-600 leading-relaxed">{confirmData.message}</p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmData(null)}
+                className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl text-sm transition-all"
+              >
+                إلغاء
+              </button>
+              <button
+                onClick={() => {
+                  confirmData.onConfirm()
+                  setConfirmData(null)
+                }}
+                className="flex-1 bg-amber-600 hover:bg-amber-500 text-white font-bold py-2.5 rounded-xl text-sm transition-all shadow-md shadow-amber-600/10"
+              >
+                تأكيد
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

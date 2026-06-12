@@ -58,44 +58,53 @@ export function TeacherSidebar() {
     pathname === href || pathname.startsWith(href + '/')
 
   return (
-    <aside
-      className="fixed bottom-0 right-0 top-0 z-40 flex w-64 flex-col"
-      style={{
-        background: 'linear-gradient(180deg, #0f1e35 0%, #0a1628 60%, #070e1c 100%)',
-        borderLeft: '1px solid rgba(99,133,190,0.12)',
-        boxShadow: '-4px 0 32px -8px rgba(0,0,0,0.4)',
-      }}
-      aria-label="القائمة الجانبية للمعلم"
-    >
-      {/* ── Logo / Brand ── */}
-      <div
-        className="flex shrink-0 items-center gap-3 px-5 py-4"
-        style={{ borderBottom: '1px solid rgba(99,133,190,0.12)' }}
+    <>
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:right-4 focus:z-50 focus:bg-indigo-600 focus:text-white focus:px-4 focus:py-2 focus:rounded-xl focus:font-bold focus:text-sm"
       >
-        <Link
-          href="/teacher/dashboard"
-          className="flex items-center gap-3 transition-opacity hover:opacity-80"
+        تخطى للمحتوى الرئيسي
+      </a>
+
+      <aside
+        role="navigation"
+        aria-label="قائمة التنقل للمعلم"
+        className="fixed bottom-0 right-0 top-0 z-40 flex w-64 flex-col"
+        style={{
+          background: 'linear-gradient(180deg, #0f1e35 0%, #0a1628 60%, #070e1c 100%)',
+          borderLeft: '1px solid rgba(99,133,190,0.12)',
+          boxShadow: '-4px 0 32px -8px rgba(0,0,0,0.4)',
+        }}
+      >
+        {/* ── Logo / Brand ── */}
+        <div
+          className="flex shrink-0 items-center gap-3 px-5 py-4"
+          style={{ borderBottom: '1px solid rgba(99,133,190,0.12)' }}
         >
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10 border border-white/10 shadow-lg">
-            <img
-              src="/logo.png"
-              alt="استباق فاهم"
-              className="h-7 w-7 object-contain"
-            />
-          </div>
-          <div className="leading-tight">
-            <div className="font-display text-[15px] font-black text-white">
-              استباق مصر
+          <Link
+            href="/teacher/dashboard"
+            className="flex items-center gap-3 transition-opacity hover:opacity-80"
+          >
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10 border border-white/10 shadow-lg">
+              <img
+                src="/logo.png"
+                alt="استباق فاهم"
+                className="h-7 w-7 object-contain"
+              />
             </div>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <GraduationCap className="h-3 w-3 text-indigo-400" />
-              <span className="text-[11px] font-bold text-indigo-300">
-                بوابة المعلم
-              </span>
+            <div className="leading-tight">
+              <div className="font-display text-[15px] font-black text-white">
+                استباق مصر
+              </div>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <GraduationCap className="h-3 w-3 text-indigo-400" aria-hidden="true" />
+                <span className="text-[11px] font-bold text-indigo-300">
+                  بوابة المعلم
+                </span>
+              </div>
             </div>
-          </div>
-        </Link>
-      </div>
+          </Link>
+        </div>
 
       {/* ── Nav ── */}
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5" role="navigation">
@@ -112,6 +121,7 @@ export function TeacherSidebar() {
                   <Link
                     key={href}
                     href={href}
+                    aria-current={active ? 'page' : undefined}
                     className={`group relative flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-[13.5px] font-semibold transition-all duration-200 ${
                       active
                         ? 'bg-indigo-500/15 text-indigo-300 font-bold'
@@ -132,7 +142,7 @@ export function TeacherSidebar() {
                       }`}
                       style={active ? { boxShadow: '0 0 16px -4px rgba(99,102,241,0.6)' } : undefined}
                     >
-                      <Icon className="h-4 w-4" />
+                      <Icon className="h-4 w-4" aria-hidden="true" />
                     </span>
 
                     <span className="flex-1">{label}</span>
@@ -160,7 +170,7 @@ export function TeacherSidebar() {
         <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/10 p-3.5">
           <div className="flex items-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/20">
-              <Sparkles className="h-4 w-4 text-indigo-400" />
+              <Sparkles className="h-4 w-4 text-indigo-400" aria-hidden="true" />
             </div>
             <div>
               <div className="text-[11px] font-bold text-slate-400 mb-0.5">
@@ -174,5 +184,6 @@ export function TeacherSidebar() {
         </div>
       </div>
     </aside>
+    </>
   )
 }

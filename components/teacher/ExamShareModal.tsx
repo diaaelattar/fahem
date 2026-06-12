@@ -2,7 +2,7 @@
 // components/teacher/ExamShareModal.tsx
 // Modal مشاركة الاختبار — يُفتح من كارت الاختبار
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   X,
   Link2,
@@ -16,6 +16,7 @@ import {
   ExternalLink,
   AlertCircle,
 } from 'lucide-react'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 
 interface ShareToken {
   id: string
@@ -37,6 +38,9 @@ export function ExamShareModal({ examId, examTitle, onClose }: Props) {
   const [actionLoading, setActionLoading] = useState(false)
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const modalRef = useRef<HTMLDivElement>(null)
+
+  useFocusTrap(modalRef, true, onClose)
 
   const shareUrl = token?.is_active
     ? `${typeof window !== 'undefined' ? window.location.origin : ''}/exam/${token.token}`
@@ -119,27 +123,29 @@ export function ExamShareModal({ examId, examTitle, onClose }: Props) {
       onClick={handleBackdropClick}
     >
       <div
+        ref={modalRef}
         className="w-full max-w-md animate-in fade-in slide-in-from-bottom-4 overflow-hidden rounded-3xl bg-white shadow-2xl duration-200"
         role="dialog"
         aria-modal="true"
-        aria-label={`مشاركة اختبار: ${examTitle}`}
+        aria-labelledby="share-modal-title"
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 bg-gradient-to-l from-emerald-50 to-teal-50 p-6">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-md shadow-emerald-200">
-              <Share2 className="h-5 w-5" />
+              <Share2 className="h-5 w-5" aria-hidden="true" />
             </div>
             <div>
-              <h2 className="font-black text-slate-800">مشاركة الاختبار</h2>
+              <h2 id="share-modal-title" className="font-black text-slate-800">مشاركة الاختبار</h2>
               <p className="text-xs text-slate-500">{examTitle}</p>
             </div>
           </div>
           <button
             onClick={onClose}
+            aria-label="إغلاق النافذة"
             className="rounded-xl p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
           >
-            <X className="h-5 w-5" />
+            <X className="h-5 w-5" aria-hidden="true" />
           </button>
         </div>
 
@@ -148,7 +154,7 @@ export function ExamShareModal({ examId, examTitle, onClose }: Props) {
           {/* خطأ */}
           {error && (
             <div className="flex items-center gap-2 rounded-2xl bg-rose-50 p-4 text-sm font-medium text-rose-600">
-              <AlertCircle className="h-4 w-4 shrink-0" />
+              <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
               {error}
             </div>
           )}
@@ -156,14 +162,14 @@ export function ExamShareModal({ examId, examTitle, onClose }: Props) {
           {/* تحميل */}
           {loading ? (
             <div className="flex flex-col items-center gap-3 py-8 text-slate-500">
-              <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
+              <Loader2 className="h-8 w-8 animate-spin text-emerald-500" aria-hidden="true" />
               <p className="text-sm font-medium">جاري التحميل...</p>
             </div>
           ) : !token ? (
             /* لا يوجد توكن بعد */
             <div className="flex flex-col items-center gap-4 py-6 text-center">
               <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-slate-100">
-                <Link2 className="h-8 w-8 text-slate-400" />
+                <Link2 className="h-8 w-8 text-slate-400" aria-hidden="true" />
               </div>
               <div>
                 <h3 className="mb-1 font-bold text-slate-800">لا يوجد رابط مشاركة</h3>
@@ -177,9 +183,9 @@ export function ExamShareModal({ examId, examTitle, onClose }: Props) {
                 className="flex items-center gap-2 rounded-2xl bg-emerald-600 px-6 py-3 font-bold text-white shadow-md shadow-emerald-200 transition-all hover:bg-emerald-700 disabled:opacity-70"
               >
                 {actionLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                 ) : (
-                  <Link2 className="h-4 w-4" />
+                  <Link2 className="h-4 w-4" aria-hidden="true" />
                 )}
                 إنشاء رابط المشاركة
               </button>
@@ -227,11 +233,11 @@ export function ExamShareModal({ examId, examTitle, onClose }: Props) {
                     >
                       {copied ? (
                         <span className="flex items-center gap-1">
-                          <Check className="h-3 w-3" /> تم النسخ!
+                          <Check className="h-3.5 w-3.5" aria-hidden="true" /> تم النسخ!
                         </span>
                       ) : (
                         <span className="flex items-center gap-1">
-                          <Copy className="h-3 w-3" /> نسخ
+                          <Copy className="h-3.5 w-3.5" aria-hidden="true" /> نسخ
                         </span>
                       )}
                     </button>
@@ -242,7 +248,7 @@ export function ExamShareModal({ examId, examTitle, onClose }: Props) {
                       className="shrink-0 rounded-xl border border-slate-200 bg-white p-1.5 text-slate-600 hover:bg-slate-100 transition-colors"
                       title="فتح الرابط"
                     >
-                      <ExternalLink className="h-3.5 w-3.5" />
+                      <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
                     </a>
                   </div>
                 </div>
@@ -261,11 +267,11 @@ export function ExamShareModal({ examId, examTitle, onClose }: Props) {
                   }`}
                 >
                   {actionLoading ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
                   ) : token.is_active ? (
-                    <ToggleRight className="h-5 w-5" />
+                    <ToggleRight className="h-5 w-5" aria-hidden="true" />
                   ) : (
-                    <ToggleLeft className="h-5 w-5" />
+                    <ToggleLeft className="h-5 w-5" aria-hidden="true" />
                   )}
                   {token.is_active ? 'تعطيل' : 'تفعيل'}
                 </button>
@@ -277,9 +283,9 @@ export function ExamShareModal({ examId, examTitle, onClose }: Props) {
                   className="flex flex-col items-center gap-2 rounded-2xl border border-amber-100 bg-amber-50 p-3 text-xs font-bold text-amber-600 transition-all hover:bg-amber-100 disabled:opacity-50"
                 >
                   {actionLoading ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
                   ) : (
-                    <RefreshCw className="h-5 w-5" />
+                    <RefreshCw className="h-5 w-5" aria-hidden="true" />
                   )}
                   تجديد
                 </button>
@@ -291,9 +297,9 @@ export function ExamShareModal({ examId, examTitle, onClose }: Props) {
                     className="flex flex-col items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs font-bold text-slate-600 transition-all hover:bg-slate-100"
                   >
                     {copied ? (
-                      <Check className="h-5 w-5 text-emerald-600" />
+                      <Check className="h-5 w-5 text-emerald-600" aria-hidden="true" />
                     ) : (
-                      <Copy className="h-5 w-5" />
+                      <Copy className="h-5 w-5" aria-hidden="true" />
                     )}
                     {copied ? 'تم!' : 'نسخ'}
                   </button>

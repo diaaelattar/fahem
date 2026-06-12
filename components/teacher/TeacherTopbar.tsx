@@ -49,7 +49,7 @@ export function TeacherTopbar({ profile }: Props) {
       <div className="hidden items-center gap-4 md:flex">
         {/* Greeting */}
         <div className="flex items-center gap-2">
-          <GraduationCap className="h-4 w-4 text-indigo-400" />
+          <GraduationCap className="h-4 w-4 text-indigo-400" aria-hidden="true" />
           <span className="text-sm font-bold text-slate-200">
             مرحباً أستاذ {firstName}
           </span>
@@ -60,7 +60,7 @@ export function TeacherTopbar({ profile }: Props) {
           href="/teacher/exams/create"
           className="flex items-center gap-1.5 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-3 py-1.5 text-xs font-bold text-indigo-300 transition-all hover:bg-indigo-500/20 hover:text-indigo-200"
         >
-          <Sparkles className="h-3.5 w-3.5" />
+          <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
           إنشاء اختبار AI
         </Link>
 
@@ -68,7 +68,7 @@ export function TeacherTopbar({ profile }: Props) {
           href="/teacher/lessons/create"
           className="flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-emerald-300 transition-all hover:bg-emerald-500/20 hover:text-emerald-200"
         >
-          <BookOpen className="h-3.5 w-3.5" />
+          <BookOpen className="h-3.5 w-3.5" aria-hidden="true" />
           درس جديد
         </Link>
       </div>
@@ -99,7 +99,7 @@ export function TeacherTopbar({ profile }: Props) {
           aria-label="تسجيل الخروج"
           className="tap-target flex items-center justify-center rounded-xl p-2 text-slate-500 transition-all hover:bg-red-500/10 hover:text-red-400 active:scale-95"
         >
-          <LogOut className="h-4 w-4" />
+          <LogOut className="h-4 w-4" aria-hidden="true" />
         </button>
       </div>
     </header>

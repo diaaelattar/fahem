@@ -97,9 +97,36 @@ export async function middleware(request: NextRequest) {
     })
   }
 
+  // ── Session Timeout للمعلمين (30 دقيقة خمول) ─────────────────────
+  // يتوافق مع معايير NIST 800-63B لحماية جلسات المعلمين الإدارية
+  const TEACHER_SESSION_TIMEOUT_MS = 30 * 60 * 1000 // 30 دقيقة
+  const isTeacherRoute = pathname.startsWith('/teacher')
+
+  if (user && isTeacherRoute) {
+    const lastActivity = request.cookies.get('teacher_last_activity')?.value
+    const now = Date.now()
+
+    if (lastActivity) {
+      const elapsed = now - parseInt(lastActivity, 10)
+      if (elapsed > TEACHER_SESSION_TIMEOUT_MS) {
+        await supabase.auth.signOut()
+        const loginRedirect = redirectWithCookies(request, '/auth/login', supabaseResponse)
+        loginRedirect.cookies.delete('teacher_last_activity')
+        return loginRedirect
+      }
+    }
+
+    supabaseResponse.cookies.set('teacher_last_activity', String(now), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: TEACHER_SESSION_TIMEOUT_MS / 1000,
+      path: '/teacher',
+    })
+  }
+
   const isAdminRoute = pathname.startsWith('/admin')
   const isStudentRoute = pathname.startsWith('/student')
-  const isTeacherRoute = pathname.startsWith('/teacher')
   const isSchoolAdminRoute = pathname.startsWith('/school')
   const isProtectedRoute =
     isAdminRoute || isStudentRoute || isTeacherRoute || isSchoolAdminRoute

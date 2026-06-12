@@ -16,6 +16,7 @@ import {
   ChevronLeft,
   Check,
 } from 'lucide-react'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 
 interface AIQuestionGeneratorModalProps {
   onClose: () => void
@@ -37,6 +38,9 @@ export function AIQuestionGeneratorModal({
   const [file, setFile] = useState<File | null>(null)
   const [fileBase64, setFileBase64] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const modalRef = useRef<HTMLDivElement>(null)
+
+  useFocusTrap(modalRef, true, onClose)
 
   // Generation options
   const [questionCount, setQuestionCount] = useState<number>(5)
@@ -209,6 +213,10 @@ export function AIQuestionGeneratorModal({
       dir="rtl"
     >
       <motion.div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="ai-generator-title"
         initial={{ opacity: 0, scale: 0.95, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 10 }}
@@ -218,10 +226,10 @@ export function AIQuestionGeneratorModal({
         <div className="flex shrink-0 items-center justify-between bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-4 text-white">
           <div className="flex items-center gap-2.5">
             <div className="rounded-xl bg-white/10 p-2">
-              <Sparkles className="h-5 w-5 animate-pulse text-amber-300" />
+              <Sparkles className="h-5 w-5 animate-pulse text-amber-300" aria-hidden="true" />
             </div>
             <div>
-              <h3 className="text-lg font-black">
+              <h3 id="ai-generator-title" className="text-lg font-black">
                 مساعد التوليد الذكي بالذكاء الاصطناعي (AI)
               </h3>
               <p className="text-xs font-medium text-indigo-100">
@@ -231,9 +239,10 @@ export function AIQuestionGeneratorModal({
           </div>
           <button
             onClick={onClose}
+            aria-label="إغلاق النافذة"
             className="rounded-full bg-white/10 p-1.5 text-white transition-colors hover:bg-white/20"
           >
-            <X className="h-5 w-5" />
+            <X className="h-5 w-5" aria-hidden="true" />
           </button>
         </div>
 
@@ -252,7 +261,7 @@ export function AIQuestionGeneratorModal({
                     }}
                     className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-bold transition-all ${activeTab === 'text' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
                   >
-                    <FileText className="h-4 w-4" />
+                    <FileText className="h-4 w-4" aria-hidden="true" />
                     لصق نص الدرس
                   </button>
                   <button
@@ -262,7 +271,7 @@ export function AIQuestionGeneratorModal({
                     }}
                     className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-bold transition-all ${activeTab === 'file' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
                   >
-                    <Upload className="h-4 w-4" />
+                    <Upload className="h-4 w-4" aria-hidden="true" />
                     رفع مستند أو صورة (PDF/JPG)
                   </button>
                 </div>
@@ -297,7 +306,7 @@ export function AIQuestionGeneratorModal({
                       />
                       {file ? (
                         <div className="space-y-2">
-                          <CheckCircle className="mx-auto h-12 w-12 text-emerald-500" />
+                          <CheckCircle className="mx-auto h-12 w-12 text-emerald-500" aria-hidden="true" />
                           <div>
                             <p className="font-bold text-slate-800">
                               {file.name}
@@ -314,12 +323,12 @@ export function AIQuestionGeneratorModal({
                             }}
                             className="mx-auto mt-2 flex items-center gap-1 text-xs font-bold text-rose-500 hover:underline"
                           >
-                            <Trash2 className="h-3.5 w-3.5" /> إزالة الملف
+                            <Trash2 className="h-3.5 w-3.5" aria-hidden="true" /> إزالة الملف
                           </button>
                         </div>
                       ) : (
                         <div className="space-y-2">
-                          <Upload className="mx-auto h-10 w-10 text-slate-400" />
+                          <Upload className="mx-auto h-10 w-10 text-slate-400" aria-hidden="true" />
                           <p className="font-bold text-slate-700">
                             اسحب أو انقر لرفع ملف
                           </p>
@@ -337,7 +346,7 @@ export function AIQuestionGeneratorModal({
               <div className="flex flex-col justify-between space-y-4 rounded-2xl border border-slate-100 bg-slate-50 p-5">
                 <div className="space-y-4">
                   <h4 className="flex items-center gap-1 text-sm font-black text-slate-700">
-                    <Brain className="h-4 w-4 text-indigo-500" /> إعدادات
+                    <Brain className="h-4 w-4 text-indigo-500" aria-hidden="true" /> إعدادات
                     الأسئلة
                   </h4>
 
@@ -416,7 +425,7 @@ export function AIQuestionGeneratorModal({
                     >
                       أسئلة قائمة على قطع ونصوص مشتركة
                       <span title="يربط الأسئلة بفقرة قراءة أو سياق موحد يوضع في context_passage">
-                        <HelpCircle className="h-3 w-3 text-slate-400" />
+                        <HelpCircle className="h-3 w-3 text-slate-400" aria-hidden="true" />
                       </span>
                     </label>
                   </div>
@@ -437,7 +446,7 @@ export function AIQuestionGeneratorModal({
 
                 {error && (
                   <div className="flex animate-fade-in items-start gap-1.5 rounded-xl border border-rose-100 bg-rose-50 p-3 text-xs font-bold leading-tight text-rose-700">
-                    <AlertCircle className="h-4 w-4 shrink-0 text-rose-500" />
+                    <AlertCircle className="h-4 w-4 shrink-0 text-rose-500" aria-hidden="true" />
                     <span>{error}</span>
                   </div>
                 )}
@@ -450,12 +459,12 @@ export function AIQuestionGeneratorModal({
                 >
                   {generating ? (
                     <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                       جاري صياغة وتوليد الأسئلة...
                     </>
                   ) : (
                     <>
-                      <Sparkles className="h-4 w-4 text-amber-300" />
+                      <Sparkles className="h-4 w-4 text-amber-300" aria-hidden="true" />
                       ابدأ التوليد التلقائي
                     </>
                   )}
@@ -518,7 +527,7 @@ export function AIQuestionGeneratorModal({
                         }}
                       >
                         {selected && (
-                          <Check className="h-3.5 w-3.5 text-white" />
+                          <Check className="h-3.5 w-3.5 text-white" aria-hidden="true" />
                         )}
                       </div>
 
@@ -600,7 +609,7 @@ export function AIQuestionGeneratorModal({
               className="flex items-center gap-1.5 rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-bold text-white shadow-md shadow-indigo-100 transition-colors hover:bg-indigo-700 disabled:opacity-60"
             >
               استيراد الأسئلة المحددة ({selectedIndices.size})
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className="h-4 w-4" aria-hidden="true" />
             </button>
           )}
         </div>

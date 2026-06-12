@@ -2,7 +2,7 @@
 
 export {}
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import {
   createSessionAction,
   deleteSessionAction,
@@ -21,8 +21,10 @@ import {
   Clock,
   Trash2,
   Video,
+  AlertCircle,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 
 interface Session {
   id: string
@@ -70,6 +72,13 @@ export function SessionsTab({
   >({})
   const [savingAttendance, setSavingAttendance] = useState(false)
 
+  const [confirmData, setConfirmData] = useState<{
+    message: string
+    onConfirm: () => void
+  } | null>(null)
+  const confirmModalRef = useRef<HTMLDivElement>(null)
+  useFocusTrap(confirmModalRef, !!confirmData, () => setConfirmData(null))
+
   // New Session Form State
   const [newTitle, setNewTitle] = useState('')
   const [newDateTime, setNewDateTime] = useState('')
@@ -100,17 +109,21 @@ export function SessionsTab({
   }
 
   async function handleDeleteSession(sessionId: string) {
-    if (!confirm('هل تريد حذف هذه الحصة؟')) return
-    setDeletingId(sessionId)
-    try {
-      await deleteSessionAction(sessionId, groupId)
-      setSessions((prev) => prev.filter((s) => s.id !== sessionId))
-      toast.success('تم حذف الحصة')
-    } catch (err: any) {
-      toast.error(err.message)
-    } finally {
-      setDeletingId(null)
-    }
+    setConfirmData({
+      message: 'هل تريد حذف هذه الحصة؟',
+      onConfirm: async () => {
+        setDeletingId(sessionId)
+        try {
+          await deleteSessionAction(sessionId, groupId)
+          setSessions((prev) => prev.filter((s) => s.id !== sessionId))
+          toast.success('تم حذف الحصة')
+        } catch (err: any) {
+          toast.error(err.message)
+        } finally {
+          setDeletingId(null)
+        }
+      },
+    })
   }
 
   function openAttendance(session: Session) {
@@ -504,6 +517,49 @@ export function SessionsTab({
                 </div>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* مودال التأكيد الموحد للعمليات الحرجة */}
+      {confirmData && (
+        <div
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="confirm-modal-title"
+        >
+          <div
+            ref={confirmModalRef}
+            className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl space-y-5 text-center animate-in fade-in zoom-in-95 duration-200"
+            dir="rtl"
+          >
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-50 border border-amber-200">
+              <AlertCircle className="h-6 w-6 text-amber-500" aria-hidden="true" />
+            </div>
+            
+            <div className="space-y-2">
+              <h3 id="confirm-modal-title" className="text-base font-extrabold text-slate-800">تأكيد الإجراء</h3>
+              <p className="text-sm text-slate-600 leading-relaxed">{confirmData.message}</p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmData(null)}
+                className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-xl text-sm transition-all"
+              >
+                إلغاء
+              </button>
+              <button
+                onClick={() => {
+                  confirmData.onConfirm()
+                  setConfirmData(null)
+                }}
+                className="flex-1 bg-amber-600 hover:bg-amber-500 text-white font-bold py-2.5 rounded-xl text-sm transition-all shadow-md shadow-amber-600/10"
+              >
+                تأكيد
+              </button>
+            </div>
           </div>
         </div>
       )}

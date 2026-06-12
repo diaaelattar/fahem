@@ -54,7 +54,7 @@ export default async function TeacherLayout({
       {/* Main content area */}
       <div className="flex min-w-0 flex-1 flex-col md:mr-64">
         <TeacherTopbar profile={profile} />
-        <main className="flex-1 overflow-auto p-4 pb-28 md:p-6 md:pb-6 text-slate-100">
+        <main id="main-content" className="flex-1 overflow-auto p-4 pb-28 md:p-6 md:pb-6 text-slate-100">
           {children}
         </main>
       </div>
