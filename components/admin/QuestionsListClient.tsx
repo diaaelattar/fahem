@@ -1,13 +1,15 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Trash2, Loader2 } from 'lucide-react'
+import { Trash2, Loader2, Download, Upload, CheckCircle2, AlertTriangle, X } from 'lucide-react'
 import { MathRenderer } from '@/components/ui/MathRenderer'
 import { QuestionApprovalButtons } from '@/components/admin/QuestionApprovalButtons'
 import { toast } from 'sonner'
-import { bulkDeleteQuestionsAction } from '@/app/admin/questions/actions'
+import { bulkDeleteQuestionsAction, bulkCreateQuestionsAction } from '@/app/admin/questions/actions'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
+import { exportToQtiXml, parseQtiXml } from '@/lib/utils/qti'
+import { createClient } from '@/lib/supabase/client'
 
 export function QuestionsListClient({
   questions,
@@ -31,10 +33,119 @@ export function QuestionsListClient({
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [isDeleting, setIsDeleting] = useState(false)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
+  
+  // QTI Import Modal state
+  const [showImportModal, setShowImportModal] = useState(false)
+  const [importingQuestions, setImportingQuestions] = useState<any[]>([])
+  const [selectedSubjectId, setSelectedSubjectId] = useState('')
+  const [selectedGradeId, setSelectedGradeId] = useState('')
+  const [subjects, setSubjects] = useState<any[]>([])
+  const [grades, setGrades] = useState<any[]>([])
+  const [loadingMetadata, setLoadingMetadata] = useState(false)
+  const [isSavingImport, setIsSavingImport] = useState(false)
+
   const router = useRouter()
 
   const confirmModalRef = useRef<HTMLDivElement>(null)
   useFocusTrap(confirmModalRef, showConfirmModal, () => setShowConfirmModal(false))
+
+  // Fetch subjects and grades when modal opens
+  useEffect(() => {
+    if (showImportModal && subjects.length === 0) {
+      const fetchMetadata = async () => {
+        setLoadingMetadata(true)
+        try {
+          const supabase = createClient()
+          const [{ data: s }, { data: g }] = await Promise.all([
+            supabase.from('subjects').select('*').order('name_ar'),
+            supabase.from('grades').select('*').order('grade_number'),
+          ])
+          setSubjects(s || [])
+          setGrades(g || [])
+        } catch (err: any) {
+          toast.error('خطأ في جلب المواد والصفوف: ' + err.message)
+        } finally {
+          setLoadingMetadata(false)
+        }
+      }
+      fetchMetadata()
+    }
+  }, [showImportModal])
+
+  const handleExportQti = () => {
+    try {
+      const selectedQs = questions.filter((q) => selectedIds.includes(q.id))
+      const xmlContent = exportToQtiXml(selectedQs)
+      
+      const blob = new Blob([xmlContent], { type: 'application/xml' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `qti-export-${Date.now()}.xml`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+      
+      toast.success(`تم تصدير ${selectedQs.length} سؤال بصيغة QTI XML بنجاح!`)
+    } catch (err: any) {
+      toast.error('خطأ أثناء تصدير الأسئلة: ' + err.message)
+    }
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      try {
+        const text = event.target?.result as string
+        const parsed = parseQtiXml(text)
+        if (parsed.length === 0) {
+          toast.error('لم يتم العثور على أي أسئلة في الملف المرفوع.')
+          return
+        }
+        setImportingQuestions(parsed)
+        toast.success(`تم تحليل الملف: عثر على ${parsed.length} سؤال.`)
+      } catch (err: any) {
+        toast.error('خطأ في قراءة ملف QTI: ' + err.message)
+      }
+    }
+    reader.readAsText(file)
+  }
+
+  const handleImportSubmit = async () => {
+    if (!selectedSubjectId || !selectedGradeId) {
+      toast.error('يرجى تحديد المادة والصف الدراسي للأسئلة المستوردة.')
+      return
+    }
+
+    setIsSavingImport(true)
+    try {
+      const preparedQs = importingQuestions.map(q => ({
+        ...q,
+        subject_id: selectedSubjectId,
+        grade_id: selectedGradeId
+      }))
+
+      const { success, error } = await bulkCreateQuestionsAction(preparedQs)
+      if (success) {
+        toast.success(`تم استيراد ${preparedQs.length} سؤال بنجاح!`)
+        setShowImportModal(false)
+        setImportingQuestions([])
+        setSelectedSubjectId('')
+        setSelectedGradeId('')
+        router.refresh()
+      } else {
+        toast.error(error || 'حدث خطأ أثناء عملية الاستيراد.')
+      }
+    } catch (err: any) {
+      toast.error('خطأ غير متوقع: ' + err.message)
+    } finally {
+      setIsSavingImport(false)
+    }
+  }
 
   const handleCreateExam = () => {
     const selectedQs = questions.filter((q) => selectedIds.includes(q.id))
@@ -142,6 +253,13 @@ export function QuestionsListClient({
 
             <div className="flex items-center gap-2">
               <button
+                onClick={handleExportQti}
+                className="flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition-colors hover:bg-blue-700"
+              >
+                <Download className="h-4 w-4" />
+                تصدير QTI XML
+              </button>
+              <button
                 onClick={() => setSelectedIds([])}
                 className="rounded-lg px-3 py-1.5 text-xs font-bold text-red-600 transition-colors hover:bg-red-100"
               >
@@ -158,23 +276,35 @@ export function QuestionsListClient({
           </div>
         ))}
 
-      {/* ── زر تحديد الكل ── */}
-      <div className="mb-3 flex items-center gap-2 px-2">
-        <input
-          type="checkbox"
-          id="select-all"
-          checked={
-            questions.length > 0 && selectedIds.length === questions.length
-          }
-          onChange={toggleSelectAll}
-          className="h-5 w-5 cursor-pointer rounded border-slate-300 text-blue-600 focus:ring-blue-600"
-        />
-        <label
-          htmlFor="select-all"
-          className="cursor-pointer select-none text-sm font-bold text-slate-700"
-        >
-          تحديد جميع أسئلة الصفحة ({questions.length})
-        </label>
+      {/* ── زر تحديد الكل + زر الاستيراد QTI ── */}
+      <div className="mb-4 flex flex-col items-stretch justify-between gap-3 px-2 sm:flex-row sm:items-center">
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            id="select-all"
+            checked={
+              questions.length > 0 && selectedIds.length === questions.length
+            }
+            onChange={toggleSelectAll}
+            className="h-5 w-5 cursor-pointer rounded border-slate-300 text-blue-600 focus:ring-blue-600"
+          />
+          <label
+            htmlFor="select-all"
+            className="cursor-pointer select-none text-sm font-bold text-slate-700"
+          >
+            تحديد جميع أسئلة الصفحة ({questions.length})
+          </label>
+        </div>
+
+        {!basePath.includes('/teacher') && (
+          <button
+            onClick={() => setShowImportModal(true)}
+            className="flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 px-4 py-2 text-sm font-bold text-primary transition-all hover:bg-primary/10"
+          >
+            <Upload className="h-4 w-4" />
+            استيراد أسئلة من ملف QTI XML
+          </button>
+        )}
       </div>
 
       <div className="relative space-y-6">
@@ -382,6 +512,193 @@ export function QuestionsListClient({
                   <Trash2 className="h-4 w-4" />
                 )}
                 {isDeleting ? 'جاري الحذف...' : 'نعم، احذف نهائياً'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* مودال استيراد QTI XML */}
+      {showImportModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in">
+          <div
+            className="flex h-[90vh] w-full max-w-4xl flex-col rounded-3xl bg-white shadow-2xl overflow-hidden"
+            dir="rtl"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/50 px-6 py-4">
+              <div>
+                <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                  <Upload className="h-5 w-5 text-primary" />
+                  استيراد الأسئلة من ملف QTI XML
+                </h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  يتيح لك رفع وتضمين الأسئلة ببنك الأسئلة للمنصة مباشرة
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowImportModal(false)
+                  setImportingQuestions([])
+                }}
+                className="rounded-xl p-2 hover:bg-slate-100 transition-colors"
+              >
+                <X className="h-5 w-5 text-slate-500" />
+              </button>
+            </div>
+
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {/* File Upload Area */}
+              <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/30 p-8 text-center transition-all hover:border-primary/40">
+                <input
+                  type="file"
+                  accept=".xml"
+                  onChange={handleFileChange}
+                  id="qti-file-input"
+                  className="hidden"
+                />
+                <label htmlFor="qti-file-input" className="cursor-pointer space-y-3 block">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                    <Upload className="h-6 w-6" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-bold text-slate-800">
+                      اضغط هنا لرفع ملف QTI XML
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      يدعم صيغة XML القياسية لأسئلة التقييم QTI 2.1
+                    </p>
+                  </div>
+                </label>
+              </div>
+
+              {importingQuestions.length > 0 && (
+                <div className="space-y-4">
+                  {/* Selectors for Subject & Grade */}
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-700">المادة الدراسية للمستورد *</label>
+                      {loadingMetadata ? (
+                        <div className="h-10 w-full animate-pulse rounded-xl bg-slate-200" />
+                      ) : (
+                        <select
+                          required
+                          value={selectedSubjectId}
+                          onChange={(e) => setSelectedSubjectId(e.target.value)}
+                          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 outline-none"
+                        >
+                          <option value="">اختر المادة</option>
+                          {subjects.map((s) => (
+                            <option key={s.id} value={s.id}>
+                              {s.name_ar}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-700">الصف الدراسي للمستورد *</label>
+                      {loadingMetadata ? (
+                        <div className="h-10 w-full animate-pulse rounded-xl bg-slate-200" />
+                      ) : (
+                        <select
+                          required
+                          value={selectedGradeId}
+                          onChange={(e) => setSelectedGradeId(e.target.value)}
+                          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 outline-none"
+                        >
+                          <option value="">اختر الصف</option>
+                          {grades.map((g) => (
+                            <option key={g.id} value={g.id}>
+                              {g.name_ar}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Preview of Parsed Questions */}
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-800 mb-3">
+                      معاينة الأسئلة التي تم تحليلها ({importingQuestions.length} سؤال)
+                    </h3>
+                    <div className="space-y-3 max-h-[250px] overflow-y-auto pr-1">
+                      {importingQuestions.map((q, idx) => (
+                        <div key={idx} className="rounded-xl border border-slate-100 bg-white p-4 text-sm space-y-2 shadow-sm">
+                          <div className="flex items-center gap-2">
+                            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-700">
+                              {q.question_type === 'mcq'
+                                ? 'اختيار من متعدد'
+                                : q.question_type === 'true_false'
+                                  ? 'صح/خطأ'
+                                  : q.question_type === 'fill_blank'
+                                    ? 'إكمال الفراغ'
+                                    : 'سؤال مقالي'}
+                            </span>
+                            <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-700">
+                              النقاط: {q.points}
+                            </span>
+                            <span className="rounded-full bg-purple-50 px-2 py-0.5 text-[10px] font-medium text-purple-700">
+                              صعوبة: {q.difficulty_level === 'easy' ? 'سهل' : q.difficulty_level === 'hard' ? 'صعب' : 'متوسط'}
+                            </span>
+                          </div>
+                          <div className="font-semibold text-slate-800">
+                            {idx + 1}. <MathRenderer text={q.question_text} />
+                          </div>
+                          {q.options && q.options.length > 0 && (
+                            <div className="grid grid-cols-2 gap-2 pl-4 pt-1">
+                              {q.options.map((opt: string, optIdx: number) => (
+                                <div key={optIdx} className={`rounded-lg border px-3 py-1.5 text-xs ${opt === q.correct_answer ? 'border-green-400 bg-green-50 text-green-700 font-bold' : 'border-slate-100 text-slate-600'}`}>
+                                  {['أ', 'ب', 'ج', 'د'][optIdx]}. {opt}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {q.question_type !== 'mcq' && (
+                            <p className="text-xs text-green-700 font-bold bg-green-50/50 rounded-lg px-3 py-1.5 border border-green-100 inline-block">
+                              الإجابة النموذجية: {q.correct_answer}
+                            </p>
+                          )}
+                          {q.explanation && (
+                            <p className="text-[11px] text-slate-500 italic bg-slate-50 p-2 rounded-lg">
+                              الشرح: {q.explanation}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="border-t border-slate-100 px-6 py-4 bg-slate-50 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowImportModal(false)
+                  setImportingQuestions([])
+                }}
+                className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
+              >
+                إلغاء
+              </button>
+              <button
+                type="button"
+                disabled={isSavingImport || importingQuestions.length === 0 || !selectedSubjectId || !selectedGradeId}
+                onClick={handleImportSubmit}
+                className="flex items-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-bold text-white shadow-md transition-colors hover:bg-primary/90 disabled:opacity-50"
+              >
+                {isSavingImport ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="h-4 w-4" />
+                )}
+                {isSavingImport ? 'جاري الاستيراد...' : 'حفظ الأسئلة المستوردة'}
               </button>
             </div>
           </div>

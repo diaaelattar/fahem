@@ -72,11 +72,36 @@ export function ExamProctoring({ attemptId }: Props) {
       logEvent('copy_attempt', { timestamp: new Date().toISOString() })
     }
 
+    // 6. Block developer tools keyboard shortcuts
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'F12') {
+        e.preventDefault()
+        toast.error('❌ عذراً: غير مسموح بفتح أدوات المطور أثناء الاختبار.', {
+          position: 'top-center',
+        })
+        logEvent('devtools_attempt', { key: 'F12', timestamp: new Date().toISOString() })
+      }
+      if (
+        (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C' || e.key === 'i' || e.key === 'j' || e.key === 'c')) ||
+        (e.ctrlKey && (e.key === 'u' || e.key === 'U'))
+      ) {
+        e.preventDefault()
+        toast.error('❌ عذراً: غير مسموح بفتح أدوات المطور أو عرض المصدر أثناء الاختبار.', {
+          position: 'top-center',
+        })
+        logEvent('devtools_attempt', {
+          key: `${e.ctrlKey ? 'Ctrl+' : ''}${e.shiftKey ? 'Shift+' : ''}${e.key}`,
+          timestamp: new Date().toISOString(),
+        })
+      }
+    }
+
     // Attach listeners
     document.addEventListener('visibilitychange', handleVisibilityChange)
     window.addEventListener('blur', handleBlur)
     document.addEventListener('contextmenu', handleContextMenu)
     document.addEventListener('copy', handleCopy)
+    document.addEventListener('keydown', handleKeyDown)
 
     // Cleanup listeners
     return () => {
@@ -84,6 +109,7 @@ export function ExamProctoring({ attemptId }: Props) {
       window.removeEventListener('blur', handleBlur)
       document.removeEventListener('contextmenu', handleContextMenu)
       document.removeEventListener('copy', handleCopy)
+      document.removeEventListener('keydown', handleKeyDown)
     }
   }, [attemptId])
 

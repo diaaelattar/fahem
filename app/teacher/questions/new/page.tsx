@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { Save, ArrowRight, HelpCircle } from 'lucide-react'
 import { MathRenderer } from '@/components/ui/MathRenderer'
+import { GeometricShapeBuilder } from '@/components/shared/GeometricShapeBuilder'
 
 type QuestionType = 'mcq' | 'true_false' | 'fill_blank'
 type DifficultyLevel = 'easy' | 'medium' | 'hard'
@@ -27,6 +28,7 @@ export default function TeacherNewQuestionPage() {
   const [error, setError] = useState('')
   const [grades, setGrades] = useState<any[]>([])
   const [teacherSubject, setTeacherSubject] = useState<{ id: string; name_ar: string; icon: string } | null>(null)
+  const [showSvgBuilder, setShowSvgBuilder] = useState(false)
 
   const [formData, setFormData] = useState({
     grade_id: '',
@@ -240,9 +242,18 @@ export default function TeacherNewQuestionPage() {
 
         {/* نص السؤال */}
         <div className="space-y-2">
-          <label className="flex items-center gap-2 text-sm font-medium">
-            <HelpCircle className="h-4 w-4 text-primary" /> نص السؤال
-          </label>
+          <div className="flex items-center justify-between">
+            <label className="flex items-center gap-2 text-sm font-medium">
+              <HelpCircle className="h-4 w-4 text-primary" /> نص السؤال
+            </label>
+            <button
+              type="button"
+              onClick={() => setShowSvgBuilder(true)}
+              className="flex items-center gap-1.5 rounded-lg border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-bold text-primary transition-all hover:bg-primary/10"
+            >
+              🎨 رسم هندسي (SVG)
+            </button>
+          </div>
           <textarea
             required
             rows={3}
@@ -386,6 +397,12 @@ export default function TeacherNewQuestionPage() {
           </button>
         </div>
       </form>
+
+      <GeometricShapeBuilder
+        isOpen={showSvgBuilder}
+        onClose={() => setShowSvgBuilder(false)}
+        onInsert={(svg) => setFormData(prev => ({ ...prev, question_text: prev.question_text ? prev.question_text + '\n' + svg : svg }))}
+      />
     </div>
   )
 }

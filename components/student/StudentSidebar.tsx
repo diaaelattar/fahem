@@ -106,7 +106,7 @@ export function StudentSidebar() {
       </div>
 
       {/* ── Nav Sections ── */}
-      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5" role="navigation">
+      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5" role="navigation" aria-label="قائمة التنقل الجانبية للطلاب">
         {NAV_SECTIONS.map((section) => (
           <div key={section.label}>
             {/* Section Label */}
@@ -122,10 +122,11 @@ export function StudentSidebar() {
                     key={href}
                     href={href}
                     className={`sidebar-link group ${active ? 'active' : ''}`}
+                    aria-current={active ? 'page' : undefined}
                   >
                     {/* Icon container */}
                     <span className="sidebar-icon">
-                      <Icon className="h-4 w-4" />
+                      <Icon className="h-4 w-4" aria-hidden="true" />
                     </span>
 
                     <span className="flex-1 text-[13.5px]">{label}</span>
@@ -150,9 +151,10 @@ export function StudentSidebar() {
           <Link
             href={VIP_ITEM.href}
             className={`sidebar-link group ${isActive(VIP_ITEM.href) ? 'active' : ''}`}
+            aria-current={isActive(VIP_ITEM.href) ? 'page' : undefined}
           >
             <span className="sidebar-icon">
-              <VIP_ITEM.icon className="h-4 w-4" />
+              <VIP_ITEM.icon className="h-4 w-4" aria-hidden="true" />
             </span>
             <span className="flex-1 text-[13.5px]">{VIP_ITEM.label}</span>
             <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${VIP_ITEM.badgeClass}`}>
@@ -165,7 +167,7 @@ export function StudentSidebar() {
       {/* ── Footer — Daily Motivation ── */}
       <div className="shrink-0 border-t border-slate-100 p-4">
         <div className="flex items-center gap-2.5 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-100 px-3.5 py-3">
-          <Flame className="h-4 w-4 shrink-0 text-orange-500 animate-glow-pulse" />
+          <Flame className="h-4 w-4 shrink-0 text-orange-500 animate-glow-pulse" aria-hidden="true" />
           <p className="text-[11.5px] font-bold text-amber-800 leading-snug">
             واصل تدريبك يومياً للتفوق والوصول للقمة! 🎯
           </p>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import {
   Loader2,
@@ -9,7 +9,10 @@ import {
   User,
   GraduationCap,
   CheckCircle,
+  AlertTriangle,
+  Trash2,
 } from 'lucide-react'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 import { toast } from 'sonner'
 
 export default function StudentProfilePage() {
@@ -25,6 +28,42 @@ export default function StudentProfilePage() {
   const [savingGrade, setSavingGrade] = useState(false)
   const [changingPwd, setChangingPwd] = useState(false)
   const [loading, setLoading] = useState(true)
+
+  // GDPR Deletion request state
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState('')
+  const [requestingDelete, setRequestingDelete] = useState(false)
+  const deleteModalRef = useRef<HTMLDivElement>(null)
+  useFocusTrap(deleteModalRef, showDeleteModal, () => setShowDeleteModal(false))
+
+  const handleDeleteRequest = async () => {
+    if (deleteConfirmText !== 'حذف حسابي') {
+      toast.error('يرجى كتابة العبارة الصحيحة للتأكيد')
+      return
+    }
+    setRequestingDelete(true)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('غير مسجل الدخول')
+
+      const { error } = await supabase.from('data_deletion_requests').insert({
+        user_id: user.id,
+        status: 'pending',
+        user_role: 'student',
+        user_email: user.email,
+      })
+
+      if (error) throw error
+
+      toast.success('تم تقديم طلب حذف الحساب والبيانات بنجاح. سنقوم بمراجعة طلبك وإتمامه خلال 7 أيام عمل.')
+      setShowDeleteModal(false)
+      setDeleteConfirmText('')
+    } catch (err: any) {
+      toast.error(`حدث خطأ: ${err.message}`)
+    } finally {
+      setRequestingDelete(false)
+    }
+  }
 
   useEffect(() => {
     const load = async () => {
@@ -198,6 +237,7 @@ export default function StudentProfilePage() {
             <button
               key={grade.id}
               onClick={() => setSelectedGrade(grade.id)}
+              aria-pressed={selectedGrade === grade.id ? 'true' : 'false'}
               className={`flex w-full items-center justify-between rounded-xl border-2 p-3 text-right text-sm font-medium transition-all ${
                 selectedGrade === grade.id
                   ? 'border-primary bg-primary/5 text-primary'
@@ -264,6 +304,106 @@ export default function StudentProfilePage() {
           تغيير كلمة المرور
         </button>
       </div>
+
+      {/* Danger Zone (GDPR Data Erasure) */}
+      <div className="space-y-4 rounded-2xl border border-red-200 bg-red-50/30 p-6">
+        <h2 className="flex items-center gap-2 font-bold text-red-700">
+          <AlertTriangle className="h-5 w-5 text-red-600" />
+          منطقة الخطر (حذف الحساب والبيانات الشخصية)
+        </h2>
+        <p className="text-sm text-red-600">
+          وفقاً للحق في مسح البيانات (حق النسيان) بموجب اللائحة العامة لحماية البيانات (GDPR)، يمكنك طلب حذف حسابك وكافة بياناتك الشخصية المخزنة لدينا بشكل نهائي.
+        </p>
+        <div className="rounded-xl border border-red-200 bg-white p-4">
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            سيؤدي هذا الإجراء إلى جدولة حذف كافة سجلاتك الأكاديمية، والامتحانات المؤداة، والبيانات الشخصية خلال 7 أيام عمل. هذا الإجراء نهائي ولا يمكن التراجع عنه.
+          </p>
+        </div>
+        <button
+          onClick={() => setShowDeleteModal(true)}
+          className="flex items-center gap-2 rounded-xl bg-red-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+        >
+          <Trash2 className="h-4 w-4" />
+          طلب حذف الحساب والبيانات
+        </button>
+      </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div
+            ref={deleteModalRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-modal-title"
+            aria-describedby="delete-modal-desc"
+            className="w-full max-w-md rounded-2xl border border-border bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200"
+          >
+            <div className="flex items-start gap-4">
+              <div className="rounded-full bg-red-100 p-3 text-red-600">
+                <AlertTriangle className="h-6 w-6" />
+              </div>
+              <div className="flex-1 space-y-2 text-right">
+                <h3
+                  id="delete-modal-title"
+                  className="font-display text-lg font-bold text-gray-900"
+                >
+                  تأكيد طلب حذف الحساب
+                </h3>
+                <p
+                  id="delete-modal-desc"
+                  className="text-sm text-muted-foreground leading-relaxed"
+                >
+                  هذا الإجراء سيقوم بتقديم طلب رسمي لحذف حسابك وكامل بياناتك الشخصية من المنصة نهائياً وفقاً للائحة العامة لحماية البيانات (GDPR). بمجرد إتمام الطلب، لن تتمكن من استعادة بياناتك.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-5 space-y-4">
+              <div className="rounded-xl bg-muted/50 p-3">
+                <p className="text-xs text-muted-foreground text-center">
+                  لتأكيد الطلب، يرجى كتابة العبارة التالية في الحقل أدناه:
+                  <br />
+                  <strong className="text-gray-900 text-sm select-all">حذف حسابي</strong>
+                </p>
+              </div>
+
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="اكتب العبارة هنا للتأكيد"
+                className="w-full rounded-xl border border-border px-4 py-2.5 text-center text-sm focus:outline-none focus:ring-2 focus:ring-red-500/30"
+              />
+
+              <div className="flex gap-2">
+                <button
+                  onClick={handleDeleteRequest}
+                  disabled={requestingDelete || deleteConfirmText !== 'حذف حسابي'}
+                  className="flex-1 flex justify-center items-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+                >
+                  {requestingDelete ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                  تأكيد الحذف النهائي
+                </button>
+                <button
+                  onClick={() => {
+                    setShowDeleteModal(false)
+                    setDeleteConfirmText('')
+                  }}
+                  disabled={requestingDelete}
+                  className="flex-1 rounded-xl border border-border bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                >
+                  إلغاء
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

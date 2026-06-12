@@ -49,7 +49,7 @@ export function StudentBottomNav() {
                         : 'bg-gradient-to-br from-indigo-500 to-violet-500 shadow-indigo-200 hover:scale-105 hover:from-indigo-400 hover:to-violet-400'
                     }`}
                   >
-                    <Icon className="h-7 w-7 text-white" />
+                    <Icon className="h-7 w-7 text-white" aria-hidden="true" />
                   </span>
                 ) : (
                   <span className="nav-icon-wrap">
@@ -57,6 +57,7 @@ export function StudentBottomNav() {
                       className={`h-5 w-5 transition-all duration-200 ${
                         isActive ? 'scale-110' : ''
                       }`}
+                      aria-hidden="true"
                     />
                   </span>
                 )}

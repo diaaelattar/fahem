@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 import {
   Clock,
   ChevronRight,
@@ -132,6 +133,8 @@ export function ExamInterface({
   const [submitted, setSubmitted] = useState(false)
   const [result, setResult] = useState<any>(null)
   const [showConfirm, setShowConfirm] = useState(false)
+  const confirmRef = useRef<HTMLDivElement>(null)
+  useFocusTrap(confirmRef, showConfirm, () => setShowConfirm(false))
   const [immediateFeedback, setImmediateFeedback] = useState<
     Record<string, boolean>
   >({})
@@ -165,6 +168,22 @@ export function ExamInterface({
   useEffect(() => {
     setShowMath(false)
   }, [currentIdx])
+
+  // Warning before leaving active exam (Nielsen Heuristics)
+  useEffect(() => {
+    if (isPreview || submitted) return
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = 'هل أنت متأكد من رغبتك في الخروج؟ قد يؤدي هذا إلى فقدان إجاباتك غير المسلمة.'
+      return e.returnValue
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+    }
+  }, [isPreview, submitted])
 
   // Helper: get current answer mode for a question
   const getMode = (qId: string) => answerMode[qId] || 'text'
@@ -618,9 +637,15 @@ export function ExamInterface({
       {/* Confirmation Dialog */}
       {showConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-3xl bg-white p-8 shadow-2xl">
-            <AlertTriangle className="mx-auto mb-4 h-12 w-12 text-yellow-500" />
-            <h3 className="mb-2 text-center text-xl font-bold">
+          <div
+            ref={confirmRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="confirm-title"
+            className="w-full max-w-md rounded-3xl bg-white p-8 shadow-2xl"
+          >
+            <AlertTriangle className="mx-auto mb-4 h-12 w-12 text-yellow-500" aria-hidden="true" />
+            <h3 id="confirm-title" className="mb-2 text-center text-xl font-bold">
               إنهاء الاختبار؟
             </h3>
             <p className="mb-2 text-center text-sm text-muted-foreground">
@@ -752,7 +777,7 @@ export function ExamInterface({
 
               {/* MCQ Options */}
               {currentQ.question_type === 'mcq' && currentQ.options && (
-                <div className="space-y-3">
+                <div className="space-y-3" role="radiogroup" aria-label="خيارات الإجابة">
                   {currentQ.options.map((opt, i) => {
                     const isSelected = answers[currentQ.id] === opt
                     const isCorrectOpt = checkAnswer(
@@ -777,6 +802,8 @@ export function ExamInterface({
                       <button
                         key={i}
                         onClick={() => handleAnswer(currentQ.id, opt, 'mcq')}
+                        role="radio"
+                        aria-checked={isSelected}
                         className={btnClass}
                       >
                         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border-2 border-current text-sm font-bold">
@@ -795,7 +822,7 @@ export function ExamInterface({
 
               {/* True/False Options */}
               {currentQ.question_type === 'true_false' && (
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4" role="radiogroup" aria-label="خيارات الإجابة">
                   {['صح', 'خطأ'].map((opt) => {
                     const isSelected = answers[currentQ.id] === opt
                     const isCorrectOpt = checkAnswer(
@@ -822,9 +849,11 @@ export function ExamInterface({
                         onClick={() =>
                           handleAnswer(currentQ.id, opt, 'true_false')
                         }
+                        role="radio"
+                        aria-checked={isSelected}
                         className={btnClass}
                       >
-                        <span className="mb-2 text-3xl">
+                        <span className="mb-2 text-3xl" aria-hidden="true">
                           {opt === 'صح' ? '✅' : '❌'}
                         </span>
                         <span className="text-lg font-bold">{opt}</span>
@@ -921,13 +950,14 @@ export function ExamInterface({
                       <div className="flex justify-end">
                         <button
                           onClick={() => setShowMath(!showMath)}
+                          aria-expanded={showMath}
                           className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-bold transition-colors ${
                             showMath
                               ? 'border-primary bg-primary text-white'
                               : 'border-border bg-slate-50 text-slate-600 hover:bg-slate-100'
                           }`}
                         >
-                          <Calculator className="h-4 w-4" />
+                          <Calculator className="h-4 w-4" aria-hidden="true" />
                           {showMath
                             ? 'إغلاق لوحة الرياضيات'
                             : 'كتابة رموز رياضية'}
@@ -1208,6 +1238,8 @@ export function ExamInterface({
             <button
               key={`nav-${i}`}
               onClick={() => setCurrentIdx(i)}
+              aria-label={`المجموعة ${i + 1}، سؤال ${g.originalIndexes[0] + 1}`}
+              aria-current={i === currentIdx ? 'true' : undefined}
               className={`h-8 w-8 rounded-lg text-xs font-bold transition-all ${
                 i === currentIdx
                   ? 'bg-primary text-white ring-2 ring-primary ring-offset-1'

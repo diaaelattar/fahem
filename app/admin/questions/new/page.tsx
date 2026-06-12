@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { Save, Plus, Trash2, HelpCircle } from 'lucide-react'
 import { RichTextEditor } from '@/components/ui/RichTextEditor'
+import { GeometricShapeBuilder } from '@/components/shared/GeometricShapeBuilder'
 
 export default function NewQuestionPage() {
   const router = useRouter()
@@ -13,6 +14,7 @@ export default function NewQuestionPage() {
   const [loading, setLoading] = useState(false)
   const [subjects, setSubjects] = useState<any[]>([])
   const [grades, setGrades] = useState<any[]>([])
+  const [showSvgBuilder, setShowSvgBuilder] = useState(false)
 
   const [formData, setFormData] = useState({
     subject_id: '',
@@ -207,7 +209,16 @@ export default function NewQuestionPage() {
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium">نص السؤال</label>
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium">نص السؤال</label>
+            <button
+              type="button"
+              onClick={() => setShowSvgBuilder(true)}
+              className="flex items-center gap-1.5 rounded-lg border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-bold text-primary transition-all hover:bg-primary/10"
+            >
+              🎨 رسم هندسي (SVG)
+            </button>
+          </div>
           <RichTextEditor
             value={formData.question_text}
             onChange={(val) => setFormData({ ...formData, question_text: val })}
@@ -304,6 +315,12 @@ export default function NewQuestionPage() {
           </button>
         </div>
       </form>
+
+      <GeometricShapeBuilder
+        isOpen={showSvgBuilder}
+        onClose={() => setShowSvgBuilder(false)}
+        onInsert={(svg) => setFormData(prev => ({ ...prev, question_text: prev.question_text ? prev.question_text + '\n' + svg : svg }))}
+      />
     </div>
   )
 }

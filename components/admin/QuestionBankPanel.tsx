@@ -21,6 +21,7 @@ import {
   getSubjectDirection,
   getSubjectTextAlignClass,
 } from '@/lib/utils/subject-formatting'
+import { CprtSimulatorModal } from './CprtSimulatorModal'
 
 function groupQuestions<T extends { context_passage?: string | null }>(
   questionsList: T[]
@@ -146,6 +147,7 @@ export function QuestionBankPanel({
 }: Props) {
   const [preview, setPreview] = useState<QuestionItem | null>(null)
   const [showFilters, setShowFilters] = useState(false)
+  const [showCprtModal, setShowCprtModal] = useState(false)
 
   const setFilter = (
     key: 'bankSearch' | 'bankQuestionType' | 'bankDifficulty',
@@ -488,6 +490,12 @@ export function QuestionBankPanel({
               </div>
               <div className="flex gap-2">
                 <button
+                  onClick={() => setShowCprtModal(true)}
+                  className="flex items-center gap-1.5 rounded-xl bg-purple-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-purple-700"
+                >
+                  <Sparkles className="h-3.5 w-3.5 text-amber-300" /> محاكي CPRT
+                </button>
+                <button
                   onClick={onAutoSelect}
                   disabled={availableInBank.length === 0}
                   className="flex items-center gap-1.5 rounded-xl bg-primary px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-primary/90 disabled:opacity-50"
@@ -687,6 +695,17 @@ export function QuestionBankPanel({
           textAlign={textAlignClass}
         />
       )}
+
+      {/* CPRT Simulator Modal */}
+      <CprtSimulatorModal
+        isOpen={showCprtModal}
+        onClose={() => setShowCprtModal(false)}
+        bankQuestions={bankQuestions}
+        selectedQuestions={selectedQuestions}
+        onAdd={onAdd}
+        onRemove={onRemove}
+        gradeName={(bankQuestions[0] as any)?.grades?.name_ar || ''}
+      />
     </div>
   )
 }

@@ -68,6 +68,8 @@ export function AIExplainButton({
       <button
         onClick={handleExplain}
         disabled={loading}
+        aria-expanded={Boolean(explanation && expanded)}
+        aria-controls={`ai-explanation-${questionId}`}
         className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-purple-200 transition-all hover:from-violet-600 hover:to-purple-700 disabled:opacity-60"
       >
         {loading ? (
@@ -98,7 +100,10 @@ export function AIExplainButton({
       )}
 
       {explanation && expanded && (
-        <div className="mt-3 rounded-2xl border-2 border-purple-200 bg-gradient-to-br from-violet-50 to-purple-50 p-5 text-sm leading-relaxed text-slate-700">
+        <div
+          id={`ai-explanation-${questionId}`}
+          className="mt-3 rounded-2xl border-2 border-purple-200 bg-gradient-to-br from-violet-50 to-purple-50 p-5 text-sm leading-relaxed text-slate-700"
+        >
           <div className="mb-3 flex items-center gap-2 border-b border-purple-200 pb-3">
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-purple-600">
               <Sparkles className="h-4 w-4 text-white" />

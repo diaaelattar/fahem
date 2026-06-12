@@ -58,7 +58,7 @@ export function StudentTopbar({ profile }: { profile: Profile }) {
         {/* XP Chip — desktop only */}
         {p.xp_points !== undefined && (
           <div className="flex items-center gap-1.5 rounded-lg border border-amber-100 bg-amber-50 px-2.5 py-1 text-xs font-black text-amber-700">
-            <Zap className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />
+            <Zap className="h-3.5 w-3.5 fill-amber-500 text-amber-500" aria-hidden="true" />
             {p.xp_points} XP
           </div>
         )}
@@ -76,6 +76,7 @@ export function StudentTopbar({ profile }: { profile: Profile }) {
               className={`h-3.5 w-3.5 ${
                 p.streak_days >= 3 ? 'text-orange-500' : 'text-slate-400'
               }`}
+              aria-hidden="true"
             />
             {p.streak_days} يوم
           </div>
@@ -93,7 +94,7 @@ export function StudentTopbar({ profile }: { profile: Profile }) {
             className="hidden items-center gap-1.5 rounded-lg border border-amber-200 bg-gradient-to-r from-amber-50 to-yellow-50 px-2.5 py-1 text-xs font-black text-amber-700 md:flex"
             title="مشترك VIP"
           >
-            <Star className="h-3 w-3 fill-amber-500 text-amber-500" />
+            <Star className="h-3 w-3 fill-amber-500 text-amber-500" aria-hidden="true" />
             VIP
           </div>
         )}
@@ -116,7 +117,7 @@ export function StudentTopbar({ profile }: { profile: Profile }) {
             </span>
             {p.is_premium && (
               <span className="flex items-center gap-0.5 text-[9px] font-black text-amber-600">
-                <Star className="h-2 w-2 fill-amber-500" /> VIP
+                <Star className="h-2 w-2 fill-amber-500" aria-hidden="true" /> VIP
               </span>
             )}
           </div>
@@ -129,7 +130,7 @@ export function StudentTopbar({ profile }: { profile: Profile }) {
           aria-label="تسجيل الخروج"
           className="tap-target flex items-center justify-center rounded-xl p-2 text-slate-400 transition-all duration-200 hover:bg-red-50 hover:text-red-500 active:scale-95"
         >
-          <LogOut className="h-4 w-4" />
+          <LogOut className="h-4 w-4" aria-hidden="true" />
         </button>
       </div>
     </header>

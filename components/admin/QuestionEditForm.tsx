@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Loader2, CheckCircle, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { GeometricShapeBuilder } from '@/components/shared/GeometricShapeBuilder'
 
 export function QuestionEditForm({
   question,
@@ -34,6 +35,7 @@ export function QuestionEditForm({
   const [isApproved, setIsApproved] = useState(question.is_approved)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [showSvgBuilder, setShowSvgBuilder] = useState(false)
 
   const handleSave = async () => {
     if (!questionText.trim()) {
@@ -93,7 +95,16 @@ export function QuestionEditForm({
   return (
     <div className="space-y-5 rounded-2xl border border-border bg-white p-6">
       <div>
-        <label className="mb-2 block text-sm font-semibold">نص السؤال *</label>
+        <div className="flex items-center justify-between mb-2">
+          <label className="text-sm font-semibold">نص السؤال *</label>
+          <button
+            type="button"
+            onClick={() => setShowSvgBuilder(true)}
+            className="flex items-center gap-1.5 rounded-lg border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-bold text-primary transition-all hover:bg-primary/10"
+          >
+            🎨 رسم هندسي (SVG)
+          </button>
+        </div>
         <textarea
           value={questionText}
           onChange={(e) => setQuestionText(e.target.value)}
@@ -279,6 +290,12 @@ export function QuestionEditForm({
           حذف السؤال
         </button>
       </div>
+
+      <GeometricShapeBuilder
+        isOpen={showSvgBuilder}
+        onClose={() => setShowSvgBuilder(false)}
+        onInsert={(svg) => setQuestionText((prev: string) => (prev ? prev + '\n' + svg : svg))}
+      />
     </div>
   )
 }
