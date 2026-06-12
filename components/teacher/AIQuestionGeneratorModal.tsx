@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useRef } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useState, useRef, MouseEvent } from 'react'
+import { motion } from 'framer-motion'
 import {
   X,
   Loader2,
@@ -55,6 +55,38 @@ export function AIQuestionGeneratorModal({
   const [error, setError] = useState('')
   const [generatedQuestions, setGeneratedQuestions] = useState<any[]>([])
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set())
+
+  // Edit Question State
+  const [editingIndex, setEditingIndex] = useState<number | null>(null)
+  const [editingText, setEditingText] = useState('')
+  const [editingOptions, setEditingOptions] = useState<string[]>([])
+  const [editingCorrectAnswer, setEditingCorrectAnswer] = useState('')
+  const [editingExplanation, setEditingExplanation] = useState('')
+
+  const handleSaveEdit = (idx: number, e: MouseEvent) => {
+    e.stopPropagation()
+    setGeneratedQuestions((prev) => {
+      const copy = [...prev]
+      copy[idx] = {
+        ...copy[idx],
+        question_text: editingText,
+        options: editingOptions.length > 0 ? editingOptions : copy[idx].options,
+        correct_answer: editingCorrectAnswer,
+        explanation: editingExplanation,
+      }
+      return copy
+    })
+    setEditingIndex(null)
+  }
+
+  const handleStartEdit = (idx: number, q: any, e: MouseEvent) => {
+    e.stopPropagation()
+    setEditingIndex(idx)
+    setEditingText(q.question_text || q.text || '')
+    setEditingOptions(q.options || [])
+    setEditingCorrectAnswer(q.correct_answer || q.answer || '')
+    setEditingExplanation(q.explanation || '')
+  }
 
   // Types list
   const QUESTION_TYPES = [
@@ -513,12 +545,30 @@ export function AIQuestionGeneratorModal({
                 {generatedQuestions.map((q: any, idx: number) => {
                   const selected = selectedIndices.has(idx)
                   const qType = q.question_type || q.type || 'mcq'
+                  const isEditing = editingIndex === idx
+
                   return (
                     <div
                       key={idx}
-                      onClick={() => toggleSelectQuestion(idx)}
-                      className={`relative cursor-pointer rounded-2xl border p-5 transition-all ${selected ? 'border-indigo-500 bg-indigo-50/10 shadow-sm' : 'border-slate-200 bg-white hover:border-slate-300'}`}
+                      tabIndex={0}
+                      role="checkbox"
+                      aria-checked={selected}
+                      aria-label={`سؤال ${idx + 1}: ${q.question_text || q.text || ''}`}
+                      onKeyDown={(e) => {
+                        if (isEditing) return
+                        if (e.key === ' ' || e.key === 'Enter') {
+                          e.preventDefault()
+                          toggleSelectQuestion(idx)
+                        }
+                      }}
+                      onClick={() => {
+                        if (!isEditing) {
+                          toggleSelectQuestion(idx)
+                        }
+                      }}
+                      className={`relative cursor-pointer rounded-2xl border p-5 transition-all outline-none focus-within:ring-2 focus-within:ring-indigo-500/50 ${selected ? 'border-indigo-500 bg-indigo-50/10 shadow-sm' : 'border-slate-200 bg-white hover:border-slate-300'}`}
                     >
+                      {/* Selection checkbox indicator */}
                       <div
                         className="absolute left-5 top-5 flex h-6 w-6 items-center justify-center rounded-full border-2 shadow-sm transition-colors"
                         style={{
@@ -531,59 +581,181 @@ export function AIQuestionGeneratorModal({
                         )}
                       </div>
 
-                      {q.context_passage && (
-                        <div className="mb-3 rounded-lg border-r-4 border-indigo-400 bg-slate-50 p-3 text-xs font-medium leading-relaxed text-slate-600">
-                          <strong>سياق مشترك:</strong> {q.context_passage}
-                        </div>
+                      {/* Edit Button */}
+                      {!isEditing && (
+                        <button
+                          type="button"
+                          onClick={(e) => handleStartEdit(idx, q, e)}
+                          className="absolute left-14 top-4 rounded-xl border border-indigo-100 bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-600 transition-colors hover:bg-indigo-100"
+                        >
+                          تعديل
+                        </button>
                       )}
 
-                      <div className="ml-8 flex items-start gap-2.5">
-                        <span className="shrink-0 rounded border border-slate-200 bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-600">
-                          {QUESTION_TYPES.find((t) => t.value === qType)
-                            ?.label || 'اختيار من متعدد'}
-                        </span>
-                        <h5 className="text-sm font-bold leading-relaxed text-slate-800">
-                          {q.question_text || q.text}
-                        </h5>
-                      </div>
-
-                      {qType === 'mcq' &&
-                        q.options &&
-                        Array.isArray(q.options) && (
-                          <div className="ml-8 mr-2 mt-4 grid grid-cols-2 gap-3">
-                            {q.options.map((opt: string, oIdx: number) => (
-                              <div
-                                key={oIdx}
-                                className={`flex items-center gap-2 rounded-xl border p-2.5 text-xs font-medium ${opt === q.correct_answer || opt === q.answer ? 'border-emerald-300 bg-emerald-50 font-bold text-emerald-700' : 'border-slate-100 bg-slate-50/50 text-slate-500'}`}
-                              >
-                                <span className="flex h-5 w-5 items-center justify-center rounded border bg-white font-bold">
-                                  {String.fromCharCode(65 + oIdx)}
-                                </span>
-                                <span>{opt}</span>
-                              </div>
-                            ))}
+                      {isEditing ? (
+                        <div
+                          onClick={(e) => e.stopPropagation()}
+                          onKeyDown={(e) => e.stopPropagation()}
+                          className="space-y-4"
+                        >
+                          <div className="space-y-1">
+                            <label className="text-xs font-bold text-slate-500">نص السؤال</label>
+                            <textarea
+                              value={editingText}
+                              onChange={(e) => setEditingText(e.target.value)}
+                              className="w-full rounded-xl border border-slate-200 p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                              rows={2}
+                            />
                           </div>
-                        )}
 
-                      {qType === 'true_false' && (
-                        <div className="ml-8 mt-4 flex gap-4">
-                          <span
-                            className={`rounded-xl border px-4 py-1.5 text-xs font-bold ${q.correct_answer === 'صح' || q.correct_answer === 'true' || q.correct_answer === true ? 'border-emerald-300 bg-emerald-50 text-emerald-700' : 'border-slate-100 bg-slate-50 text-slate-400'}`}
-                          >
-                            صح
-                          </span>
-                          <span
-                            className={`rounded-xl border px-4 py-1.5 text-xs font-bold ${q.correct_answer === 'خطأ' || q.correct_answer === 'false' || q.correct_answer === false ? 'border-emerald-300 bg-emerald-50 text-emerald-700' : 'border-slate-100 bg-slate-50 text-slate-400'}`}
-                          >
-                            خطأ
-                          </span>
-                        </div>
-                      )}
+                          {qType === 'mcq' && (
+                            <div className="space-y-2">
+                              <label className="text-xs font-bold text-slate-500">الخيارات (حدد الخيار الصحيح)</label>
+                              <div className="grid grid-cols-2 gap-3">
+                                {editingOptions.map((opt, oIdx) => (
+                                  <div key={oIdx} className="flex items-center gap-2">
+                                    <span className="text-xs font-bold text-slate-400">
+                                      {String.fromCharCode(65 + oIdx)}
+                                    </span>
+                                    <input
+                                      type="text"
+                                      value={opt}
+                                      onChange={(e) => {
+                                        const newOpts = [...editingOptions]
+                                        newOpts[oIdx] = e.target.value
+                                        setEditingOptions(newOpts)
+                                      }}
+                                      className="flex-1 rounded-xl border border-slate-200 px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                                    />
+                                    <input
+                                      type="radio"
+                                      name={`correct-answer-${idx}`}
+                                      checked={opt === editingCorrectAnswer}
+                                      onChange={() => setEditingCorrectAnswer(opt)}
+                                      aria-label={`تحديد كإجابة صحيحة للرمز ${String.fromCharCode(65 + oIdx)}`}
+                                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500"
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
 
-                      {q.explanation && (
-                        <div className="ml-8 mt-4 border-t border-slate-100 pt-3 text-xs font-medium leading-relaxed text-slate-500">
-                          💡 <strong>التفسير العلمي:</strong> {q.explanation}
+                          {qType === 'true_false' && (
+                            <div className="space-y-2">
+                              <label className="text-xs font-bold text-slate-500">الإجابة الصحيحة</label>
+                              <div className="flex gap-4">
+                                <label className="flex items-center gap-1.5 text-xs font-medium">
+                                  <input
+                                    type="radio"
+                                    name={`tf-correct-${idx}`}
+                                    checked={editingCorrectAnswer === 'صح' || editingCorrectAnswer === 'true'}
+                                    onChange={() => setEditingCorrectAnswer('صح')}
+                                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500"
+                                  />
+                                  صح
+                                </label>
+                                <label className="flex items-center gap-1.5 text-xs font-medium">
+                                  <input
+                                    type="radio"
+                                    name={`tf-correct-${idx}`}
+                                    checked={editingCorrectAnswer === 'خطأ' || editingCorrectAnswer === 'false'}
+                                    onChange={() => setEditingCorrectAnswer('خطأ')}
+                                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500"
+                                  />
+                                  خطأ
+                                </label>
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="space-y-1">
+                            <label className="text-xs font-bold text-slate-500">التفسير العلمي (التبرير)</label>
+                            <textarea
+                              value={editingExplanation}
+                              onChange={(e) => setEditingExplanation(e.target.value)}
+                              className="w-full rounded-xl border border-slate-200 p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                              rows={1}
+                            />
+                          </div>
+
+                          <div className="flex justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setEditingIndex(null)
+                              }}
+                              className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50"
+                            >
+                              إلغاء
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => handleSaveEdit(idx, e)}
+                              className="rounded-lg bg-indigo-600 px-4 py-1.5 text-xs font-bold text-white hover:bg-indigo-700"
+                            >
+                              حفظ التعديلات
+                            </button>
+                          </div>
                         </div>
+                      ) : (
+                        <>
+                          {q.context_passage && (
+                            <div className="mb-3 rounded-lg border-r-4 border-indigo-400 bg-slate-50 p-3 text-xs font-medium leading-relaxed text-slate-600">
+                              <strong>سياق مشترك:</strong> {q.context_passage}
+                            </div>
+                          )}
+
+                          <div className="ml-8 flex items-start gap-2.5">
+                            <span className="shrink-0 rounded border border-slate-200 bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-600">
+                              {QUESTION_TYPES.find((t) => t.value === qType)
+                                ?.label || 'اختيار من متعدد'}
+                            </span>
+                            <h5 className="text-sm font-bold leading-relaxed text-slate-800">
+                              {q.question_text || q.text}
+                            </h5>
+                          </div>
+
+                          {qType === 'mcq' &&
+                            q.options &&
+                            Array.isArray(q.options) && (
+                              <div className="ml-8 mr-2 mt-4 grid grid-cols-2 gap-3">
+                                {q.options.map((opt: string, oIdx: number) => (
+                                  <div
+                                    key={oIdx}
+                                    className={`flex items-center gap-2 rounded-xl border p-2.5 text-xs font-medium ${opt === q.correct_answer || opt === q.answer ? 'border-emerald-300 bg-emerald-50 font-bold text-emerald-700' : 'border-slate-100 bg-slate-50/50 text-slate-500'}`}
+                                  >
+                                    <span className="flex h-5 w-5 items-center justify-center rounded border bg-white font-bold">
+                                      {String.fromCharCode(65 + oIdx)}
+                                    </span>
+                                    <span>{opt}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                          {qType === 'true_false' && (
+                            <div className="ml-8 mt-4 flex gap-4">
+                              <span
+                                className={`rounded-xl border px-4 py-1.5 text-xs font-bold ${q.correct_answer === 'صح' || q.correct_answer === 'true' || q.correct_answer === true ? 'border-emerald-300 bg-emerald-50 text-emerald-700' : 'border-slate-100 bg-slate-50 text-slate-400'}`}
+                              >
+                                صح
+                              </span>
+                              <span
+                                className={`rounded-xl border px-4 py-1.5 text-xs font-bold ${q.correct_answer === 'خطأ' || q.correct_answer === 'false' || q.correct_answer === false ? 'border-emerald-300 bg-emerald-50 text-emerald-700' : 'border-slate-100 bg-slate-50 text-slate-400'}`}
+                              >
+                                خطأ
+                              </span>
+                            </div>
+                          )}
+
+                          {q.explanation && (
+                            <div className="ml-8 mt-4 border-t border-slate-100 pt-3 text-xs font-medium leading-relaxed text-slate-500">
+                              💡 <strong>التفسير العلمي:</strong> {q.explanation}
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
                   )

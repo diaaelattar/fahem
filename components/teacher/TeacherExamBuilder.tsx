@@ -11,7 +11,6 @@ import {
   ChevronLeft,
   ChevronRight,
   BarChart2,
-  Users,
   AlertCircle,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -360,14 +359,16 @@ export function TeacherExamBuilder({
   return (
     <div className="space-y-6">
       {/* ══ Wizard Progress Bar ══ */}
-      <div className="rounded-2xl border border-border bg-white p-4 shadow-sm">
-        <div className="flex items-center gap-2">
+      <nav aria-label="خطوات بناء الاختبار" className="rounded-2xl border border-border bg-white p-4 shadow-sm">
+        <ul className="flex items-center gap-2">
           {STEPS.map((s, i) => (
-            <div key={s.id} className="flex flex-1 items-center gap-2">
+            <li key={s.id} className="flex flex-1 items-center gap-2">
               <button
                 onClick={() => {
                   if (s.id < step) setStep(s.id)
                 }}
+                aria-current={step === s.id ? 'step' : undefined}
+                aria-disabled={s.id > step}
                 className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition-all ${
                   step === s.id
                     ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200'
@@ -376,26 +377,27 @@ export function TeacherExamBuilder({
                       : 'cursor-default border border-border bg-slate-50 text-slate-400'
                 }`}
               >
-                <span>{s.icon}</span>
+                <span aria-hidden="true">{s.icon}</span>
                 <span className="hidden sm:inline">{s.label}</span>
                 {step > s.id && (
-                  <CheckCircle className="h-3.5 w-3.5 text-emerald-600" />
+                  <CheckCircle className="h-3.5 w-3.5 text-emerald-600" aria-hidden="true" />
                 )}
               </button>
               {i < STEPS.length - 1 && (
                 <ChevronLeft
                   className={`h-4 w-4 shrink-0 ${step > s.id ? 'text-emerald-400' : 'text-slate-300'}`}
+                  aria-hidden="true"
                 />
               )}
-            </div>
+            </li>
           ))}
           {totalPoints > 0 && (
-            <div className="flex shrink-0 items-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm font-black text-indigo-700">
-              <BarChart2 className="h-4 w-4" /> {totalPoints} درجة
-            </div>
+            <li className="flex shrink-0 items-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm font-black text-indigo-700">
+              <BarChart2 className="h-4 w-4" aria-hidden="true" /> {totalPoints} درجة
+            </li>
           )}
-        </div>
-      </div>
+        </ul>
+      </nav>
 
       {/* Subject Lock Banner */}
       <div className="flex items-center gap-3 rounded-2xl border border-indigo-200 bg-indigo-50 px-5 py-3">

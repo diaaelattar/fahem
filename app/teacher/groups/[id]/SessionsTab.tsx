@@ -77,7 +77,12 @@ export function SessionsTab({
     onConfirm: () => void
   } | null>(null)
   const confirmModalRef = useRef<HTMLDivElement>(null)
+  const newSessionModalRef = useRef<HTMLDivElement>(null)
+  const attendanceModalRef = useRef<HTMLDivElement>(null)
+
   useFocusTrap(confirmModalRef, !!confirmData, () => setConfirmData(null))
+  useFocusTrap(newSessionModalRef, showNewSession, () => setShowNewSession(false))
+  useFocusTrap(attendanceModalRef, !!attendanceSession, () => setAttendanceSession(null))
 
   // New Session Form State
   const [newTitle, setNewTitle] = useState('')
@@ -89,6 +94,17 @@ export function SessionsTab({
   async function handleCreateSession(e: React.FormEvent) {
     e.preventDefault()
     if (!newTitle.trim() || !newDateTime) return
+
+    const urlPattern = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([\/\w .-]*)*\/?$/i
+    if (newLiveUrl.trim() && !urlPattern.test(newLiveUrl.trim())) {
+      toast.error('يرجى إدخال رابط بث مباشر صحيح (Zoom / Google Meet)')
+      return
+    }
+    if (newMediaUrl.trim() && !urlPattern.test(newMediaUrl.trim())) {
+      toast.error('يرجى إدخال رابط مرفق/مذكرة صحيح')
+      return
+    }
+
     setLoadingNew(true)
     try {
       await createSessionAction(groupId, {
@@ -189,7 +205,7 @@ export function SessionsTab({
           <div className="p-10 text-center text-slate-500">
             <Calendar className="mx-auto mb-3 h-10 w-10 text-slate-200" />
             <p className="mb-1 font-bold">لا توجد حصص مجدولة بعد</p>
-            <p className="text-sm">اضغط "جدولة حصة جديدة" لإضافة موعدك الأول</p>
+            <p className="text-sm">اضغط &quot;جدولة حصة جديدة&quot; لإضافة موعدك الأول</p>
           </div>
         ) : (
           <>
@@ -236,18 +252,23 @@ export function SessionsTab({
       {showNewSession && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
           <div
+            ref={newSessionModalRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="new-session-title"
             className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl"
             dir="rtl"
           >
             <div className="flex items-center justify-between border-b border-border bg-gradient-to-l from-violet-50 to-white p-5">
-              <h3 className="flex items-center gap-2 text-lg font-bold text-violet-700">
-                <Calendar className="h-5 w-5" /> جدولة حصة جديدة
+              <h3 id="new-session-title" className="flex items-center gap-2 text-lg font-bold text-violet-700">
+                <Calendar className="h-5 w-5" aria-hidden="true" /> جدولة حصة جديدة
               </h3>
               <button
                 onClick={() => setShowNewSession(false)}
+                aria-label="إغلاق النافذة"
                 className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
               >
-                <X className="h-5 w-5" />
+                <X className="h-5 w-5" aria-hidden="true" />
               </button>
             </div>
             <form onSubmit={handleCreateSession} className="space-y-4 p-6">
@@ -278,7 +299,7 @@ export function SessionsTab({
               </div>
               <div>
                 <label className="mb-1.5 block text-sm font-bold text-slate-700">
-                  <Video className="ml-1 inline h-4 w-4 text-violet-500" />
+                  <Video className="ml-1 inline h-4 w-4 text-violet-500" aria-hidden="true" />
                   رابط البث المباشر (Zoom / Google Meet)
                 </label>
                 <input
@@ -293,7 +314,7 @@ export function SessionsTab({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="mb-1.5 block text-sm font-bold text-slate-700">
-                    <Paperclip className="ml-1 inline h-4 w-4 text-violet-500" />
+                    <Paperclip className="ml-1 inline h-4 w-4 text-violet-500" aria-hidden="true" />
                     رابط المرفق / المذكرة
                   </label>
                   <input
@@ -332,10 +353,10 @@ export function SessionsTab({
                   className="flex flex-[2] items-center justify-center gap-2 rounded-xl bg-violet-600 py-2.5 font-bold text-white shadow-lg shadow-violet-200 transition-colors hover:bg-violet-700 disabled:opacity-50"
                 >
                   {loadingNew ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                   ) : (
                     <>
-                      <Calendar className="h-4 w-4" /> جدولة الحصة
+                      <Calendar className="h-4 w-4" aria-hidden="true" /> جدولة الحصة
                     </>
                   )}
                 </button>
@@ -349,13 +370,17 @@ export function SessionsTab({
       {attendanceSession && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
           <div
+            ref={attendanceModalRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="attendance-title"
             className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl"
             dir="rtl"
           >
             <div className="flex items-center justify-between border-b border-border bg-gradient-to-l from-emerald-50 to-white p-5">
               <div>
-                <h3 className="flex items-center gap-2 text-lg font-bold text-emerald-700">
-                  <Users className="h-5 w-5" /> رصد الحضور والغياب
+                <h3 id="attendance-title" className="flex items-center gap-2 text-lg font-bold text-emerald-700">
+                  <Users className="h-5 w-5" aria-hidden="true" /> رصد الحضور والغياب
                 </h3>
                 <p className="mt-0.5 text-xs text-slate-500">
                   {attendanceSession.title} -{' '}
@@ -367,15 +392,16 @@ export function SessionsTab({
               </div>
               <button
                 onClick={() => setAttendanceSession(null)}
+                aria-label="إغلاق النافذة"
                 className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
               >
-                <X className="h-5 w-5" />
+                <X className="h-5 w-5" aria-hidden="true" />
               </button>
             </div>
 
             {groupStudents.length === 0 ? (
               <div className="p-10 text-center text-slate-500">
-                <Users className="mx-auto mb-3 h-10 w-10 text-slate-200" />
+                <Users className="mx-auto mb-3 h-10 w-10 text-slate-200" aria-hidden="true" />
                 <p className="font-bold">لا يوجد طلاب في المجموعة</p>
               </div>
             ) : (
@@ -392,7 +418,7 @@ export function SessionsTab({
                     }}
                     className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-emerald-50 py-2 text-xs font-bold text-emerald-700 transition-colors hover:bg-emerald-100"
                   >
-                    <CheckCircle className="h-3.5 w-3.5" /> الكل حاضر
+                    <CheckCircle className="h-3.5 w-3.5" aria-hidden="true" /> الكل حاضر
                   </button>
                   <button
                     onClick={() => {
@@ -404,7 +430,7 @@ export function SessionsTab({
                     }}
                     className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-red-50 py-2 text-xs font-bold text-red-700 transition-colors hover:bg-red-100"
                   >
-                    <XCircle className="h-3.5 w-3.5" /> الكل غائب
+                    <XCircle className="h-3.5 w-3.5" aria-hidden="true" /> الكل غائب
                   </button>
                 </div>
 
@@ -507,10 +533,10 @@ export function SessionsTab({
                     className="flex flex-[2] items-center justify-center gap-2 rounded-xl bg-emerald-600 py-2.5 font-bold text-white shadow-lg shadow-emerald-200 transition-colors hover:bg-emerald-700 disabled:opacity-50"
                   >
                     {savingAttendance ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                     ) : (
                       <>
-                        <CheckCircle className="h-4 w-4" /> حفظ الحضور
+                        <CheckCircle className="h-4 w-4" aria-hidden="true" /> حفظ الحضور
                       </>
                     )}
                   </button>

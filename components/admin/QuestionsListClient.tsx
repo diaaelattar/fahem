@@ -1,12 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Trash2, Loader2, Info } from 'lucide-react'
+import { Trash2, Loader2 } from 'lucide-react'
 import { MathRenderer } from '@/components/ui/MathRenderer'
 import { QuestionApprovalButtons } from '@/components/admin/QuestionApprovalButtons'
 import { toast } from 'sonner'
 import { bulkDeleteQuestionsAction } from '@/app/admin/questions/actions'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 
 export function QuestionsListClient({
   questions,
@@ -31,6 +32,9 @@ export function QuestionsListClient({
   const [isDeleting, setIsDeleting] = useState(false)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const router = useRouter()
+
+  const confirmModalRef = useRef<HTMLDivElement>(null)
+  useFocusTrap(confirmModalRef, showConfirmModal, () => setShowConfirmModal(false))
 
   const handleCreateExam = () => {
     const selectedQs = questions.filter((q) => selectedIds.includes(q.id))
@@ -215,6 +219,7 @@ export function QuestionsListClient({
                         checked={isSelected}
                         onChange={() => toggleSelection(q.id)}
                         onClick={(e) => e.stopPropagation()}
+                        aria-label={`تحديد سؤال: ${q.question_text ? (q.question_text.length > 60 ? q.question_text.slice(0, 60) + '...' : q.question_text) : q.id}`}
                         className="h-5 w-5 cursor-pointer rounded border-slate-300 text-blue-600 focus:ring-blue-600"
                       />
                     </div>
@@ -334,13 +339,17 @@ export function QuestionsListClient({
       {showConfirmModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-in fade-in">
           <div
+            ref={confirmModalRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="confirm-modal-title"
             className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
             dir="rtl"
           >
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100 text-red-600">
-              <Trash2 className="h-6 w-6" />
+              <Trash2 className="h-6 w-6" aria-hidden="true" />
             </div>
-            <h2 className="mb-2 text-center text-xl font-bold">
+            <h2 id="confirm-modal-title" className="mb-2 text-center text-xl font-bold">
               تأكيد الحذف النهائي
             </h2>
             <p className="mb-6 text-center leading-relaxed text-slate-600">

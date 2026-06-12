@@ -4,7 +4,6 @@ import { redirect } from 'next/navigation'
 import {
   HelpCircle,
   X,
-  BookOpen,
   GraduationCap,
   Calendar,
   Layers,
@@ -282,6 +281,8 @@ export default async function TeacherQuestionsPage({
                   unit: undefined,
                   lesson: undefined,
                 })}
+                role="button"
+                aria-pressed={isActive('grade', String(g.id)) ? 'true' : 'false'}
                 className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${
                   isActive('grade', String(g.id))
                     ? 'border-blue-600 bg-blue-600 text-white shadow-sm'
@@ -312,6 +313,8 @@ export default async function TeacherQuestionsPage({
                   unit: undefined,
                   lesson: undefined,
                 })}
+                role="button"
+                aria-pressed={isActive('semester', String(sem.id)) ? 'true' : 'false'}
                 className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${
                   isActive('semester', String(sem.id))
                     ? 'border-amber-500 bg-amber-500 text-white shadow-sm'
@@ -340,6 +343,8 @@ export default async function TeacherQuestionsPage({
                 <a
                   key={u.id}
                   href={buildHref('unit', String(u.id), { lesson: undefined })}
+                  role="button"
+                  aria-pressed={isActive('unit', String(u.id)) ? 'true' : 'false'}
                   className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${
                     isActive('unit', String(u.id))
                       ? 'border-purple-600 bg-purple-600 text-white shadow-sm'
@@ -367,6 +372,8 @@ export default async function TeacherQuestionsPage({
                 <a
                   key={l.id}
                   href={buildHref('lesson', String(l.id))}
+                  role="button"
+                  aria-pressed={isActive('lesson', String(l.id)) ? 'true' : 'false'}
                   className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${
                     isActive('lesson', String(l.id))
                       ? 'border-rose-600 bg-rose-600 text-white shadow-sm'
@@ -392,6 +399,8 @@ export default async function TeacherQuestionsPage({
                 <a
                   key={type}
                   href={buildHref('type', type)}
+                  role="button"
+                  aria-pressed={isActive('type', type) ? 'true' : 'false'}
                   className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all ${
                     isActive('type', type)
                       ? color + ' border-current'
@@ -418,6 +427,8 @@ export default async function TeacherQuestionsPage({
                 <a
                   key={d}
                   href={buildHref('difficulty', d)}
+                  role="button"
+                  aria-pressed={isActive('difficulty', d) ? 'true' : 'false'}
                   className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all ${
                     isActive('difficulty', d)
                       ? DIFF_COLORS[d] + ' !border-current'
@@ -440,6 +451,8 @@ export default async function TeacherQuestionsPage({
                 <a
                   key={k}
                   href={buildHref('bloom', k)}
+                  role="button"
+                  aria-pressed={isActive('bloom', k) ? 'true' : 'false'}
                   className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all ${
                     isActive('bloom', k)
                       ? color + ' border-current'

@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { X, Sparkles, AlertCircle } from 'lucide-react'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 import type { QuestionItem } from './ExamBuilderTypes'
 
 interface Props {
@@ -31,6 +32,9 @@ export function AutoSelectModal({ availableQuestions, onAdd, onClose }: Props) {
     true_false: { easy: 0, medium: 0, hard: 0 },
     fill_blank: { easy: 0, medium: 0, hard: 0 },
   })
+
+  const modalRef = useRef<HTMLDivElement>(null)
+  useFocusTrap(modalRef, true, onClose)
 
   // Calculate available counts
   const availableCounts = useMemo(() => {
@@ -101,11 +105,17 @@ export function AutoSelectModal({ availableQuestions, onAdd, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex animate-fade-in items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
+        className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl"
+      >
         <div className="flex items-center justify-between border-b border-border bg-indigo-50/50 p-6">
           <div>
-            <h2 className="flex items-center gap-2 text-xl font-bold text-indigo-900">
-              <Sparkles className="h-6 w-6 text-indigo-600" />
+            <h2 id="modal-title" className="flex items-center gap-2 text-xl font-bold text-indigo-900">
+              <Sparkles className="h-6 w-6 text-indigo-600" aria-hidden="true" />
               توليد الاختبار عشوائياً
             </h2>
             <p className="mt-1 text-sm text-indigo-700">
@@ -114,16 +124,17 @@ export function AutoSelectModal({ availableQuestions, onAdd, onClose }: Props) {
           </div>
           <button
             onClick={onClose}
+            aria-label="إغلاق"
             className="rounded-xl p-2 transition-colors hover:bg-black/5"
           >
-            <X className="h-5 w-5 text-indigo-900" />
+            <X className="h-5 w-5 text-indigo-900" aria-hidden="true" />
           </button>
         </div>
 
         <div className="overflow-y-auto p-6">
           {availableQuestions.length === 0 ? (
             <div className="flex flex-col items-center py-12 text-center">
-              <AlertCircle className="mb-3 h-12 w-12 text-amber-500" />
+              <AlertCircle className="mb-3 h-12 w-12 text-amber-500" aria-hidden="true" />
               <p className="font-bold">لا توجد أسئلة متاحة للسحب العشوائي</p>
               <p className="mt-1 text-sm text-muted-foreground">
                 يرجى تغيير الفلاتر (الوحدة / الدرس) لعرض المزيد من الأسئلة
@@ -135,11 +146,11 @@ export function AutoSelectModal({ availableQuestions, onAdd, onClose }: Props) {
                 <table className="w-full text-right text-sm">
                   <thead>
                     <tr className="border-b border-border">
-                      <th className="pb-3 font-bold text-muted-foreground">
+                      <th scope="col" className="pb-3 font-bold text-muted-foreground">
                         نوع السؤال
                       </th>
                       {DIFFICULTIES.map((d) => (
-                        <th key={d.id} className="pb-3 text-center">
+                        <th key={d.id} scope="col" className="pb-3 text-center">
                           <span
                             className={`rounded-full px-3 py-1 text-xs font-bold ${d.color}`}
                           >
@@ -172,6 +183,7 @@ export function AutoSelectModal({ availableQuestions, onAdd, onClose }: Props) {
                                     )
                                   }
                                   disabled={max === 0}
+                                  aria-label={`عدد أسئلة ${type.label} بمستوى ${diff.label}`}
                                   className="w-16 rounded-xl border-2 border-border px-2 py-1.5 text-center focus:border-indigo-500 focus:outline-none disabled:bg-muted/50 disabled:opacity-50"
                                   placeholder="0"
                                 />
@@ -210,7 +222,7 @@ export function AutoSelectModal({ availableQuestions, onAdd, onClose }: Props) {
               disabled={totalSelected === 0}
               className="flex items-center gap-2 rounded-xl bg-indigo-600 px-8 py-2.5 text-sm font-bold text-white transition-colors hover:bg-indigo-700 disabled:opacity-50"
             >
-              <Sparkles className="h-4 w-4" /> إدراج في الاختبار
+              <Sparkles className="h-4 w-4" aria-hidden="true" /> إدراج في الاختبار
             </button>
           </div>
         </div>
