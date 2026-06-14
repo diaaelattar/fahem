@@ -20,13 +20,24 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { TwoFactorSetup } from '../school/TwoFactorSetup'
+import { TeacherGradeSubjectPicker } from '@/components/shared/TeacherGradeSubjectPicker'
+
+interface DBGrade {
+  id: number
+  name_ar: string
+  stage_id: number
+  grade_number: number
+  track?: string | null
+}
 
 interface Props {
   profile: { id: string; full_name: string; email?: string }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   teacher: Record<string, any>
   subjectName: string
-  allSubjects?: { id: number; name_ar: string }[]
+  allSubjects?: { id: number; name_ar: string; icon: string }[]
+  allGrades?: DBGrade[]
+  currentGradeSubjects?: Array<{ grade_id: number; subject_id: number }>
   errorMsg?: string | null
 }
 
@@ -39,37 +50,69 @@ export function TeacherSettingsClient({
   teacher,
   subjectName,
   allSubjects,
+  allGrades,
+  currentGradeSubjects,
   errorMsg,
 }: Props) {
   const supabase = createClient()
 
-  /* ── Subject State ── */
+  /* ── Grade-Subject Pairs State ── */
+  const [gradeSubjectPairs, setGradeSubjectPairs] = useState<
+    Array<{ grade_id: number; subject_id: number }>
+  >(currentGradeSubjects || [])
+  const [gsSaving, setGsSaving] = useState(false)
+  const [gsMsg, setGsMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
+
+  const saveGradeSubjects = async () => {
+    if (gradeSubjectPairs.length === 0) {
+      setGsMsg({ type: 'err', text: 'يجب اختيار صف ومادة واحدة على الأقل' })
+      return
+    }
+    setGsSaving(true)
+    setGsMsg(null)
+    try {
+      // Delete existing pairs then re-insert
+      const { error: delError } = await supabase
+        .from('teacher_grade_subjects')
+        .delete()
+        .eq('teacher_id', profile.id)
+      if (delError) throw delError
+
+      const { error: insError } = await supabase
+        .from('teacher_grade_subjects')
+        .insert(
+          gradeSubjectPairs.map((p) => ({
+            teacher_id: profile.id,
+            grade_id: p.grade_id,
+            subject_id: p.subject_id,
+          }))
+        )
+      if (insError) throw insError
+
+      // Also update the primary subject_id on teachers table
+      await supabase
+        .from('teachers')
+        .update({ subject_id: gradeSubjectPairs[0].subject_id })
+        .eq('id', profile.id)
+
+      setGsMsg({ type: 'ok', text: `تم حفظ ${gradeSubjectPairs.length} مادة / صف بنجاح ✓` })
+      setTimeout(() => setGsMsg(null), 4000)
+    } catch (err: unknown) {
+      setGsMsg({ type: 'err', text: 'فشل الحفظ: ' + (err instanceof Error ? err.message : String(err)) })
+    } finally {
+      setGsSaving(false)
+    }
+  }
+
+  /* ── Legacy single-subject state (kept for backward compat) ── */
   const [selectedSubjectId, setSelectedSubjectId] = useState(
     teacher.subject_id?.toString() || ''
   )
-  const [subjectSaving, setSubjectSaving] = useState(false)
-  const [subjectMsg, setSubjectMsg] = useState<{
-    type: 'ok' | 'err'
-    text: string
-  } | null>(null)
+  const [subjectSaving] = useState(false)
+  void selectedSubjectId
+  void setSelectedSubjectId
+  void subjectSaving
 
-  const updateSubject = async (newSubjectId: string) => {
-    setSelectedSubjectId(newSubjectId)
-    if (!newSubjectId) return
-    setSubjectSaving(true)
-    setSubjectMsg(null)
-    const { error } = await supabase
-      .from('teachers')
-      .update({ subject_id: parseInt(newSubjectId) })
-      .eq('id', profile.id)
-    setSubjectSaving(false)
-    if (error) {
-      setSubjectMsg({ type: 'err', text: 'فشل حفظ المادة: ' + error.message })
-    } else {
-      setSubjectMsg({ type: 'ok', text: 'تم تحديث المادة بنجاح ✓' })
-      setTimeout(() => setSubjectMsg(null), 3000)
-    }
-  }
 
   /* ── Print Settings State ── */
   const [print, setPrint] = useState({
@@ -118,8 +161,8 @@ export function TeacherSettingsClient({
     try {
       toast.success('تم إرسال طلب حذف الحساب والبيانات بنجاح! سيتم معالجته طبقاً للائحة GDPR خلال 24 ساعة.')
       setDeleteConfirm(false)
-    } catch (err: any) {
-      toast.error('فشل إرسال طلب الحذف: ' + err.message)
+    } catch (err: unknown) {
+      toast.error('فشل إرسال طلب الحذف: ' + (err instanceof Error ? err.message : String(err)))
     } finally {
       setDeletingAcc(false)
     }
@@ -174,8 +217,8 @@ export function TeacherSettingsClient({
       const { data } = supabase.storage.from('documents').getPublicUrl(filePath)
       setPrint((p) => ({ ...p, logoUrl: data.publicUrl }))
       toast.success('تم رفع شعار المعلم بنجاح!')
-    } catch (err: any) {
-      toast.error('خطأ في رفع اللوجو: ' + err.message)
+    } catch (err: unknown) {
+      toast.error('خطأ في رفع اللوجو: ' + (err instanceof Error ? err.message : String(err)))
     } finally {
       setUploadingLogo(false)
     }
@@ -262,30 +305,52 @@ export function TeacherSettingsClient({
               dir="ltr"
             />
           </div>
-          <div>
-            <label className={labelCls}>المادة الدراسية</label>
-            {allSubjects && allSubjects.length > 0 ? (
-              <div className="space-y-2">
-                <select
-                  className={inputCls}
-                  value={selectedSubjectId}
-                  onChange={(e) => updateSubject(e.target.value)}
-                  disabled={subjectSaving}
-                >
-                  <option value="">-- اختر المادة --</option>
-                  {allSubjects.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name_ar}
-                    </option>
-                  ))}
-                </select>
-                {subjectMsg && (
-                  <div
-                    className={`text-xs font-bold ${subjectMsg.type === 'ok' ? 'text-emerald-600' : 'text-red-600'}`}
+          <div className="sm:col-span-2">
+            <div className="mb-3 flex items-center justify-between">
+              <label className={labelCls}>الصفوف والمواد التي أدرّسها</label>
+              {gradeSubjectPairs.length > 0 && (
+                <span className="rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-bold text-indigo-700">
+                  {gradeSubjectPairs.length} مادة محددة
+                </span>
+              )}
+            </div>
+            {allGrades && allSubjects ? (
+              <div className="space-y-3">
+                <TeacherGradeSubjectPicker
+                  dbGrades={allGrades}
+                  dbSubjects={allSubjects}
+                  value={gradeSubjectPairs}
+                  onChange={setGradeSubjectPairs}
+                />
+                <div className="flex items-center gap-4">
+                  <button
+                    type="button"
+                    onClick={saveGradeSubjects}
+                    disabled={gsSaving || gradeSubjectPairs.length === 0}
+                    className="flex items-center gap-2 rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-indigo-700 active:scale-95 disabled:opacity-60"
                   >
-                    {subjectMsg.text}
-                  </div>
-                )}
+                    {gsSaving ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4" />
+                    )}
+                    {gsSaving ? 'جاري الحفظ…' : 'حفظ الصفوف والمواد'}
+                  </button>
+                  {gsMsg && (
+                    <div
+                      className={`flex items-center gap-1.5 text-sm font-bold ${
+                        gsMsg.type === 'ok' ? 'text-emerald-600' : 'text-red-600'
+                      }`}
+                    >
+                      {gsMsg.type === 'ok' ? (
+                        <CheckCircle className="h-4 w-4" />
+                      ) : (
+                        <AlertCircle className="h-4 w-4" />
+                      )}
+                      {gsMsg.text}
+                    </div>
+                  )}
+                </div>
               </div>
             ) : (
               <input className={inputCls} value={subjectName || '—'} disabled />
@@ -337,7 +402,7 @@ export function TeacherSettingsClient({
                 <button
                   key={opt.id}
                   onClick={() =>
-                    setPrint((p) => ({ ...p, headerType: opt.id as any }))
+                    setPrint((p) => ({ ...p, headerType: opt.id as 'official' | 'personal' | 'both' }))
                   }
                   className={`rounded-xl border-2 p-3 text-sm font-bold transition-all ${
                     print.headerType === opt.id

@@ -14,6 +14,8 @@ export default async function TeacherOnboardingPage() {
   }
 
   const supabase = await createClient()
+
+  // If teacher already has a subject, skip onboarding
   const { data: teacher } = await supabase
     .from('teachers')
     .select('subject_id')
@@ -24,7 +26,15 @@ export default async function TeacherOnboardingPage() {
     redirect('/teacher/dashboard')
   }
 
-  const { data: subjects } = await supabase
+  // Load all grades (ordered by stage then grade number)
+  const { data: dbGrades } = await supabase
+    .from('grades')
+    .select('id, name_ar, stage_id, grade_number, track')
+    .order('stage_id')
+    .order('grade_number')
+
+  // Load all subjects
+  const { data: dbSubjects } = await supabase
     .from('subjects')
     .select('id, name_ar, icon')
     .order('name_ar')
@@ -34,7 +44,7 @@ export default async function TeacherOnboardingPage() {
       className="bg-hero-pattern flex min-h-screen items-center justify-center bg-slate-50 p-4"
       dir="rtl"
     >
-      <div className="w-full max-w-lg">
+      <div className="w-full max-w-2xl">
         {/* Header */}
         <div className="mb-8 text-center">
           <div className="mb-4 inline-flex h-20 w-20 items-center justify-center rounded-3xl border border-indigo-50 bg-white shadow-xl shadow-indigo-200/50">
@@ -44,8 +54,7 @@ export default async function TeacherOnboardingPage() {
             مرحباً بك يا أستاذ {profile.full_name.split(' ')[0]}!
           </h1>
           <p className="mx-auto max-w-sm font-medium text-slate-500">
-            يسعدنا انضمامك لمنصة استباق مصر. يرجى تحديد مادتك التخصصية لنتمكن من
-            تجهيز بوابتك الخاصة.
+            يسعدنا انضمامك لمنصة استباق مصر. يرجى اختيار المادة الأساسية التي تدرّسها. ستتاح لك جميع الصفوف الدراسية تلقائياً.
           </p>
         </div>
 
@@ -56,15 +65,18 @@ export default async function TeacherOnboardingPage() {
               <BookOpen className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="font-bold text-slate-800">اختر مادتك التخصصية</h2>
+              <h2 className="font-bold text-slate-800">اختر مادتك الأساسية</h2>
               <p className="mt-0.5 text-xs text-slate-500">
-                سيكون حسابك مخصصاً بالكامل لهذه المادة
+                جميع الصفوف الدراسية ستكون متاحة لك داخل المنصة
               </p>
             </div>
           </div>
 
           <div className="p-6">
-            <TeacherOnboardingForm subjects={subjects || []} />
+            <TeacherOnboardingForm
+              dbGrades={dbGrades || []}
+              dbSubjects={dbSubjects || []}
+            />
           </div>
         </div>
       </div>

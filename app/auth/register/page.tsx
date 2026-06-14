@@ -111,7 +111,7 @@ export default function RegisterPage() {
           id: authData.user.id,
           subscription_status: 'trial',
         })
-        window.location.href = '/teacher/dashboard'
+        window.location.href = '/auth/teacher-onboarding'
       }
     } catch (err: any) {
       setError('حدث خطأ غير متوقع: ' + err.message)

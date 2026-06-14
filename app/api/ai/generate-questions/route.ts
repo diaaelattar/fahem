@@ -27,9 +27,8 @@ function getGenAI() {
 
 // نماذج متسقة مع الـ File API - مرتبة حسب الأولوية وتوافر الكوتا
 const FALLBACK_MODELS = [
-  'gemini-2.5-flash',
-  'gemini-flash-latest',
-  'gemini-2.0-flash',
+  'gemini-3.5-flash',
+  'gemini-3.1-pro',
 ]
 const DEFAULT_MODEL = FALLBACK_MODELS[0]
 const GEMINI_MODEL = DEFAULT_MODEL // للـ backward compatibility

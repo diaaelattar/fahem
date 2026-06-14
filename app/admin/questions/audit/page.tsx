@@ -107,7 +107,7 @@ export default async function QuestionAuditPage({
             </h1>
           </div>
           <p className="mr-11 text-sm text-muted-foreground">
-            مراجعة جودة الأسئلة وإعادة تصنيفها باستخدام Gemini 2.5 Flash
+            مراجعة جودة الأسئلة وإعادة تصنيفها باستخدام Gemini 3.5 Flash
           </p>
         </div>
         <Link

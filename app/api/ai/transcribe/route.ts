@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     const mimeType = file.type || 'audio/webm'
 
     const model = getGenAI().getGenerativeModel({
-      model: 'gemini-2.5-flash', // Updated: 1.5-flash no longer available on this API key
+      model: 'gemini-3.5-flash', // Updated: using 3.5-flash
       generationConfig: {
         temperature: 0.1,
       },

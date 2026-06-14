@@ -5,7 +5,7 @@ import { checkAIQuota } from '@/lib/security/rate-limiter'
 
 export const runtime = 'nodejs'
 
-const MODELS = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.0-flash']
+const MODELS = ['gemini-3.5-flash', 'gemini-3.1-pro']
 
 function getModel(name: string) {
   return new GoogleGenerativeAI(

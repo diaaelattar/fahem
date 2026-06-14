@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 // Gemini Vision: تقييم الإجابة المكتوبة بخط اليد
 // ─────────────────────────────────────────────────
 
-const MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest']
+const MODELS = ['gemini-3.5-flash', 'gemini-3.1-pro']
 
 function getModel(name: string) {
   const keys = [

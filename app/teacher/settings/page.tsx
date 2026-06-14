@@ -35,8 +35,21 @@ export default async function TeacherSettingsPage({
 
   const { data: subjects } = await supabase
     .from('subjects')
-    .select('id, name_ar')
+    .select('id, name_ar, icon')
     .order('name_ar')
+
+  // Load all grades for the multi-picker
+  const { data: grades } = await supabase
+    .from('grades')
+    .select('id, name_ar, stage_id, grade_number, track')
+    .order('stage_id')
+    .order('grade_number')
+
+  // Load current teacher grade-subject assignments
+  const { data: teacherGradeSubjects } = await supabase
+    .from('teacher_grade_subjects')
+    .select('grade_id, subject_id')
+    .eq('teacher_id', profile.id)
 
   // Map error codes to Arabic messages
   const errorMessages: Record<string, string> = {
@@ -50,6 +63,8 @@ export default async function TeacherSettingsPage({
       teacher={teacher || {}}
       subjectName={subject?.name_ar || ''}
       allSubjects={subjects || []}
+      allGrades={grades || []}
+      currentGradeSubjects={teacherGradeSubjects || []}
       errorMsg={errorMsg}
     />
   )

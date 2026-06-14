@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
 import { toast } from 'sonner'
+import { DeviceSessionsCard } from '@/components/student/DeviceSessionsCard'
 
 export default function StudentProfilePage() {
   const supabase = createClient()

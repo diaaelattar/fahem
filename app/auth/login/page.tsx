@@ -68,7 +68,17 @@ export default function LoginPage() {
       if (profile?.role === 'admin') {
         window.location.href = '/admin/dashboard'
       } else if (profile?.role === 'teacher') {
-        window.location.href = '/teacher/dashboard'
+        const { data: teacher } = await supabase
+          .from('teachers')
+          .select('subject_id')
+          .eq('id', user.id)
+          .maybeSingle()
+
+        if (!teacher?.subject_id) {
+          window.location.href = '/auth/teacher-onboarding'
+        } else {
+          window.location.href = '/teacher/dashboard'
+        }
       } else if (profile?.role === 'student') {
         const { data: student } = await supabase
           .from('students')

@@ -3,7 +3,7 @@ import { AI_GRADING_PROMPT } from '@/lib/ai/prompts'
 
 // دالة لجلب الموديل المناسب للتقييم
 async function gradeWithFallback(prompt: string): Promise<any> {
-  const models = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.0-flash']
+  const models = ['gemini-3.5-flash', 'gemini-3.1-pro']
   let lastError = null
 
   for (const model of models) {

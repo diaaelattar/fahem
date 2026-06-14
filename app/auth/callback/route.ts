@@ -39,6 +39,16 @@ export async function GET(request: Request) {
         }
 
         if (profile?.role === 'teacher') {
+          // Check if teacher has completed onboarding (has a subject_id)
+          const { data: teacher } = await supabase
+            .from('teachers')
+            .select('subject_id')
+            .eq('id', user.id)
+            .maybeSingle()
+          
+          if (!teacher?.subject_id) {
+            return NextResponse.redirect(`${origin}/auth/teacher-onboarding`)
+          }
           return NextResponse.redirect(`${origin}/teacher/dashboard`)
         }
 
@@ -70,7 +80,7 @@ export async function GET(request: Request) {
             id: user.id,
             subscription_status: 'trial',
           })
-          return NextResponse.redirect(`${origin}/teacher/dashboard`)
+          return NextResponse.redirect(`${origin}/auth/teacher-onboarding`)
         }
       }
     }

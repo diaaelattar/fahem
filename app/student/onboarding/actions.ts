@@ -42,7 +42,6 @@ export async function saveStudentGradeAction(
       id: userId,
       grade_id: gradeId,
       education_type: educationType,
-      system_type: systemType,
       track_id: trackId,
     },
     { onConflict: 'id' }

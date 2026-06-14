@@ -3,15 +3,21 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Loader2, CheckCircle } from 'lucide-react'
+import { Loader2, CheckCircle, BookOpen } from 'lucide-react'
+import { saveTeacherSubjectAction } from './actions'
 
-interface Subject {
+interface DBSubject {
   id: number
   name_ar: string
   icon: string
 }
 
-export function TeacherOnboardingForm({ subjects }: { subjects: Subject[] }) {
+interface Props {
+  dbGrades: any[] // Kept for backwards compatibility but not used
+  dbSubjects: DBSubject[]
+}
+
+export function TeacherOnboardingForm({ dbSubjects }: Props) {
   const [selectedSubject, setSelectedSubject] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -22,7 +28,7 @@ export function TeacherOnboardingForm({ subjects }: { subjects: Subject[] }) {
     e.preventDefault()
 
     if (!selectedSubject) {
-      setError('يرجى اختيار مادتك التخصصية للمتابعة')
+      setError('يرجى اختيار مادتك الأساسية للمتابعة')
       return
     }
 
@@ -33,15 +39,9 @@ export function TeacherOnboardingForm({ subjects }: { subjects: Subject[] }) {
       const {
         data: { user },
       } = await supabase.auth.getUser()
-      if (!user) throw new Error('غير مسجل الدخول')
+      if (!user) throw new Error('يرجى تسجيل الدخول أولاً')
 
-      const { error: updateError } = await supabase.from('teachers').upsert({
-        id: user.id,
-        subject_id: selectedSubject,
-        subscription_status: 'trial',
-      })
-
-      if (updateError) throw updateError
+      await saveTeacherSubjectAction(user.id, selectedSubject)
 
       router.push('/teacher/dashboard')
       router.refresh()
@@ -59,40 +59,49 @@ export function TeacherOnboardingForm({ subjects }: { subjects: Subject[] }) {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        {subjects.map((subject) => (
-          <button
-            key={subject.id}
-            type="button"
-            onClick={() => setSelectedSubject(subject.id)}
-            className={`flex flex-col items-center justify-center gap-3 rounded-2xl border-2 p-4 transition-all ${
-              selectedSubject === subject.id
-                ? 'border-indigo-600 bg-indigo-50 text-indigo-700 shadow-sm'
-                : 'border-slate-100 bg-white text-slate-600 hover:border-indigo-200 hover:bg-slate-50'
-            }`}
-          >
-            <div className="text-3xl">{subject.icon}</div>
-            <span className="text-center text-sm font-bold">
-              {subject.name_ar}
-            </span>
-            {selectedSubject === subject.id && (
-              <div className="absolute right-2 top-2">
-                <CheckCircle className="h-5 w-5 text-indigo-600" />
-              </div>
-            )}
-          </button>
-        ))}
+      <div>
+        <label className="mb-3 block text-sm font-bold text-slate-700">
+          اختر المادة التي تدرسها:
+        </label>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {dbSubjects.map((sub) => {
+            const isSelected = selectedSubject === sub.id
+            return (
+              <button
+                key={sub.id}
+                type="button"
+                onClick={() => setSelectedSubject(sub.id)}
+                className={`flex flex-col items-center justify-center gap-2 rounded-2xl border p-4 transition-all ${
+                  isSelected
+                    ? 'border-indigo-600 bg-indigo-50 text-indigo-700 shadow-md shadow-indigo-200'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-indigo-300 hover:bg-slate-50'
+                }`}
+              >
+                <span className="text-3xl">{sub.icon || '📚'}</span>
+                <span className="font-bold text-sm text-center">{sub.name_ar}</span>
+                {isSelected && (
+                  <div className="absolute top-2 left-2">
+                    <CheckCircle className="h-5 w-5 text-indigo-600" />
+                  </div>
+                )}
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       <button
         type="submit"
         disabled={loading || !selectedSubject}
-        className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-800 py-4 font-bold text-white shadow-sm transition-colors hover:bg-slate-900 disabled:bg-slate-300"
+        className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-800 py-4 font-bold text-white shadow-sm transition-colors hover:bg-slate-900 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {loading ? (
           <Loader2 className="h-5 w-5 animate-spin" />
         ) : (
-          'حفظ ومتابعة إلى لوحة التحكم'
+          <>
+            <CheckCircle className="h-5 w-5" />
+            حفظ ومتابعة إلى لوحة التحكم
+          </>
         )}
       </button>
     </form>
