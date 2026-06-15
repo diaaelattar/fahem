@@ -75,7 +75,7 @@ export function CertificateCard({
             <div class="border-inner">
               <div style="font-size:48px; margin-bottom:8px;">🏆</div>
               <div class="title">شهادة إنجاز</div>
-              <div class="subtitle">منصة استباق مصر التعليمية</div>
+              <div class="subtitle">منصة استبق - مصر ( فاهم ) التعليمية</div>
               <div style="margin: 12px 0; color: #555; font-size: 16px;">يُشهد بأن الطالب/الطالبة</div>
               <div class="name">${studentName}</div>
               <div class="exam">قد أجتاز بنجاح اختبار</div>
@@ -86,7 +86,7 @@ export function CertificateCard({
               <div class="details">
                 <span>📅 ${formattedDate}</span>
               </div>
-              <div class="footer">استباق مصر — منصة تعليمية متكاملة</div>
+              <div class="footer">استبق - مصر ( فاهم ) — منصة تعليمية متكاملة</div>
             </div>
           </div>
         </div>
@@ -129,7 +129,7 @@ export function CertificateCard({
             شهادة إنجاز
           </div>
           <h2 className="mb-1 text-2xl font-bold text-primary">
-            منصة استباق مصر
+            منصة استبق - مصر ( فاهم )
           </h2>
 
           {/* اسم الطالب */}

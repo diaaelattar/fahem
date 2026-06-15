@@ -96,7 +96,7 @@ export function StudentSidebar() {
           </div>
           <div className="leading-tight">
             <div className="font-display text-[15px] font-black text-slate-800">
-              استباق مصر
+              استبق - مصر ( فاهم )
             </div>
             <div className="text-[11px] font-semibold text-slate-400">
               بوابة الطالب

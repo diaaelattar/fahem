@@ -680,27 +680,28 @@ export function ExamInterface({
       )}
 
       {/* Header */}
-      <div className="sticky top-4 z-10 mb-5 rounded-2xl border border-border bg-white p-5 shadow-sm">
-        <div className="mb-3 flex items-center justify-between">
-          <h1 className="line-clamp-1 text-lg font-bold">{exam.title}</h1>
-          <div className="flex items-center gap-2 rounded-xl bg-slate-100 px-4 py-2 font-mono font-bold text-slate-700">
-            <Clock className="h-5 w-5 text-slate-400" />
+      <div className="sticky top-4 z-10 mb-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-md">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h1 className="line-clamp-1 text-base font-bold text-slate-800">{exam.title}</h1>
+          <div className={`flex items-center gap-2 rounded-xl px-4 py-2 font-mono font-bold tabular-nums ${
+            timeRemainingSeconds !== null && timeRemainingSeconds < 300
+              ? 'bg-red-50 text-red-600 border border-red-200'
+              : 'bg-slate-100 text-slate-700'
+          }`}>
+            <Clock className="h-4 w-4" />
             {formatTime(timeRemainingSeconds)}
           </div>
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+          <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
             <div
-              className="h-full rounded-full bg-primary transition-all duration-300"
+              className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 transition-all duration-500"
               style={{ width: `${progress}%` }}
             />
           </div>
-          <span className="whitespace-nowrap text-sm text-muted-foreground">
-            مجموعة {currentIdx + 1}/{groups.length}
-          </span>
-          <span className="whitespace-nowrap text-sm text-muted-foreground">
-            ({answeredCount} من {questions.length} مُجاب)
+          <span className="whitespace-nowrap text-xs font-semibold text-slate-500">
+            {answeredCount}/{questions.length} مُجاب
           </span>
         </div>
       </div>
@@ -722,19 +723,41 @@ export function ExamInterface({
 
         {currentGroup.questions.map((currentQ, qIndexWithinGroup) => {
           const globalQIndex = currentGroup.originalIndexes[qIndexWithinGroup]
+          const typeLabels: Record<string, string> = {
+            mcq: 'اختيار من متعدد',
+            true_false: 'صح / خطأ',
+            fill_blank: 'أكمل الفراغ',
+            essay: 'سؤال مقالي',
+            correction: 'تصحيح',
+          }
+          const typeColors: Record<string, string> = {
+            mcq: 'bg-blue-50 text-blue-700 border-blue-200',
+            true_false: 'bg-violet-50 text-violet-700 border-violet-200',
+            fill_blank: 'bg-amber-50 text-amber-700 border-amber-200',
+            essay: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+            correction: 'bg-rose-50 text-rose-700 border-rose-200',
+          }
           return (
-            <div key={currentQ.id} className="question-card">
-              <div className="mb-4 flex items-center gap-2">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-bold text-white">
-                  {globalQIndex + 1}
-                </span>
-                <span className="text-sm text-muted-foreground">
-                  {(currentQ as any)?.points || 0}{' '}
-                  {(currentQ as any)?.points === 1 ? 'درجة' : 'درجات'}
+          <div key={currentQ.id} className="question-card overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+              {/* Question header bar */}
+              <div className="flex items-center justify-between gap-3 border-b border-slate-100 bg-slate-50 px-5 py-3">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-indigo-600 text-xs font-black text-white">
+                    {globalQIndex + 1}
+                  </span>
+                  <span className={`rounded-full border px-2.5 py-0.5 text-xs font-bold ${
+                    typeColors[currentQ.question_type] ?? 'bg-slate-50 text-slate-600 border-slate-200'
+                  }`}>
+                    {typeLabels[currentQ.question_type] ?? 'سؤال'}
+                  </span>
+                </div>
+                <span className="rounded-full bg-indigo-50 px-3 py-0.5 text-xs font-bold text-indigo-700">
+                  {(currentQ as any)?.points || 0} {(currentQ as any)?.points === 1 ? 'درجة' : 'درجات'}
                 </span>
               </div>
 
-              <div className="mb-6">
+              {/* Question body */}
+              <div className="p-5 pb-4">
                 <div
                   className={`flex ${
                     currentQ.image_position === 'top'
@@ -743,7 +766,7 @@ export function ExamInterface({
                         ? 'flex-row-reverse items-center gap-6'
                         : currentQ.image_position === 'left'
                           ? 'flex-row items-center gap-6'
-                          : 'flex-col' // bottom (default)
+                          : 'flex-col'
                   }`}
                 >
                   <div className="flex-1">
@@ -751,14 +774,14 @@ export function ExamInterface({
                       text={(currentQ.question_text ?? '')
                         .replace(/^(\(?\d+[\)\.\-\s]\s*)/, '')
                         .trim()}
-                      className={`text-xl font-medium leading-relaxed`}
+                      className={`text-[17px] font-semibold leading-relaxed text-slate-800`}
                       dir={dir}
                     />
                   </div>
 
                   {currentQ.question_image_url && (
                     <div
-                      className={`shrink-0 overflow-hidden rounded-xl border border-border bg-muted/30 ${
+                      className={`shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-50 ${
                         currentQ.image_position === 'right' ||
                         currentQ.image_position === 'left'
                           ? 'w-1/3'
@@ -773,95 +796,93 @@ export function ExamInterface({
                     </div>
                   )}
                 </div>
-              </div>
 
-              {/* MCQ Options */}
-              {currentQ.question_type === 'mcq' && currentQ.options && (
-                <div className="space-y-3" role="radiogroup" aria-label="خيارات الإجابة">
-                  {currentQ.options.map((opt, i) => {
-                    const isSelected = answers[currentQ.id] === opt
-                    const isCorrectOpt = checkAnswer(
-                      opt,
-                      currentQ.correct_answer || '',
-                      'mcq'
-                    )
-                    const showFeedback =
-                      exam.show_results_immediately &&
-                      immediateFeedback[currentQ.id]
+                {/* MCQ Options */}
+                {currentQ.question_type === 'mcq' && currentQ.options && (
+                  <div className="mt-4 space-y-2.5" role="radiogroup" aria-label="خيارات الإجابة">
+                    {currentQ.options.map((opt, i) => {
+                      const isSelected = answers[currentQ.id] === opt
+                      const isCorrectOpt = checkAnswer(opt, currentQ.correct_answer || '', 'mcq')
+                      const showFeedback = exam.show_results_immediately && immediateFeedback[currentQ.id]
 
-                    let btnClass = `answer-option w-full ${textAlign} ${isSelected ? 'selected' : ''}`
-                    if (showFeedback) {
-                      if (isCorrectOpt)
-                        btnClass +=
-                          ' !bg-green-100 !border-green-500 !text-green-800'
-                      else if (isSelected)
-                        btnClass += ' !bg-red-100 !border-red-500 !text-red-800'
-                    }
+                      let btnClass = `group w-full flex items-center gap-3 rounded-xl border-2 px-4 py-3 text-sm text-${isRTL ? 'right' : 'left'} transition-all duration-150 `
+                      if (showFeedback) {
+                        if (isCorrectOpt) btnClass += 'border-emerald-400 bg-emerald-50 text-emerald-800'
+                        else if (isSelected) btnClass += 'border-rose-400 bg-rose-50 text-rose-800'
+                        else btnClass += 'border-slate-200 bg-slate-50 text-slate-400 opacity-60'
+                      } else if (isSelected) {
+                        btnClass += 'border-indigo-500 bg-indigo-50 text-indigo-800 shadow-sm shadow-indigo-100'
+                      } else {
+                        btnClass += 'border-slate-200 bg-white text-slate-700 hover:border-indigo-300 hover:bg-indigo-50/40'
+                      }
 
-                    return (
-                      <button
-                        key={i}
-                        onClick={() => handleAnswer(currentQ.id, opt, 'mcq')}
-                        role="radio"
-                        aria-checked={isSelected}
-                        className={btnClass}
-                      >
-                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border-2 border-current text-sm font-bold">
-                          {['أ', 'ب', 'ج', 'د'][i]}
-                        </span>
-                        <MathRenderer
-                          text={opt}
-                          className="text-base"
-                          dir={dir}
-                        />
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => handleAnswer(currentQ.id, opt, 'mcq')}
+                          role="radio"
+                          aria-checked={isSelected}
+                          className={btnClass}
+                        >
+                          <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold border-2 transition-colors ${
+                            showFeedback && isCorrectOpt
+                              ? 'border-emerald-500 bg-emerald-500 text-white'
+                              : showFeedback && isSelected && !isCorrectOpt
+                                ? 'border-rose-400 bg-rose-400 text-white'
+                                : isSelected
+                                  ? 'border-indigo-500 bg-indigo-500 text-white'
+                                  : 'border-slate-300 text-slate-500'
+                          }`}>
+                            {['أ', 'ب', 'ج', 'د'][i]}
+                          </span>
+                          <MathRenderer text={opt} className="flex-1 text-right text-sm" dir={dir} />
+                          {showFeedback && isCorrectOpt && <CheckCircle className="mr-auto h-5 w-5 shrink-0 text-emerald-500" />}
+                          {showFeedback && isSelected && !isCorrectOpt && <XCircle className="mr-auto h-5 w-5 shrink-0 text-rose-400" />}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
 
-              {/* True/False Options */}
-              {currentQ.question_type === 'true_false' && (
-                <div className="grid grid-cols-2 gap-4" role="radiogroup" aria-label="خيارات الإجابة">
-                  {['صح', 'خطأ'].map((opt) => {
-                    const isSelected = answers[currentQ.id] === opt
-                    const isCorrectOpt = checkAnswer(
-                      opt,
-                      currentQ.correct_answer || '',
-                      'true_false'
-                    )
-                    const showFeedback =
-                      exam.show_results_immediately &&
-                      immediateFeedback[currentQ.id]
+                {/* True/False Options */}
+                {currentQ.question_type === 'true_false' && (
+                  <div className="mt-4 grid grid-cols-2 gap-3" role="radiogroup" aria-label="خيارات الإجابة">
+                    {['صح', 'خطأ'].map((opt) => {
+                      const isSelected = answers[currentQ.id] === opt
+                      const isCorrectOpt = checkAnswer(opt, currentQ.correct_answer || '', 'true_false')
+                      const showFeedback = exam.show_results_immediately && immediateFeedback[currentQ.id]
+                      const isTrue = opt === 'صح'
 
-                    let btnClass = `answer-option flex-col justify-center py-8 ${isSelected ? 'selected' : ''}`
-                    if (showFeedback) {
-                      if (isCorrectOpt)
-                        btnClass +=
-                          ' !bg-green-100 !border-green-500 !text-green-800'
-                      else if (isSelected)
-                        btnClass += ' !bg-red-100 !border-red-500 !text-red-800'
-                    }
+                      let btnClass = `flex flex-col items-center justify-center gap-2 rounded-2xl border-2 py-6 font-bold transition-all `
+                      if (showFeedback) {
+                        if (isCorrectOpt) btnClass += 'border-emerald-400 bg-emerald-50 text-emerald-700'
+                        else if (isSelected) btnClass += 'border-rose-400 bg-rose-50 text-rose-700'
+                        else btnClass += 'border-slate-200 bg-slate-50 text-slate-400 opacity-50'
+                      } else if (isSelected) {
+                        btnClass += isTrue
+                          ? 'border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm'
+                          : 'border-rose-500 bg-rose-50 text-rose-700 shadow-sm'
+                      } else {
+                        btnClass += isTrue
+                          ? 'border-slate-200 bg-white text-slate-600 hover:border-emerald-300 hover:bg-emerald-50'
+                          : 'border-slate-200 bg-white text-slate-600 hover:border-rose-300 hover:bg-rose-50'
+                      }
 
-                    return (
-                      <button
-                        key={opt}
-                        onClick={() =>
-                          handleAnswer(currentQ.id, opt, 'true_false')
-                        }
-                        role="radio"
-                        aria-checked={isSelected}
-                        className={btnClass}
-                      >
-                        <span className="mb-2 text-3xl" aria-hidden="true">
-                          {opt === 'صح' ? '✅' : '❌'}
-                        </span>
-                        <span className="text-lg font-bold">{opt}</span>
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
+                      return (
+                        <button
+                          key={opt}
+                          onClick={() => handleAnswer(currentQ.id, opt, 'true_false')}
+                          role="radio"
+                          aria-checked={isSelected}
+                          className={btnClass}
+                        >
+                          <span className="text-3xl" aria-hidden="true">{isTrue ? '✅' : '❌'}</span>
+                          <span className="text-lg">{opt}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
 
               {/* Fill Blank */}
               {currentQ.question_type === 'fill_blank' && (
@@ -1130,92 +1151,70 @@ export function ExamInterface({
                 </div>
               )}
 
-              {/* Immediate Feedback Box (Practice Mode) */}
-              {exam.show_results_immediately &&
-                immediateFeedback[currentQ.id] &&
-                currentQ.correct_answer && (
-                  <div
-                    className={`mt-6 rounded-xl border-2 p-4 ${
-                      checkAnswer(
-                        answers[currentQ.id] as string,
-                        currentQ.correct_answer,
-                        currentQ.question_type
-                      )
-                        ? 'border-green-200 bg-green-50'
-                        : 'border-red-200 bg-red-50'
-                    }`}
-                  >
-                    <h4
-                      className={`flex items-center gap-2 font-bold ${
-                        checkAnswer(
-                          answers[currentQ.id] as string,
-                          currentQ.correct_answer,
-                          currentQ.question_type
-                        )
-                          ? 'text-green-700'
-                          : 'text-red-700'
-                      }`}
-                    >
-                      {checkAnswer(
-                        answers[currentQ.id] as string,
-                        currentQ.correct_answer,
-                        currentQ.question_type
-                      ) ? (
-                        <>
-                          <CheckCircle className="h-5 w-5" /> إجابة صحيحة!
-                        </>
-                      ) : (
-                        <>
-                          <XCircle className="h-5 w-5" /> إجابة خاطئة
-                        </>
-                      )}
-                    </h4>
-
-                    {!checkAnswer(
-                      answers[currentQ.id] as string,
-                      currentQ.correct_answer,
-                      currentQ.question_type
-                    ) && (
-                      <div className="mt-2 text-sm">
-                        <strong>الإجابة الصحيحة هي:</strong>{' '}
-                        <span className="font-bold text-green-700">
-                          {getDisplayCorrectAnswer(
-                            currentQ.correct_answer,
-                            currentQ.question_type
-                          )}
-                        </span>
-                      </div>
-                    )}
-
-                    {currentQ.explanation && (
-                      <div className="border-current/10 mt-3 border-t pt-3 text-sm">
-                        <strong className="mb-1 block">التفسير:</strong>
-                        <MathRenderer
-                          text={currentQ.explanation}
-                          className="leading-relaxed"
-                          dir={dir}
-                        />
-                      </div>
-                    )}
-
-                    {/* AI Explain Button - only for wrong answers */}
-                    {!checkAnswer(
-                      answers[currentQ.id] as string,
-                      currentQ.correct_answer,
-                      currentQ.question_type
-                    ) && (
-                      <AIExplainButton
-                        questionId={currentQ.id}
-                        questionText={currentQ.question_text}
-                        correctAnswer={getDisplayCorrectAnswer(
-                          currentQ.correct_answer,
-                          currentQ.question_type
+                {/* Immediate Feedback Box (Practice Mode) */}
+                {exam.show_results_immediately &&
+                  immediateFeedback[currentQ.id] &&
+                  currentQ.correct_answer && (
+                    <div className={`mt-5 overflow-hidden rounded-2xl border-2 ${
+                      checkAnswer(answers[currentQ.id] as string, currentQ.correct_answer, currentQ.question_type)
+                        ? 'border-emerald-300 bg-emerald-50'
+                        : 'border-rose-300 bg-rose-50'
+                    }`}>
+                      {/* Result header */}
+                      <div className={`flex items-center gap-2 px-4 py-3 font-bold ${
+                        checkAnswer(answers[currentQ.id] as string, currentQ.correct_answer, currentQ.question_type)
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : 'bg-rose-100 text-rose-800'
+                      }`}>
+                        {checkAnswer(answers[currentQ.id] as string, currentQ.correct_answer, currentQ.question_type) ? (
+                          <><CheckCircle className="h-5 w-5" /> إجابة صحيحة! أحسنت صنعاً</>
+                        ) : (
+                          <><XCircle className="h-5 w-5" /> إجابة خاطئة</>
                         )}
-                        studentAnswer={answers[currentQ.id] as string}
-                      />
-                    )}
-                  </div>
-                )}
+                      </div>
+
+                      <div className="space-y-3 p-4">
+                        {/* Correct answer - always shown */}
+                        <div className="flex items-start gap-2 rounded-xl bg-white border border-emerald-200 px-4 py-3">
+                          <CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                          <div>
+                            <p className="text-xs font-bold text-emerald-700 mb-0.5">الإجابة الصحيحة</p>
+                            <MathRenderer
+                              text={getDisplayCorrectAnswer(currentQ.correct_answer, currentQ.question_type)}
+                              className="text-sm font-semibold text-slate-800"
+                              dir={dir}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Explanation - if exists */}
+                        {currentQ.explanation && (
+                          <div className="flex items-start gap-2 rounded-xl bg-white border border-slate-200 px-4 py-3">
+                            <span className="text-lg leading-none shrink-0">💡</span>
+                            <div>
+                              <p className="text-xs font-bold text-slate-500 mb-0.5">شرح وتفسير</p>
+                              <MathRenderer
+                                text={currentQ.explanation}
+                                className="text-sm text-slate-700 leading-relaxed"
+                                dir={dir}
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        {/* AI Explain Button - wrong answers only */}
+                        {!checkAnswer(answers[currentQ.id] as string, currentQ.correct_answer, currentQ.question_type) && (
+                          <AIExplainButton
+                            questionId={currentQ.id}
+                            questionText={currentQ.question_text}
+                            correctAnswer={getDisplayCorrectAnswer(currentQ.correct_answer, currentQ.question_type)}
+                            studentAnswer={answers[currentQ.id] as string}
+                          />
+                        )}
+                      </div>
+                    </div>
+                  )}
+              </div>{/* end question body */}
             </div>
           )
         })}

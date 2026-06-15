@@ -74,6 +74,21 @@ export default function HomePage() {
   const [schoolLoginError, setSchoolLoginError] = useState('')
   const [schoolLoginSuccess, setSchoolLoginSuccess] = useState('')
 
+  // Real statistics
+  const [stats, setStats] = useState({
+    studentsCount: 0,
+    teachersCount: 0,
+    questionsCount: 0,
+    examsCount: 0,
+  })
+
+  useEffect(() => {
+    fetch('/api/stats/landing')
+      .then(res => res.json())
+      .then(data => setStats(data))
+      .catch(console.error)
+  }, [])
+
   // Simulation steps for AI engine
   const simSteps = [
     'جاري قراءة الملف وتصفية المحتوى التعليمي...',
@@ -258,7 +273,7 @@ export default function HomePage() {
             <a href="#demo" className="transition-colors hover:text-amber-400">محاكي الذكاء الاصطناعي</a>
             <a href="#pain" className="transition-colors hover:text-amber-400">السرعة الفائقة</a>
             <a href="#portals" className="transition-colors hover:text-amber-400">بوابات المنصة</a>
-            <a href="#schools" className="transition-colors hover:text-amber-400 text-amber-400 font-extrabold">فاهم للمدارس 🏫</a>
+            <a href="#schools" className="transition-colors hover:text-amber-400 text-amber-400 font-extrabold">استبق مصر للمدارس 🏫</a>
             <a href="#ads" className="transition-colors hover:text-amber-400">قصص المعلمين</a>
           </div>
 
@@ -324,13 +339,13 @@ export default function HomePage() {
           {/* Quick Metrics Grid */}
           <div className="mx-auto grid max-w-4xl grid-cols-2 gap-4 sm:grid-cols-4">
             {[
-              { value: '١٢ صفاً دراسياً', label: 'ابتدائي · إعدادي · ثانوي' },
-              { value: '١٩ مادة تعليمية', label: 'المنهج المصري كاملاً' },
-              { value: '٤٥ ثانية', label: 'لتوليد أي امتحان ذكي' },
-              { value: '١٠٠٪ أمان ودقة', label: 'مدعوم بـ Gemini AI' },
-            ].map((s) => (
+              { value: `+${stats.studentsCount}`, label: 'طالب مسجل' },
+              { value: `+${stats.teachersCount}`, label: 'معلم ومربي' },
+              { value: `+${stats.questionsCount}`, label: 'سؤال في بنك الأسئلة' },
+              { value: `+${stats.examsCount}`, label: 'اختبار مجاب' },
+            ].map((s, index) => (
               <div
-                key={s.value}
+                key={index}
                 className="rounded-2xl border border-indigo-500/10 bg-indigo-950/20 p-5 text-center shadow-lg backdrop-blur-md transition-all hover:border-indigo-500/20"
               >
                 <div className="mb-1 text-2xl font-black text-amber-400">
@@ -354,10 +369,10 @@ export default function HomePage() {
               قوة الذكاء الاصطناعي بين يديك
             </div>
             <h2 className="mb-4 font-display text-2xl sm:text-4xl font-black">
-              جرّب الذكاء الاصطناعي لفاهم بنفسك
+              جرّب الذكاء الاصطناعي لاستبق مصر (فاهم) بنفسك
             </h2>
             <p className="mx-auto max-w-2xl text-sm sm:text-base text-slate-400 leading-relaxed">
-              اختر نوع الملف، وقم بمحاكاة رفعه لترى كيف يقوم محرك فاهم (Gemini AI) بتصفية المناهج وتحويل المحتوى إلى اختبار تفاعلي في ثوانٍ.
+              اختر نوع الملف، وقم بمحاكاة رفعه لترى كيف يقوم محرك استبق مصر (Gemini AI) بتصفية المناهج وتحويل المحتوى إلى اختبار تفاعلي في ثوانٍ.
             </p>
           </div>
 
@@ -579,7 +594,7 @@ export default function HomePage() {
               <div className="rounded-2xl border border-rose-500/20 bg-rose-950/10 p-5">
                 <h4 className="text-amber-400 font-bold text-sm sm:text-base mb-1.5">💥 المفاجأة الحقيقية:</h4>
                 <p className="text-xs sm:text-sm text-slate-200 leading-relaxed font-semibold">
-                  معلم في مصر قام برفع ملف الدرس على منصة فاهم، وصمم امتحاناً كاملاً ومنسقاً بنسبة ١٠٠٪ في <span className="text-amber-400 font-extrabold underline decoration-amber-400 decoration-2">٤٥ ثانية بالظبط!</span> لا تضيع وقتك الثمين في التحضير اليدوي بعد اليوم وركّز على تعليم وتوجيه طلابك.
+                  معلم في مصر قام برفع ملف الدرس على منصة استبق مصر (فاهم)، وصمم امتحاناً كاملاً ومنسقاً بنسبة ١٠٠٪ في <span className="text-amber-400 font-extrabold underline decoration-amber-400 decoration-2">٤٥ ثانية بالظبط!</span> لا تضيع وقتك الثمين في التحضير اليدوي بعد اليوم وركّز على تعليم وتوجيه طلابك.
                 </p>
               </div>
 
@@ -620,7 +635,7 @@ export default function HomePage() {
                 {/* Fahem */}
                 <div className="space-y-2.5 pt-4 border-t border-indigo-500/10">
                   <div className="flex justify-between text-xs font-bold text-amber-400">
-                    <span>مع منصة فاهم الذكية</span>
+                    <span>مع منصة استبق مصر الذكية</span>
                     <span>٤٥ ثانية فقط!</span>
                   </div>
                   <div className="h-2.5 w-full bg-slate-900 rounded-full overflow-hidden p-0.5 border border-amber-500/20">
@@ -646,7 +661,7 @@ export default function HomePage() {
               جميع المراحل والصفوف الدراسية بالمنهج المصري
             </h2>
             <p className="mx-auto max-w-2xl text-sm sm:text-base text-slate-400 leading-relaxed">
-              من الصف الأول الابتدائي وحتى شهادة الثانوية العامة! تدعم منصة فاهم نظام التعليم المصري بالكامل لـ ١٩ مادة دراسية وعلمية.
+              من الصف الأول الابتدائي وحتى شهادة الثانوية العامة! تدعم منصة استبق مصر (فاهم) نظام التعليم المصري بالكامل لـ ١٩ مادة دراسية وعلمية.
             </p>
           </div>
 
@@ -708,7 +723,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── The School Portal Section ("بوابة فاهم للمدارس") ───────── */}
+      {/* ── The School Portal Section ("بوابة استبق مصر للمدارس") ───────── */}
       <section id="schools" className="relative bg-gradient-to-b from-[#070e1c] to-[#0b1426] px-4 py-24 sm:px-6 z-10 overflow-hidden">
         <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-5 pointer-events-none" />
         <div className="absolute top-1/2 left-0 w-96 h-96 bg-indigo-500/5 rounded-full blur-[120px] pointer-events-none" />
@@ -719,7 +734,7 @@ export default function HomePage() {
             <div className="space-y-6 text-right">
               <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-2 text-xs sm:text-sm font-bold text-blue-300">
                 <School className="h-4 w-4 text-blue-400" />
-                <span>منظومة فاهم المتكاملة للمدارس 🏫</span>
+                <span>منظومة استبق مصر المتكاملة للمدارس 🏫</span>
               </div>
               <h2 className="font-display text-3xl sm:text-5xl font-black leading-tight text-white">
                 منظومة تعليمية ذكية
@@ -935,7 +950,7 @@ export default function HomePage() {
               قصص نجاح من قلب المدارس المصرية
             </div>
             <h2 className="mb-4 font-display text-2xl sm:text-4xl font-black text-white">
-              لماذا يتحدث الجميع عن منصة فاهم؟
+              لماذا يتحدث الجميع عن منصة استبق مصر (فاهم)؟
             </h2>
             <p className="mx-auto max-w-2xl text-sm sm:text-base text-slate-400 leading-relaxed">
               شاهد كيف تحول الأستاذ أحمد ومعلمون آخرون من الإرهاق اليومي إلى التحضير الذكي، ورأي طلابهم في التقييمات.
@@ -955,7 +970,7 @@ export default function HomePage() {
                 </div>
               </div>
               <p className="text-xs sm:text-sm leading-relaxed text-slate-300 font-semibold italic">
-                "كنت بضيع ٤ ساعات كل أسبوع في عمل امتحانات الصفوف الإعدادية. دلوقتي برفع كتاب الامتحان لفاهم، وفـ ٤٥ ثانية بخرج امتحان متناسق والطلاب بيحلوه على موبايلاتهم فوراً!"
+                "كنت بضيع ٤ ساعات كل أسبوع في عمل امتحانات الصفوف الإعدادية. دلوقتي برفع كتاب الامتحان لاستبق مصر (فاهم)، وفـ ٤٥ ثانية بخرج امتحان متناسق والطلاب بيحلوه على موبايلاتهم فوراً!"
               </p>
               <div className="flex text-amber-400 gap-0.5">
                 {[...Array(5)].map((_, i) => <Star key={i} className="h-3.5 w-3.5 fill-current" />)}
@@ -974,7 +989,7 @@ export default function HomePage() {
                 </div>
               </div>
               <p className="text-xs sm:text-sm leading-relaxed text-slate-300 font-semibold italic">
-                "بصراحة طلاب مدرستي بدأوا يذاكروا أكتر ويسألوني عن التحديات اليومية بعد ما ربطت فصولي بمنصة فاهم. فكرة التحديات 1v1 غيرت شغفهم بالكامل بدون أي ضغط مني!"
+                "بصراحة طلاب مدرستي بدأوا يذاكروا أكتر ويسألوني عن التحديات اليومية بعد ما ربطت فصولي بمنصة استبق مصر (فاهم). فكرة التحديات 1v1 غيرت شغفهم بالكامل بدون أي ضغط مني!"
               </p>
               <div className="flex text-amber-400 gap-0.5">
                 {[...Array(5)].map((_, i) => <Star key={i} className="h-3.5 w-3.5 fill-current" />)}
@@ -993,7 +1008,7 @@ export default function HomePage() {
                 </div>
               </div>
               <p className="text-xs sm:text-sm leading-relaxed text-slate-300 font-semibold italic">
-                "سجلنا كإدارة مدرسة للحصول على بوابة فاهم للمدارس القادمة، ودلوقتي بنقيس ونحلل مستويات تفوق طلابنا ونسبة تحصيلهم لكل المواد دراسياً بذكاء متناهي وتقارير دورية."
+                "سجلنا كإدارة مدرسة للحصول على بوابة استبق مصر للمدارس القادمة، ودلوقتي بنقيس ونحلل مستويات تفوق طلابنا ونسبة تحصيلهم لكل المواد دراسياً بذكاء متناهي وتقارير دورية."
               </p>
               <div className="flex text-amber-400 gap-0.5">
                 {[...Array(5)].map((_, i) => <Star key={i} className="h-3.5 w-3.5 fill-current" />)}
@@ -1012,7 +1027,7 @@ export default function HomePage() {
             </h2>
             <div className="mx-auto mb-4 h-1 w-12 rounded-full bg-amber-400" />
             <p className="mx-auto max-w-2xl text-sm sm:text-base text-slate-400">
-              لماذا تعتبر منصة فاهم منظومة التعليم الذكية الأقوى؟
+              لماذا تعتبر منصة استبق مصر (فاهم) منظومة التعليم الذكية الأقوى؟
             </p>
           </div>
 
@@ -1084,7 +1099,7 @@ export default function HomePage() {
             انضم الآن للمنصة التعليمية الأذكى في مصر
           </h2>
           <p className="mx-auto mb-12 max-w-2xl text-sm sm:text-base text-slate-400 font-semibold">
-            سواء كنت قائداً لمدرسة تطمح لبوابتها الخاصة، معلماً يسعى لاختصار الساعات، أو طالباً يسعى لاعتلاء منصات التفوق، فإن فاهم هو منظومتك المثالية.
+            سواء كنت قائداً لمدرسة تطمح لبوابتها الخاصة، معلماً يسعى لاختصار الساعات، أو طالباً يسعى لاعتلاء منصات التفوق، فإن استبق مصر (فاهم) هو منظومتك المثالية.
           </p>
 
           <div className="mx-auto grid max-w-4xl gap-6 md:grid-cols-3">
@@ -1157,12 +1172,12 @@ export default function HomePage() {
               href="#schools"
               className="transition-colors text-amber-400 hover:text-amber-300 font-bold"
             >
-              فاهم للمدارس
+              استبق مصر للمدارس
             </a>
           </div>
 
           <p className="mt-2 text-xs font-semibold text-slate-500">
-            جميع الحقوق محفوظة © {new Date().getFullYear()} استباق مصر - منصة فـــاهـــم الذكية
+            جميع الحقوق محفوظة © {new Date().getFullYear()} استبق - مصر ( فاهم )
           </p>
         </div>
       </footer>

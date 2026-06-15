@@ -83,7 +83,7 @@ export function InstallAppButton() {
               تثبيت التطبيق على آيفون
             </h3>
             <p className="mb-6 text-center text-sm leading-relaxed text-slate-600">
-              آبل لا تدعم التثبيت المباشر. لتثبيت استباق مصر، اتبع الخطوات
+              آبل لا تدعم التثبيت المباشر. لتثبيت استبق - مصر ( فاهم )، اتبع الخطوات
               التالية:
             </p>
 

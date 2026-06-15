@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
 const supabaseAdmin = createClient(
@@ -74,7 +74,8 @@ export async function POST(req: NextRequest) {
     const passedExams = examResults?.filter(r => {
       const score = r.score ?? 0
       const max = r.max_score ?? 100
-      const passing = r.exams?.passing_score ?? 60
+      const examsData = Array.isArray(r.exams) ? r.exams[0] : (r.exams as any)
+      const passing = examsData?.passing_score ?? 60
       return (score / max) * 100 >= passing
     }).length ?? 0
     const avgScore = totalExams > 0

@@ -12,6 +12,8 @@ import {
   Trophy,
   XCircle,
 } from 'lucide-react'
+import { MathRenderer } from '@/components/ui/MathRenderer'
+import { AIExplainButton } from '@/components/student/AIExplainButton'
 
 interface Exercise {
   id: string
@@ -204,50 +206,61 @@ export function ExercisePlayer({ exercises, lessonId }: Props) {
       </div>
 
       {/* بطاقة السؤال */}
-      <div className="rounded-2xl border border-border bg-white p-6 shadow-sm">
-        {/* نوع السؤال والصعوبة */}
-        <div className="flex items-center gap-2 mb-4">
-          <span
-            className={`rounded-full px-2.5 py-1 text-xs font-bold ${
-              ex.difficulty_level === 'easy'
-                ? 'bg-emerald-50 text-emerald-700'
-                : ex.difficulty_level === 'hard'
-                ? 'bg-rose-50 text-rose-700'
-                : 'bg-amber-50 text-amber-700'
-            }`}
-          >
-            {ex.difficulty_level === 'easy' ? 'سهل' : ex.difficulty_level === 'hard' ? 'صعب' : 'متوسط'}
-          </span>
-          <span className="text-xs text-muted-foreground">
-            {ex.question_type === 'mcq'
-              ? 'اختيار من متعدد'
-              : ex.question_type === 'true_false'
-              ? 'صح أو خطأ'
-              : ex.question_type === 'fill_blank'
-              ? 'أكمل الفراغ'
-              : 'سؤال مقالي'}
+      <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm transition-all hover:shadow-md">
+        {/* نوع السؤال والصعوبة والنقاط */}
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-6 pb-4 border-b border-slate-100">
+          <div className="flex items-center gap-2">
+            <span className={`rounded-lg px-3 py-1 text-[10px] font-black uppercase tracking-wider ${
+              ex.difficulty_level === 'easy' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/50' : 
+              ex.difficulty_level === 'hard' ? 'bg-rose-50 text-rose-700 border border-rose-200/50' : 
+              'bg-amber-50 text-amber-700 border border-amber-200/50'
+            }`}>
+              {ex.difficulty_level === 'easy' ? 'سهل' : ex.difficulty_level === 'hard' ? 'صعب' : 'متوسط'}
+            </span>
+            <span className="rounded-lg bg-slate-50 border border-slate-200 px-3 py-1 text-[10px] font-black text-slate-500 tracking-wider">
+              {ex.question_type === 'mcq' ? 'اختيار من متعدد' : 
+               ex.question_type === 'true_false' ? 'صواب أم خطأ' : 
+               ex.question_type === 'fill_blank' ? 'إكمال الفراغ' : 'سؤال مقالي'}
+            </span>
+          </div>
+          <span className="flex items-center gap-1 text-xs font-bold text-amber-600 bg-amber-50 border border-amber-200/50 rounded-lg px-3 py-1 shrink-0">
+            <Award className="h-3.5 w-3.5" />
+            +5 XP
           </span>
         </div>
 
         {/* نص السؤال */}
-        <p className="text-base font-semibold text-gray-900 leading-relaxed mb-6">
-          {ex.question_text}
-        </p>
+        <div className="text-xl font-bold text-slate-800 leading-relaxed mb-8">
+          <MathRenderer text={ex.question_text} />
+        </div>
 
-        {/* ─── MCQ ─────────────────────────────────────────────────────────── */}
+        {/* ─── اختيار من متعدد ───────────────────────────────────────────────── */}
         {ex.question_type === 'mcq' && ex.options && (
-          <div className="space-y-2.5">
+          <div className="mt-4 space-y-3">
             {ex.options.map((opt, i) => {
               const isSelected = selected === opt || currentAnswer?.answer === opt
               const isCorrect = opt === ex.correct_answer
-              let style = 'border-border bg-gray-50 text-gray-700 hover:border-primary hover:bg-primary/5'
+
+              let btnClass = 'w-full flex items-center gap-3 rounded-xl border-2 px-4 py-3.5 text-sm text-right transition-all duration-150 '
+              let indicatorClass = 'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold border-2 transition-colors '
 
               if (isSubmitted) {
-                if (isCorrect) style = 'border-emerald-500 bg-emerald-50 text-emerald-800 font-bold'
-                else if (isSelected && !isCorrect) style = 'border-rose-400 bg-rose-50 text-rose-700'
-                else style = 'border-border bg-gray-50 text-gray-400 opacity-60'
+                if (isCorrect) {
+                  btnClass += 'border-emerald-500 bg-emerald-50 text-emerald-800'
+                  indicatorClass += 'border-emerald-600 bg-emerald-500 text-white'
+                } else if (isSelected && !isCorrect) {
+                  btnClass += 'border-rose-500 bg-rose-50 text-rose-800'
+                  indicatorClass += 'border-rose-600 bg-rose-500 text-white'
+                } else {
+                  btnClass += 'border-slate-100 bg-slate-50/50 text-slate-400 opacity-60'
+                  indicatorClass += 'border-slate-200 bg-slate-100 text-slate-400'
+                }
               } else if (isSelected) {
-                style = 'border-primary bg-primary/10 text-primary font-bold'
+                btnClass += 'border-indigo-500 bg-indigo-50 text-indigo-800 shadow-sm shadow-indigo-100'
+                indicatorClass += 'border-indigo-600 bg-indigo-500 text-white'
+              } else {
+                btnClass += 'border-slate-200 bg-white text-slate-700 hover:border-indigo-300 hover:bg-indigo-50/30'
+                indicatorClass += 'border-slate-300 bg-slate-50 text-slate-500'
               }
 
               return (
@@ -255,24 +268,16 @@ export function ExercisePlayer({ exercises, lessonId }: Props) {
                   key={i}
                   disabled={isSubmitted || submitting}
                   onClick={() => setSelected(opt)}
-                  className={`w-full flex items-center gap-3 rounded-xl border-2 px-4 py-3 text-sm text-right transition-all ${style}`}
+                  className={btnClass}
                 >
-                  <span
-                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold ${
-                      isSubmitted && isCorrect
-                        ? 'border-emerald-500 bg-emerald-500 text-white'
-                        : isSubmitted && isSelected && !isCorrect
-                        ? 'border-rose-400 bg-rose-400 text-white'
-                        : isSelected
-                        ? 'border-primary bg-primary text-white'
-                        : 'border-current'
-                    }`}
-                  >
-                    {['أ', 'ب', 'ج', 'د'][i]}
+                  <span className={indicatorClass}>
+                    {['أ', 'ب', 'ج', 'د'][i] || (i + 1)}
                   </span>
-                  {opt}
-                  {isSubmitted && isCorrect && <CheckCircle2 className="mr-auto h-4 w-4 text-emerald-500" />}
-                  {isSubmitted && isSelected && !isCorrect && <XCircle className="mr-auto h-4 w-4 text-rose-400" />}
+                  <span className="flex-1 text-right font-medium">
+                    <MathRenderer text={opt} />
+                  </span>
+                  {isSubmitted && isCorrect && <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0 mr-auto" />}
+                  {isSubmitted && isSelected && !isCorrect && <XCircle className="h-5 w-5 text-rose-500 shrink-0 mr-auto" />}
                 </button>
               )
             })}
@@ -281,18 +286,24 @@ export function ExercisePlayer({ exercises, lessonId }: Props) {
 
         {/* ─── صح / خطأ ─────────────────────────────────────────────────────── */}
         {ex.question_type === 'true_false' && (
-          <div className="flex gap-3">
+          <div className="flex gap-4">
             {['صح', 'خطأ'].map((opt) => {
               const isSelected = selected === opt || currentAnswer?.answer === opt
               const isCorrect = opt === ex.correct_answer
-              let style = 'border-border bg-gray-50 text-gray-700 hover:border-primary'
+              let btnClass = 'flex-1 flex items-center justify-center gap-2 rounded-2xl border-2 py-4 text-base font-bold transition-all '
 
               if (isSubmitted) {
-                if (isCorrect) style = 'border-emerald-500 bg-emerald-50 text-emerald-800 font-bold'
-                else if (isSelected) style = 'border-rose-400 bg-rose-50 text-rose-700'
-                else style = 'border-border opacity-50'
+                if (isCorrect) {
+                  btnClass += 'border-emerald-500 bg-emerald-50 text-emerald-800'
+                } else if (isSelected) {
+                  btnClass += 'border-rose-500 bg-rose-50 text-rose-800'
+                } else {
+                  btnClass += 'border-slate-100 bg-slate-50/50 text-slate-400 opacity-60'
+                }
               } else if (isSelected) {
-                style = 'border-primary bg-primary/10 text-primary font-bold'
+                btnClass += 'border-indigo-500 bg-indigo-50 text-indigo-800 shadow-sm'
+              } else {
+                btnClass += 'border-slate-200 bg-white text-slate-700 hover:border-indigo-300 hover:bg-indigo-50/30'
               }
 
               return (
@@ -300,9 +311,19 @@ export function ExercisePlayer({ exercises, lessonId }: Props) {
                   key={opt}
                   disabled={isSubmitted || submitting}
                   onClick={() => setSelected(opt)}
-                  className={`flex-1 rounded-2xl border-2 py-4 text-lg font-bold transition-all ${style}`}
+                  className={btnClass}
                 >
-                  {opt === 'صح' ? '✓ صح' : '✗ خطأ'}
+                  {opt === 'صح' ? (
+                    <>
+                      <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                      <span>صحيح</span>
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="h-5 w-5 text-rose-500" />
+                      <span>خاطئ</span>
+                    </>
+                  )}
                 </button>
               )
             })}
@@ -319,16 +340,16 @@ export function ExercisePlayer({ exercises, lessonId }: Props) {
               value={fillInput}
               onChange={(e) => setFillInput(e.target.value)}
               disabled={isSubmitted}
-              className={`w-full rounded-xl border-2 px-4 py-3 text-sm focus:outline-none transition-colors ${
+              className={`w-full rounded-xl border-2 px-4 py-3.5 text-sm focus:outline-none transition-colors ${
                 isSubmitted
                   ? currentAnswer.is_correct
-                    ? 'border-emerald-500 bg-emerald-50'
-                    : 'border-rose-400 bg-rose-50'
-                  : 'border-border focus:border-primary'
+                    ? 'border-emerald-500 bg-emerald-50 text-emerald-800 font-semibold'
+                    : 'border-rose-400 bg-rose-50 text-rose-800 font-semibold'
+                  : 'border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100'
               }`}
             />
             {isSubmitted && !currentAnswer.is_correct && (
-              <div className="text-xs text-emerald-700 bg-emerald-50 rounded-lg px-3 py-2">
+              <div className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200/50 rounded-lg px-3 py-2">
                 الإجابة الصحيحة: <strong>{ex.correct_answer}</strong>
               </div>
             )}
@@ -340,49 +361,43 @@ export function ExercisePlayer({ exercises, lessonId }: Props) {
           <div className="space-y-3">
             <textarea
               dir="rtl"
-              placeholder="اكتب إجابتك هنا..."
+              placeholder="اكتب إجابتك هنا بوضوح وسيقوم المعلم أو النظام بمراجعتها..."
               value={fillInput}
               onChange={(e) => setFillInput(e.target.value)}
               disabled={isSubmitted}
               rows={4}
-              className="w-full rounded-xl border-2 border-border px-4 py-3 text-sm focus:border-primary focus:outline-none resize-none"
+              className="w-full rounded-xl border-2 border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 focus:outline-none resize-none"
             />
             {isSubmitted && (
-              <div className="text-xs text-indigo-700 bg-indigo-50 rounded-lg px-3 py-2">
-                نموذج الإجابة: <strong>{ex.correct_answer}</strong>
+              <div className="text-xs text-indigo-700 bg-indigo-50 border border-indigo-200/50 rounded-lg px-3 py-2">
+                نموذج الإجابة الصحيحة: <strong>{ex.correct_answer}</strong>
               </div>
             )}
           </div>
         )}
 
-        {/* شرح الإجابة */}
-        {isSubmitted && ex.explanation && (
-          <div className="mt-4 flex gap-2 rounded-xl bg-slate-50 border border-border px-4 py-3">
-            <span className="text-lg shrink-0">💡</span>
-            <p className="text-xs text-slate-600 leading-relaxed">{ex.explanation}</p>
-          </div>
-        )}
-
-        {/* نتيجة الإجابة */}
+        {/* شرح الإجابة الذكي */}
         {isSubmitted && (
-          <div
-            className={`mt-4 flex items-center gap-2 rounded-xl px-4 py-3 font-bold ${
-              currentAnswer.is_correct
-                ? 'bg-emerald-50 text-emerald-700'
-                : 'bg-rose-50 text-rose-700'
-            }`}
-          >
-            {currentAnswer.is_correct ? (
-              <>
-                <CheckCircle2 className="h-5 w-5" />
-                إجابة صحيحة! +5 نقطة XP
-              </>
-            ) : (
-              <>
-                <XCircle className="h-5 w-5" />
-                إجابة خاطئة — حاول التحسن في المرة القادمة
-              </>
+          <div className="mt-6 space-y-4">
+            {ex.explanation && (
+              <div className="overflow-hidden rounded-2xl border border-amber-200 bg-amber-50/50 p-5">
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles className="h-5 w-5 text-amber-500 animate-pulse" />
+                  <h4 className="text-sm font-bold text-amber-800">التفسير ونموذج الإجابة</h4>
+                </div>
+                <div className="text-sm leading-relaxed text-amber-900">
+                  <MathRenderer text={ex.explanation} />
+                </div>
+              </div>
             )}
+
+            {/* AI Explain Helper */}
+            <AIExplainButton
+              questionId={ex.id}
+              questionText={ex.question_text}
+              correctAnswer={ex.correct_answer}
+              studentAnswer={currentAnswer?.answer}
+            />
           </div>
         )}
       </div>

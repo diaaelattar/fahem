@@ -52,7 +52,7 @@ export default function TrialExpiredPage() {
             <div className="text-center">
               <p className="font-medium leading-relaxed text-slate-700">
                 انتهت فترتك التجريبية المجانية على منصة{' '}
-                <span className="font-black text-indigo-700">استباق مصر</span>.
+                <span className="font-black text-indigo-700">استبق - مصر ( فاهم )</span>.
                 <br />
                 لاستمرار وصولك الكامل، يرجى التواصل مع الإدارة لتفعيل حسابك بشكل
                 دائم.

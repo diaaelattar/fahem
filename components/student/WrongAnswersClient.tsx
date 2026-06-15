@@ -12,6 +12,7 @@ import {
   Trophy,
 } from 'lucide-react'
 import { MathRenderer } from '@/components/ui/MathRenderer'
+import { AIExplainButton } from '@/components/student/AIExplainButton'
 import {
   getSubjectDirection,
   getSubjectTextAlignClass,
@@ -469,6 +470,16 @@ export function WrongAnswersClient({
               dir={dir}
             />
           </div>
+        )}
+        {/* AI Explain Helper */}
+        {showAnswer && (
+          <AIExplainButton
+            questionId={q.id}
+            questionText={q.question_text}
+            correctAnswer={q.correct_answer}
+            studentAnswer={selected || fillInput || undefined}
+            subject={q.subjects?.name_ar || undefined}
+          />
         )}
       </div>
 

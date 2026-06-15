@@ -741,6 +741,16 @@ export function PracticeSessionClient({
             />
           </div>
         )}
+        {/* AI Explain Helper */}
+        {showAnswer && (
+          <AIExplainButton
+            questionId={current.id}
+            questionText={current.question_text}
+            correctAnswer={current.correct_answer}
+            studentAnswer={selected || fillInput || undefined}
+            subject={subject?.name_ar || undefined}
+          />
+        )}
       </div>
 
       {/* Next Button */}

@@ -94,7 +94,7 @@ export function TeacherSidebar() {
             </div>
             <div className="leading-tight">
               <div className="font-display text-[15px] font-black text-white">
-                استباق مصر
+                استبق - مصر ( فاهم )
               </div>
               <div className="flex items-center gap-1.5 mt-0.5">
                 <GraduationCap className="h-3 w-3 text-indigo-400" aria-hidden="true" />

@@ -126,7 +126,7 @@ export function Logo({
           <span
             className={`font-display text-2xl font-black leading-none tracking-tight ${titleColor}`}
           >
-            استباق مصر
+            استبق - مصر ( فاهم )
           </span>
           <span
             className={`mt-1 text-xs font-semibold uppercase tracking-widest ${subtextColor}`}
@@ -146,7 +146,7 @@ export function Logo({
         <span
           className={`font-display text-xl font-black leading-none tracking-tight ${titleColor}`}
         >
-          استباق مصر
+          استبق - مصر ( فاهم )
         </span>
         <span
           className={`mt-1.5 text-[10px] font-bold uppercase leading-none tracking-widest ${subtextColor}`}

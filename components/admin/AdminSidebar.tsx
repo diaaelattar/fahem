@@ -101,7 +101,7 @@ export function AdminSidebar() {
             </div>
             <div>
               <div className="font-display text-[15px] font-black text-slate-800 leading-none">
-                استباق مصر
+                استبق - مصر ( فاهم )
               </div>
               <div className="mt-1 text-[11px] font-bold text-slate-400">
                 لوحة المدير العام

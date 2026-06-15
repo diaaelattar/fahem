@@ -3,8 +3,8 @@ import Link from 'next/link'
 import { Shield, ArrowRight, BookOpen, Lock, Trash2, Mail, Clock, Database } from 'lucide-react'
 
 export const metadata: Metadata = {
-  title: 'سياسة الخصوصية وحماية البيانات — منصة فاهم',
-  description: 'سياسة الخصوصية وحماية البيانات الشخصية لمنصة فاهم (استباق مصر) وفقاً لقانون حماية البيانات الشخصية المصري رقم 151 لسنة 2020.',
+  title: 'سياسة الخصوصية | استبق - مصر ( فاهم )',
+  description: 'سياسة الخصوصية وحماية البيانات الشخصية لمنصة استبق - مصر ( فاهم ) وفقاً لقانون حماية البيانات الشخصية المصري رقم 151 لسنة 2020.',
 }
 
 const sections = [
@@ -131,7 +131,7 @@ export default function PrivacyPolicyPage() {
           </div>
 
           <p className="text-slate-300 leading-relaxed max-w-2xl text-sm md:text-base">
-            نلتزم في منصة <span className="text-cyan-400 font-bold">فاهم (استباق مصر)</span> بحماية خصوصية جميع مستخدمينا من طلاب ومعلمين ومديري مدارس. 
+            نلتزم في منصة <span className="text-cyan-400 font-bold">استبق - مصر ( فاهم )</span> بحماية خصوصية جميع مستخدمينا من طلاب ومعلمين ومديري مدارس. 
             تُطبَّق هذه السياسة وفقاً لـ
             <span className="text-white font-semibold"> قانون حماية البيانات الشخصية المصري رقم 151 لسنة 2020</span>
             {' '}واللائحة الأوروبية لحماية البيانات (GDPR).

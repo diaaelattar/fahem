@@ -28,7 +28,7 @@ export default function SettingsPage() {
     fullName: 'مدير النظام',
     email: 'admin@istabaq.com',
     // Platform
-    platformName: 'استباق مصر',
+    platformName: 'استبق - مصر ( فاهم )',
     contactEmail: 'support@istabaq.com',
     primaryColor: '#1B4F72',
     allowStudentRegistration: true,

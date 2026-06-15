@@ -105,7 +105,7 @@ export default function ResetPasswordPage() {
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/30 bg-white/15 shadow-xl backdrop-blur-sm transition-transform group-hover:scale-105">
               <Brain className="h-8 w-8 text-yellow-300" />
             </div>
-            <div className="font-display text-2xl font-bold">استباق مصر</div>
+            <div className="font-display text-2xl font-bold">استبق - مصر ( فاهم )</div>
           </Link>
         </div>
 
