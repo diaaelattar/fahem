@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
@@ -53,13 +54,18 @@ export async function GET(request: Request) {
         }
 
         // مستخدم Google جديد — إنشاء بروفايل
+        const supabaseAdmin = createAdminClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!
+        )
+
         const fullName =
           user.user_metadata?.full_name || user.email?.split('@')[0] || 'مستخدم'
         const avatarUrl = user.user_metadata?.avatar_url || null
         const requestedRole =
           searchParams.get('role') === 'teacher' ? 'teacher' : 'student'
 
-        await supabase.from('profiles').upsert({
+        await supabaseAdmin.from('profiles').upsert({
           id: user.id,
           email: user.email!,
           full_name: fullName,
@@ -68,7 +74,7 @@ export async function GET(request: Request) {
         })
 
         if (requestedRole === 'student') {
-          await supabase.from('students').upsert({
+          await supabaseAdmin.from('students').upsert({
             id: user.id,
             xp_points: 0,
             level: 1,
@@ -76,7 +82,7 @@ export async function GET(request: Request) {
           })
           return NextResponse.redirect(`${origin}/student/onboarding`)
         } else {
-          await supabase.from('teachers').upsert({
+          await supabaseAdmin.from('teachers').upsert({
             id: user.id,
             subscription_status: 'trial',
           })

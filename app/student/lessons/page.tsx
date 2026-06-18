@@ -36,7 +36,7 @@ export default async function StudentLessonsPage({
     .from('students')
     .select('grade_id, grades(name_ar)')
     .eq('id', profile.id)
-    .single()
+    .maybeSingle()
 
   const studentGradeId = studentData?.grade_id ?? null
 

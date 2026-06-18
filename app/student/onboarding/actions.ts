@@ -1,6 +1,7 @@
 'use server'
 
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@/lib/supabase/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 
 export async function saveStudentGradeAction(
   userId: string,
@@ -9,25 +10,48 @@ export async function saveStudentGradeAction(
   systemType: string = 'traditional',
   trackId: string | null = null
 ) {
-  // Use Service Role key to bypass RLS and guarantee the update/insert works
-  const supabaseAdmin = createClient(
+  // ── أمان: التحقق من هوية المستخدم من الجلسة السيرفرية ──────────────
+  // لا نثق بـ userId القادم من المتصفح — نجلب المستخدم من الكوكي المشفر
+  const supabase = await createClient()
+  const {
+    data: { user: sessionUser },
+    error: sessionError,
+  } = await supabase.auth.getUser()
+
+  if (sessionError || !sessionUser) {
+    throw new Error('غير مصرح. يرجى تسجيل الدخول أولاً.')
+  }
+
+  // التأكد أن المستخدم المطلوب هو نفس المستخدم المسجل في الجلسة
+  if (sessionUser.id !== userId) {
+    throw new Error('عملية غير مصرح بها.')
+  }
+
+  // التحقق أن دور المستخدم هو student أو null (مستخدم جديد في الـ onboarding)
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', sessionUser.id)
+    .maybeSingle()
+
+  if (profile && profile.role !== 'student') {
+    throw new Error('هذه العملية متاحة للطلاب فقط.')
+  }
+
+  // ── استخدام Admin Client للكتابة بصلاحيات موثوقة ───────────────────
+  const supabaseAdmin = createAdminClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
-  // 1. Get user email to ensure profile is complete
-  const {
-    data: { user },
-  } = await supabaseAdmin.auth.admin.getUserById(userId)
-
-  // 2. Ensure profile exists
+  // 1. Ensure profile is up-to-date
   const { error: profileError } = await supabaseAdmin.from('profiles').upsert(
     {
       id: userId,
-      email: user?.email || '',
+      email: sessionUser.email || '',
       full_name:
-        user?.user_metadata?.full_name ||
-        user?.email?.split('@')[0] ||
+        sessionUser.user_metadata?.full_name ||
+        sessionUser.email?.split('@')[0] ||
         'طالب جديد',
       role: 'student',
     },
@@ -36,7 +60,7 @@ export async function saveStudentGradeAction(
 
   if (profileError) throw new Error(profileError.message)
 
-  // 3. Ensure student row exists and update grade + education_type + system_type + track_id
+  // 2. Ensure student row exists and update grade + education_type + track_id
   const { error: studentError } = await supabaseAdmin.from('students').upsert(
     {
       id: userId,
@@ -49,7 +73,7 @@ export async function saveStudentGradeAction(
 
   if (studentError) throw new Error(studentError.message)
 
-  // 4. Award first-login XP (run database RPC directly to avoid fetch hanging/deadlock and unauthorized error)
+  // 3. Award first-login XP
   try {
     await supabaseAdmin.rpc('award_xp', {
       p_student_id: userId,
@@ -58,6 +82,6 @@ export async function saveStudentGradeAction(
       p_reference: null,
     })
   } catch {
-    // Ignore error
+    // Ignore XP error — non-critical
   }
 }

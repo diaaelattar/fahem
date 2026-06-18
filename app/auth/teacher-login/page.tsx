@@ -4,18 +4,19 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import {
-  Brain,
   Loader2,
-  Swords,
-  Trophy,
-  Zap,
   Mail,
   Lock,
   ArrowRight,
+  GraduationCap,
+  Users,
+  BarChart3,
+  Shield,
+  BookOpen,
 } from 'lucide-react'
 import { Logo } from '@/components/shared/Logo'
 
-export default function LoginPage() {
+export default function TeacherLoginPage() {
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
@@ -48,10 +49,11 @@ export default function LoginPage() {
         return
       }
 
-      // ✅ Fetch user role and redirect to the correct dashboard
+      // ── التحقق أن الحساب هو حساب معلم حصراً ──────────────────────
       const {
         data: { user },
       } = await supabase.auth.getUser()
+
       if (!user) {
         setError('حدث خطأ غير متوقع.')
         return
@@ -63,36 +65,43 @@ export default function LoginPage() {
         .eq('id', user.id)
         .maybeSingle()
 
-      // ── استخدام window.location.href بدلاً من router.push لإجبار المتصفح ──
-      // على تحديث كامل يضمن مزامنة كوكيز الجلسة مع الـ middleware
-      if (profile?.role === 'admin') {
+      if (!profile) {
+        await supabase.auth.signOut()
+        setError('لم يتم العثور على حسابك. يرجى التواصل مع الإدارة.')
+        return
+      }
+
+      // ── منع الطلاب من الدخول عبر بوابة المعلم ──────────────────────
+      if (profile.role === 'student') {
+        await supabase.auth.signOut()
+        setError(
+          'هذه البوابة مخصصة للمعلمين فقط. 🎓 إذا كنت طالباً يرجى الدخول من بوابة الطلاب.'
+        )
+        return
+      }
+
+      if (profile.role === 'admin') {
         window.location.href = '/admin/dashboard'
-      } else if (profile?.role === 'teacher') {
-        const { data: teacher } = await supabase
-          .from('teachers')
-          .select('subject_id')
-          .eq('id', user.id)
-          .maybeSingle()
+        return
+      }
 
-        if (!teacher?.subject_id) {
-          window.location.href = '/auth/teacher-onboarding'
-        } else {
-          window.location.href = '/teacher/dashboard'
-        }
-      } else if (profile?.role === 'student') {
-        const { data: student } = await supabase
-          .from('students')
-          .select('grade_id')
-          .eq('id', user.id)
-          .maybeSingle()
+      if (profile.role !== 'teacher') {
+        await supabase.auth.signOut()
+        setError('حسابك غير مسجل كمعلم في المنصة. تواصل مع الإدارة.')
+        return
+      }
 
-        if (!student?.grade_id) {
-          window.location.href = '/student/onboarding'
-        } else {
-          window.location.href = '/student/dashboard'
-        }
+      // ── المعلم: تحقق من اكتمال الـ onboarding ──────────────────────
+      const { data: teacher } = await supabase
+        .from('teachers')
+        .select('subject_id')
+        .eq('id', user.id)
+        .maybeSingle()
+
+      if (!teacher?.subject_id) {
+        window.location.href = '/auth/teacher-onboarding'
       } else {
-        setError('حسابك غير مكتمل أو غير مسجل كطالب/معلم.')
+        window.location.href = '/teacher/dashboard'
       }
     } catch {
       setError('حدث خطأ غير متوقع.')
@@ -108,7 +117,7 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${window.location.origin}/auth/callback?role=teacher`,
           queryParams: { prompt: 'select_account' },
         },
       })
@@ -121,10 +130,10 @@ export default function LoginPage() {
   }
 
   const features = [
-    { icon: Swords, text: 'تحديات مباشرة مع زملائك' },
-    { icon: Trophy, text: 'لوحة الشرف الوطنية' },
-    { icon: Zap, text: 'أسئلة مكيّفة بالذكاء الاصطناعي' },
-    { icon: Brain, text: 'تتبع تقدمك ونقاط ضعفك' },
+    { icon: Users, text: 'إدارة المجموعات والطلاب' },
+    { icon: BookOpen, text: 'إنشاء الاختبارات والدروس' },
+    { icon: BarChart3, text: 'تقارير الأداء التفصيلية' },
+    { icon: Shield, text: 'بوابة مخصصة للمعلمين' },
   ]
 
   return (
@@ -137,23 +146,31 @@ export default function LoginPage() {
         <div className="mb-8 text-center">
           <Link href="/" className="group inline-block">
             <Logo variant="vertical" size="lg" light />
-            <div className="mt-3 text-sm font-medium text-blue-200">
-              منصة التدريب والتحديات للمرحلة الإعدادية
+            <div className="mt-3 text-sm font-bold text-emerald-200">
+              🏫 بوابة المعلمين — استبق مصر ( فاهم )
             </div>
           </Link>
         </div>
 
         {/* Card */}
         <div className="overflow-hidden rounded-3xl bg-white shadow-2xl">
-          {/* Features strip */}
-          <div className="border-b border-border bg-gradient-to-r from-slate-50 to-blue-50 px-6 py-4">
+          {/* Teacher identity strip */}
+          <div className="border-b border-border bg-gradient-to-r from-emerald-50 to-teal-50 px-6 py-4">
+            <div className="mb-3 flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-100">
+                <GraduationCap className="h-4 w-4 text-emerald-700" />
+              </div>
+              <span className="text-sm font-black text-emerald-800">
+                بوابة المعلمين الحصرية
+              </span>
+            </div>
             <div className="grid grid-cols-2 gap-2">
               {features.map(({ icon: Icon, text }) => (
                 <div
                   key={text}
                   className="flex items-center gap-2 text-xs font-medium text-slate-600"
                 >
-                  <Icon className="h-3.5 w-3.5 shrink-0 text-primary" />
+                  <Icon className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
                   <span>{text}</span>
                 </div>
               ))}
@@ -161,17 +178,17 @@ export default function LoginPage() {
           </div>
 
           <div className="p-8">
-            <h1 className="mb-1 text-center font-display text-2xl font-bold">
-              تسجيل الدخول
+            <h1 className="mb-1 text-center font-display text-2xl font-bold text-slate-800">
+              دخول المعلم
             </h1>
             <p className="mb-6 text-center text-sm text-muted-foreground">
-              مرحباً بك مجدداً يا صديقي!
+              مرحباً أستاذ! جاهز لإدارة صفوفك؟
             </p>
 
             {error && (
-              <div className="mb-5 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-                <span className="text-red-500">⚠️</span>
-                {error}
+              <div className="mb-5 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                <span className="mt-0.5 shrink-0 text-red-500">⚠️</span>
+                <span>{error}</span>
               </div>
             )}
 
@@ -180,10 +197,10 @@ export default function LoginPage() {
               type="button"
               onClick={handleGoogleLogin}
               disabled={loading || googleLoading}
-              className="mb-6 flex w-full items-center justify-center gap-3 rounded-xl border-2 border-slate-200 bg-white py-4 text-lg font-bold text-slate-800 shadow-sm transition-all hover:border-primary hover:bg-slate-50 disabled:opacity-60"
+              className="mb-6 flex w-full items-center justify-center gap-3 rounded-xl border-2 border-slate-200 bg-white py-4 text-lg font-bold text-slate-800 shadow-sm transition-all hover:border-emerald-500 hover:bg-emerald-50 disabled:opacity-60"
             >
               {googleLoading ? (
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
               ) : (
                 <svg className="h-7 w-7" viewBox="0 0 24 24">
                   <path
@@ -204,7 +221,7 @@ export default function LoginPage() {
                   />
                 </svg>
               )}
-              المتابعة باستخدام Google
+              الدخول بـ Google
             </button>
 
             <div className="relative my-6">
@@ -233,8 +250,9 @@ export default function LoginPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     dir="ltr"
-                    className="block w-full rounded-xl border border-border bg-slate-50 py-3 pl-3 pr-10 text-sm transition-colors focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary"
-                    placeholder="student@example.com"
+                    className="block w-full rounded-xl border border-border bg-slate-50 py-3 pl-3 pr-10 text-sm transition-colors focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-500"
+                    placeholder="teacher@example.com"
+                    autoComplete="email"
                   />
                 </div>
               </div>
@@ -246,7 +264,7 @@ export default function LoginPage() {
                   </label>
                   <Link
                     href="/auth/forgot-password"
-                    className="text-xs font-bold text-primary hover:underline"
+                    className="text-xs font-bold text-emerald-600 hover:underline"
                   >
                     نسيت كلمة المرور؟
                   </Link>
@@ -260,8 +278,9 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     dir="ltr"
-                    className="block w-full rounded-xl border border-border bg-slate-50 py-3 pl-3 pr-10 text-sm transition-colors focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary"
+                    className="block w-full rounded-xl border border-border bg-slate-50 py-3 pl-3 pr-10 text-sm transition-colors focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-500"
                     placeholder="••••••••"
+                    autoComplete="current-password"
                   />
                 </div>
               </div>
@@ -269,45 +288,35 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading || googleLoading}
-                className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-slate-800 py-3.5 font-bold text-white shadow-sm transition-all hover:bg-slate-700 disabled:opacity-60"
+                className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-700 py-3.5 font-bold text-white shadow-sm transition-all hover:bg-emerald-800 active:scale-[0.98] disabled:opacity-60"
               >
                 {loading ? (
                   <Loader2 className="h-5 w-5 animate-spin" />
                 ) : (
-                  'تسجيل الدخول'
+                  'دخول لوحة تحكم المعلم'
                 )}
               </button>
             </form>
           </div>
 
+          {/* Footer */}
           <div className="space-y-3 border-t border-border bg-slate-50 p-6 text-center">
             <p className="text-sm font-medium text-slate-600">
-              مستخدم جديد؟{' '}
+              معلم جديد؟{' '}
               <Link
                 href="/auth/register"
-                className="mt-1 flex items-center justify-center gap-1 font-bold text-primary hover:underline"
+                className="mt-1 flex items-center justify-center gap-1 font-bold text-emerald-600 hover:underline"
               >
-                إنشاء حساب مجاني <ArrowRight className="h-4 w-4 rotate-180" />
+                إنشاء حساب معلم مجاني{' '}
+                <ArrowRight className="h-4 w-4 rotate-180" />
               </Link>
             </p>
-            <div className="border-t border-border pt-3 space-y-2">
+            <div className="border-t border-border pt-3">
               <Link
-                href="/auth/teacher-login"
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border-2 border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-bold text-emerald-700 transition-colors hover:bg-emerald-100"
-              >
-                🏫 بوابة المعلمين — تسجيل دخول المعلم
-              </Link>
-              <Link
-                href="/auth/student-login"
+                href="/auth/login"
                 className="inline-flex w-full items-center justify-center gap-2 rounded-xl border-2 border-indigo-200 bg-indigo-50 px-4 py-2.5 text-sm font-bold text-indigo-700 transition-colors hover:bg-indigo-100"
               >
-                🎓 طالب مُضاف من معلمك؟ ادخل بالكود
-              </Link>
-              <Link
-                href="/auth/school/login"
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border-2 border-cyan-200 bg-cyan-50 px-4 py-2.5 text-sm font-bold text-cyan-700 transition-colors hover:bg-cyan-100"
-              >
-                🏛️ بوابة الإدارة المدرسية والمنشآت
+                🎓 أنا طالب — الذهاب لبوابة الطلاب
               </Link>
             </div>
           </div>

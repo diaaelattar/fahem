@@ -15,7 +15,7 @@ export default async function StudentGroupDashboardPage() {
     .from('students')
     .select('*, grades(name_ar)')
     .eq('id', profile.id)
-    .single()
+    .maybeSingle()
 
   // 2. Fetch student's groups
   const { data: studentGroups } = await supabase

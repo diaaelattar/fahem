@@ -32,7 +32,7 @@ export async function updateTeacherQuestionAction(
     .from('questions')
     .select('teacher_id')
     .eq('id', id)
-    .single() as any)
+    .maybeSingle() as any)
 
   if (fetchError || !question) return { error: 'السؤال غير موجود' }
   if (question.teacher_id !== profile.id)
@@ -67,7 +67,7 @@ export async function deleteTeacherQuestionAction(id: string) {
     .from('questions')
     .select('teacher_id')
     .eq('id', id)
-    .single() as any)
+    .maybeSingle() as any)
 
   if (fetchError || !question) return { error: 'السؤال غير موجود' }
   if (question.teacher_id !== profile.id)

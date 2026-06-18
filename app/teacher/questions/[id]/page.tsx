@@ -76,7 +76,7 @@ export default function TeacherEditQuestionPage() {
         data: { user },
       } = await supabase.auth.getUser()
       const [{ data: question }, { data: s }, { data: g }] = await Promise.all([
-        supabase.from('questions').select('*').eq('id', id).single() as any,
+        supabase.from('questions').select('*').eq('id', id).maybeSingle() as any,
         supabase.from('subjects').select('*').order('name_ar'),
         supabase.from('grades').select('*').order('grade_number'),
       ])

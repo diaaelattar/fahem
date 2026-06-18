@@ -19,7 +19,7 @@ export async function joinGroupAction(formData: FormData) {
     .from('student_groups')
     .select('id, name_ar, is_active')
     .eq('invite_code', code.trim().toUpperCase())
-    .single()
+    .maybeSingle()
 
   if (groupError || !group) {
     throw new Error('كود الدعوة غير صحيح أو المجموعة غير موجودة')

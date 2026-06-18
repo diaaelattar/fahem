@@ -22,8 +22,9 @@ function getGenAI() {
 }
 
 const FALLBACK_MODELS = [
-  'gemini-3.5-flash',
-  'gemini-3.1-pro',
+  'gemini-2.5-flash',
+  'gemini-2.5-pro',
+  'gemini-1.5-flash',
 ]
 
 async function generateTextQuestionsWithFallback(prompt: string) {

@@ -20,7 +20,7 @@ export default async function TeacherOnboardingPage() {
     .from('teachers')
     .select('subject_id')
     .eq('id', profile.id)
-    .single()
+    .maybeSingle()
 
   if (teacher?.subject_id) {
     redirect('/teacher/dashboard')

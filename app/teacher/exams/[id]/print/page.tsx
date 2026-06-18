@@ -20,7 +20,7 @@ export default async function TeacherPrintExamPage({
     .select('*, subjects(name_ar, icon), grades(name_ar), semesters(name_ar)')
     .eq('id', params.id)
     .eq('teacher_id', profile.id)
-    .single()
+    .maybeSingle()
 
   if (!exam) redirect('/teacher/exams')
 
@@ -46,7 +46,7 @@ export default async function TeacherPrintExamPage({
       'print_directorate, print_administration, print_school_name, print_academic_year, print_header_type, teacher_display_name, teacher_title, teacher_phone, teacher_social, teacher_logo_url, teacher_watermark_text, show_watermark'
     )
     .eq('id', profile.id)
-    .single()
+    .maybeSingle()
 
   return (
     <div dir="rtl" className="min-h-screen bg-slate-50">

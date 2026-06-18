@@ -23,7 +23,7 @@ export default async function TeacherLayout({
       'subject_id, is_verified, subscription_status, subscription_ends_at'
     )
     .eq('id', profile.id)
-    .single()
+    .maybeSingle()
 
   if (!teacher?.subject_id) {
     redirect('/auth/teacher-onboarding')

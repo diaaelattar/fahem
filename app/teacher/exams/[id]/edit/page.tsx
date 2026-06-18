@@ -22,7 +22,7 @@ export default async function EditTeacherExamPage({
     .select('*')
     .eq('id', params.id)
     .eq('teacher_id', profile?.id)
-    .single()
+    .maybeSingle()
 
   if (!initialData) {
     return notFound()
@@ -41,7 +41,7 @@ export default async function EditTeacherExamPage({
       .from('teachers')
       .select('subject_id')
       .eq('id', profile?.id)
-      .single(),
+      .maybeSingle(),
     supabase.from('subjects').select('id, name_ar, icon').order('name_ar'),
     supabase
       .from('grades')

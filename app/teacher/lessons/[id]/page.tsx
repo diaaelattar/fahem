@@ -42,7 +42,7 @@ export default async function TeacherLessonDetailPage({
       `
       )
       .eq('id', lessonId)
-      .single(),
+      .maybeSingle(),
     supabase
       .from('lesson_sections')
       .select('*')

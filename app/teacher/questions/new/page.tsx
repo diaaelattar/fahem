@@ -57,7 +57,7 @@ export default function TeacherNewQuestionPage() {
         .from('teachers')
         .select('subject_id, subjects(id, name_ar, icon)')
         .eq('id', user.id)
-        .single()
+        .maybeSingle()
 
       const subject = teacherData?.subjects as any
       if (!teacherData?.subject_id || !subject) {

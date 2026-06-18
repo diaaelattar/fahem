@@ -113,8 +113,8 @@ export default function RegisterPage() {
         })
         window.location.href = '/auth/teacher-onboarding'
       }
-    } catch (err: any) {
-      setError('حدث خطأ غير متوقع: ' + err.message)
+    } catch (err: unknown) {
+      setError('حدث خطأ غير متوقع: ' + (err instanceof Error ? err.message : String(err)))
     } finally {
       setLoading(false)
     }
@@ -140,7 +140,9 @@ export default function RegisterPage() {
               إنشاء حساب جديد
             </h1>
             <p className="mb-6 text-center text-sm text-muted-foreground">
-              انضم لآلاف الطلاب وابدأ رحلتك التعليمية الممتعة!
+              {role === 'teacher'
+                ? 'أهلاً بك أستاذ! سجّل لإدارة صفوفك وإنشاء اختباراتك.'
+                : 'انضم لآلاف الطلاب وابدأ رحلتك التعليمية الممتعة!'}
             </p>
 
             {error && (

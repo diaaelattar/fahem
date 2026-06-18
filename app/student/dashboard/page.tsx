@@ -80,7 +80,7 @@ export default async function StudentDashboardPage() {
     .from('students')
     .select('*, grades(name_ar)')
     .eq('id', profile.id)
-    .single()
+    .maybeSingle()
 
   // Daily Streak Logic
   const today = new Date().toLocaleDateString('en-CA') // YYYY-MM-DD
@@ -170,7 +170,7 @@ export default async function StudentDashboardPage() {
     .from('leaderboard_weekly')
     .select('rank, weekly_xp')
     .eq('student_id', profile.id)
-    .single()
+    .maybeSingle()
 
   // Recent challenges
   const { data: challenges } = await supabase

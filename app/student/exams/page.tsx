@@ -10,7 +10,7 @@ export default async function StudentExamsPage() {
     .from('students')
     .select('grade_id')
     .eq('id', profile.id)
-    .single()
+    .maybeSingle()
 
   const { data: exams } = await supabase
     .from('exams')

@@ -1,9 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Loader2, CheckCircle, BookOpen } from 'lucide-react'
+import { Loader2, CheckCircle } from 'lucide-react'
 import { saveTeacherSubjectAction } from './actions'
 
 interface DBSubject {
@@ -21,7 +20,6 @@ export function TeacherOnboardingForm({ dbSubjects }: Props) {
   const [selectedSubject, setSelectedSubject] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const router = useRouter()
   const supabase = createClient()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -43,8 +41,9 @@ export function TeacherOnboardingForm({ dbSubjects }: Props) {
 
       await saveTeacherSubjectAction(user.id, selectedSubject)
 
-      router.push('/teacher/dashboard')
-      router.refresh()
+      // استخدام window.location.href لإجبار المتصفح على تحديث كامل
+      // يضمن مزامنة كوكيز الجلسة مع الـ middleware بعد تحديث subject_id
+      window.location.href = '/teacher/dashboard'
     } catch (err: unknown) {
       setError((err as Error).message || 'حدث خطأ أثناء حفظ البيانات')
       setLoading(false)
@@ -71,7 +70,7 @@ export function TeacherOnboardingForm({ dbSubjects }: Props) {
                 key={sub.id}
                 type="button"
                 onClick={() => setSelectedSubject(sub.id)}
-                className={`flex flex-col items-center justify-center gap-2 rounded-2xl border p-4 transition-all ${
+                className={`relative flex flex-col items-center justify-center gap-2 rounded-2xl border p-4 transition-all ${
                   isSelected
                     ? 'border-indigo-600 bg-indigo-50 text-indigo-700 shadow-md shadow-indigo-200'
                     : 'border-slate-200 bg-white text-slate-600 hover:border-indigo-300 hover:bg-slate-50'

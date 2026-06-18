@@ -30,7 +30,7 @@ export default async function VIPPlansPage() {
     .eq('student_id', profile.id)
     .eq('status', 'active')
     .gt('end_date', new Date().toISOString())
-    .single()
+    .maybeSingle()
 
   return (
     <div className="mx-auto max-w-6xl animate-fade-in space-y-8 pb-20">

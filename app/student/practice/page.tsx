@@ -23,7 +23,7 @@ export default async function PracticeCenterPage() {
     .from('students')
     .select('grade_id')
     .eq('id', profile.id)
-    .single()
+    .maybeSingle()
 
   const gradeId = student?.grade_id
 

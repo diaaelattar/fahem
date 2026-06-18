@@ -35,7 +35,7 @@ export default async function PracticeSubjectPage({ params }: Props) {
     .from('students')
     .select('grade_id')
     .eq('id', profile.id)
-    .single()
+    .maybeSingle()
 
   // جلب أسئلة هذه المادة للصف الدراسي
   const { data: questions, error } = await supabase

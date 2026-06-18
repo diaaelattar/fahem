@@ -37,7 +37,7 @@ export default function NewGroupPage() {
         .from('teachers')
         .select('id')
         .eq('id', user.id)
-        .single()
+        .maybeSingle()
 
       if (!teacher)
         throw new Error('لا يوجد حساب معلم مرتبط بهذا البريد الإلكتروني')

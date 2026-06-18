@@ -41,7 +41,7 @@ export default async function StartExamPage({ params }: Props) {
       .select('id, title, show_results_immediately')
       .eq('id', params.id)
       .eq('show_results_immediately', true)
-      .single()
+      .maybeSingle()
     const canPractice = !practiceExam // إذا لم يكن practice mode
 
     const whatsappMessage = `السلام عليكم، أنا الطالب/ة ${profile.full_name}. أرغب في الاشتراك في باقة VIP لمنصة استباق التعليمية لتفعيل الاختبارات بلا حدود.`

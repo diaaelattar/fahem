@@ -72,12 +72,12 @@ export default function StudentProfilePage() {
       } = await supabase.auth.getUser()
       if (!user) return
       const [{ data: p }, { data: s }, { data: g }] = await Promise.all([
-        supabase.from('profiles').select('*').eq('id', user.id).single(),
+        supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
         supabase
           .from('students')
           .select('*, grades(name_ar)')
           .eq('id', user.id)
-          .single(),
+          .maybeSingle(),
         supabase.from('grades').select('id, name_ar').order('grade_number'),
       ])
       setProfile(p)

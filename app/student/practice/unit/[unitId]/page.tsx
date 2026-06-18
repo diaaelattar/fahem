@@ -32,7 +32,7 @@ export default async function PracticeUnitPage({ params }: Props) {
     .from('students')
     .select('grade_id')
     .eq('id', profile.id)
-    .single()
+    .maybeSingle()
 
   if (student?.grade_id !== (unit.grades as any)?.id) {
     return (

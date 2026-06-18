@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { checkAIQuota } from '@/lib/security/rate-limiter'
 
-const MODELS = ['gemini-3.5-flash', 'gemini-3.1-pro']
+const MODELS = ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-1.5-flash']
 
 function getModel(name: string) {
   const keys = [

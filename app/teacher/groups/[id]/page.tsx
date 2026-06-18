@@ -30,7 +30,7 @@ export default async function GroupDetailPage({
     .select('*, grades(name_ar)')
     .eq('id', params.id)
     .eq('teacher_id', profile.id)
-    .single()
+    .maybeSingle()
 
   if (!group) notFound()
 

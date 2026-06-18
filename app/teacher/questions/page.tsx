@@ -43,7 +43,7 @@ export default async function TeacherQuestionsPage({
     .from('teachers')
     .select('subject_id, subjects(name_ar, icon)')
     .eq('id', profile.id)
-    .single()
+    .maybeSingle()
 
   const teacherSubjectId = teacherData?.subject_id ?? null
   const teacherSubject = teacherData?.subjects as unknown as {

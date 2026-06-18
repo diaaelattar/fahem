@@ -19,7 +19,7 @@ export async function addStudentToGroupAction(
     .select('id')
     .eq('id', groupId)
     .eq('teacher_id', profile.id)
-    .single()
+    .maybeSingle()
 
   if (!group) throw new Error('مجموعة غير صالحة أو لا تملك صلاحية')
 
@@ -37,7 +37,7 @@ export async function addStudentToGroupAction(
         .from('profiles')
         .select('id')
         .eq('email', emailToUse)
-        .single()
+        .maybeSingle()
 
       if (existingProfile) {
         throw new Error(
@@ -96,14 +96,14 @@ export async function addStudentToGroupAction(
         .from('profiles')
         .select('id, role')
         .eq('email', searchVal.trim().toLowerCase())
-        .single()
+        .maybeSingle()
       if (p && p.role === 'student') studentId = p.id
     } else {
       const { data: s } = await supabase
         .from('students')
         .select('id')
         .eq('student_code', searchVal.trim().toUpperCase())
-        .single()
+        .maybeSingle()
       if (s) studentId = s.id
     }
 
@@ -118,7 +118,7 @@ export async function addStudentToGroupAction(
     .select('id')
     .eq('group_id', groupId)
     .eq('student_id', studentId)
-    .single()
+    .maybeSingle()
 
   if (existing) {
     throw new Error('هذا الطالب منضم بالفعل لهذه المجموعة')
@@ -159,7 +159,7 @@ export async function createSessionAction(
     .select('id')
     .eq('id', groupId)
     .eq('teacher_id', profile.id)
-    .single()
+    .maybeSingle()
 
   if (!group) throw new Error('مجموعة غير صالحة أو لا تملك صلاحية')
 
@@ -192,7 +192,7 @@ export async function deleteSessionAction(sessionId: string, groupId: string) {
     .from('group_sessions')
     .select('id, group_id, student_groups(teacher_id)')
     .eq('id', sessionId)
-    .single()
+    .maybeSingle()
 
   if (!session) throw new Error('الحصة غير موجودة')
 
@@ -229,7 +229,7 @@ export async function saveAttendanceAction(
     .from('group_sessions')
     .select('id, group_id, student_groups(teacher_id)')
     .eq('id', sessionId)
-    .single()
+    .maybeSingle()
 
   if (!session) throw new Error('الحصة غير موجودة')
 

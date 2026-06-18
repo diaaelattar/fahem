@@ -4,7 +4,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 
 export const runtime = 'edge'
 
-const MODELS = ['gemini-3.5-flash', 'gemini-3.1-pro']
+const MODELS = ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-1.5-flash']
 
 function getModel(name: string) {
   const keys = [

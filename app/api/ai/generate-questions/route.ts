@@ -12,6 +12,15 @@ import {
   formatZodError,
 } from '@/lib/schemas/ai-generation'
 
+// ─── رفع حد حجم الطلبات إلى 20MB لدعم ملفات PDF/صور كبيرة ───────────────────
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '20mb',
+    },
+  },
+}
+
 // ─── إعداد Gemini ───────────────────────────────────────────────────────────
 function getGenAI() {
   const keys = [
@@ -27,8 +36,9 @@ function getGenAI() {
 
 // نماذج متسقة مع الـ File API - مرتبة حسب الأولوية وتوافر الكوتا
 const FALLBACK_MODELS = [
-  'gemini-3.5-flash',
-  'gemini-3.1-pro',
+  'gemini-2.5-flash',
+  'gemini-2.5-pro',
+  'gemini-1.5-flash',
 ]
 const DEFAULT_MODEL = FALLBACK_MODELS[0]
 const GEMINI_MODEL = DEFAULT_MODEL // للـ backward compatibility
@@ -138,7 +148,10 @@ async function generateQuestionsDirectly(
         err.message.includes('403') ||
         err.message.includes('404') || // Skip invalid model names
         err.message.includes('Forbidden') ||
-        err.message.includes('quota')
+        err.message.includes('quota') ||
+        err.message.includes('RESOURCE_EXHAUSTED') ||
+        err.message.includes('not found') ||
+        err.message.includes('NOT_FOUND')
 
       if (!isRetryable) {
         throw err
@@ -200,7 +213,10 @@ async function generateTextQuestionsWithFallback(prompt: string) {
         err.message.includes('403') ||
         err.message.includes('404') || // Skip invalid model names
         err.message.includes('Forbidden') ||
-        err.message.includes('quota')
+        err.message.includes('quota') ||
+        err.message.includes('RESOURCE_EXHAUSTED') ||
+        err.message.includes('not found') ||
+        err.message.includes('NOT_FOUND')
 
       if (!isRetryable) throw err
 

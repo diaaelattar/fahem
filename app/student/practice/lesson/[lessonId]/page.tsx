@@ -29,7 +29,7 @@ export default async function PracticeLessonPage({ params }: Props) {
     `
     )
     .eq('id', lessonId)
-    .single()
+    .maybeSingle()
 
   if (!lesson) notFound()
 

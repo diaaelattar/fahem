@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
       .from('students')
       .select('id, student_code')
       .eq('student_code', normalizedCode)
-      .single()
+      .maybeSingle()
 
     if (!student) {
       return NextResponse.json(
@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
       .from('profiles')
       .select('email')
       .eq('id', student.id)
-      .single()
+      .maybeSingle()
 
     if (!profileData?.email) {
       return NextResponse.json(

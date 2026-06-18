@@ -42,7 +42,7 @@ export default async function StudentLessonPage({
       .eq('id', lessonId)
       .eq('has_content', true)
       .eq('content_status', 'published')
-      .single(),
+      .maybeSingle(),
     supabase
       .from('lesson_sections')
       .select('id, section_type, title, body, sort_order')

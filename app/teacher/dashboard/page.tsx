@@ -29,7 +29,7 @@ export default async function TeacherDashboard() {
     .from('teachers')
     .select('is_verified, subscription_status, subscription_ends_at')
     .eq('id', profile.id)
-    .single()
+    .maybeSingle()
 
   // Fetch teacher's groups and total students
   const { data: groups } = await supabase

@@ -23,7 +23,7 @@ export default function EditGroupPage({ params }: { params: { id: string } }) {
         .from('student_groups')
         .select('name_ar, is_active')
         .eq('id', params.id)
-        .single()
+        .maybeSingle()
       if (data) {
         setName(data.name_ar)
         setIsActive(data.is_active)

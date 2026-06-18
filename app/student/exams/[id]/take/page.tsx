@@ -31,7 +31,7 @@ export default async function TakeExamPage({ params, searchParams }: Props) {
     .eq('id', attemptId)
     .eq('student_id', profile.id)
     .eq('exam_id', params.id)
-    .single()
+    .maybeSingle()
 
   if (!attempt) {
     return (

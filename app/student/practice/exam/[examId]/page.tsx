@@ -34,7 +34,7 @@ export default async function PracticeExamPage({ params }: Props) {
     .not('completed_at', 'is', null)
     .order('completed_at', { ascending: false })
     .limit(1)
-    .single()
+    .maybeSingle()
 
   if (!attempt) {
     return (

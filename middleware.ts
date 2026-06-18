@@ -102,7 +102,11 @@ export async function middleware(request: NextRequest) {
   const TEACHER_SESSION_TIMEOUT_MS = 30 * 60 * 1000 // 30 دقيقة
   const isTeacherRoute = pathname.startsWith('/teacher')
 
-  if (user && isTeacherRoute) {
+  // استثناء: صفحة انتهاء التجربة يجب أن تكون قابلة للوصول دائماً
+  // لمنع حلقة إعادة توجيه لانهائية عند انتهاء الجلسة هناك
+  const isTrialExpiredPage = pathname === '/teacher/trial-expired'
+
+  if (user && isTeacherRoute && !isTrialExpiredPage) {
     const lastActivity = request.cookies.get('teacher_last_activity')?.value
     const now = Date.now()
 
@@ -116,7 +120,7 @@ export async function middleware(request: NextRequest) {
       }
     }
 
-    supabaseResponse.cookies.set('teacher_last_activity', String(now), {
+    supabaseResponse.cookies.set('teacher_last_activity', String(Date.now()), {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
@@ -318,8 +322,9 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // ── 3. المستخدم المسجل على الصفحة الرئيسية → وجهه للوحة التحكم ──────────
-  if (user && pathname === '/') {
+  // ── 3. المستخدم المسجل على الصفحة الرئيسية أو صفحة تسجيل دخول المعلم → وجهه للوحة التحكم ──
+  const isTeacherLoginPage = pathname === '/auth/teacher-login'
+  if (user && (pathname === '/' || isTeacherLoginPage)) {
     const role = await getProfileRole() // يُعيد القيمة المخزّنة إذا سبق جلبها
 
     if (role === 'admin') {

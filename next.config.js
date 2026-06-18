@@ -11,13 +11,19 @@ const nextConfig = {
     ],
   },
   experimental: {
-    serverComponentsExternalPackages: ['openai'],
+    serverComponentsExternalPackages: ['openai', 'mammoth'],
   },
   eslint: {
     ignoreDuringBuilds: true,
   },
   typescript: {
     ignoreBuildErrors: true,
+  },
+  // رفع حد حجم الطلبات لدعم ملفات PDF/صور كبيرة
+  serverRuntimeConfig: {
+    bodyParser: {
+      sizeLimit: '20mb',
+    },
   },
 }
 

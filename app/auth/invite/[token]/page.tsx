@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { CheckCircle2, XCircle, Loader2, School, LogIn, UserPlus } from 'lucide-react'
 import { Logo } from '@/components/shared/Logo'
+import { acceptSchoolInvitationAction } from '../actions'
 
 export default function SchoolInvitationPage({ params }: { params: { token: string } }) {
   const router = useRouter()
@@ -73,54 +74,23 @@ export default function SchoolInvitationPage({ params }: { params: { token: stri
     setVerifying(true)
     setError('')
     try {
-      // 1. تحديث دور المستخدم وربطه بالـ school_id في جدول profiles
-      const { error: profileErr } = await supabase
-        .from('profiles')
-        .update({
-          school_id: invite.school_id,
-          role: invite.role // 'teacher' أو 'student'
-        })
-        .eq('id', currentUser.id)
+      // استخدام Server Action آمنة لقبول الدعوة
+      // تعمل على السيرفر عبر service_role لتجاوز قيود RLS
+      const result = await acceptSchoolInvitationAction(token)
 
-      if (profileErr) {
-        throw new Error(profileErr.message)
+      if (!result.success) {
+        throw new Error(result.error)
       }
-
-      // 2. إذا كان المدعو معلماً، نقوم بتحديث/إضافة تفاصيله في جدول teachers
-      if (invite.role === 'teacher') {
-        const { data: teacherExists } = await supabase
-          .from('teachers')
-          .select('id')
-          .eq('id', currentUser.id)
-          .maybeSingle()
-
-        if (teacherExists) {
-          await supabase
-            .from('teachers')
-            .update({ school_id: invite.school_id })
-            .eq('id', currentUser.id)
-        } else {
-          await supabase
-            .from('teachers')
-            .insert({ id: currentUser.id, school_id: invite.school_id })
-        }
-      }
-
-      // 3. تعليم الدعوة كـ "مستخدمة"
-      await supabase
-        .from('school_invitations')
-        .update({ used_at: new Date().toISOString() })
-        .eq('id', invite.id)
 
       setSuccess(true)
       
-      // 4. إعادة التوجيه التلقائية بعد 3 ثوانٍ
+      // إعادة التوجيه التلقائية بعد 3 ثوانٍ
       setTimeout(() => {
-        router.push(invite.role === 'teacher' ? '/teacher/dashboard' : '/student/dashboard')
+        router.push(result.role === 'teacher' ? '/teacher/dashboard' : '/student/dashboard')
       }, 3000)
 
-    } catch (err: any) {
-      setError(err.message || 'حدث خطأ أثناء قبول الدعوة. حاول مجدداً.')
+    } catch (err: unknown) {
+      setError((err as Error).message || 'حدث خطأ أثناء قبول الدعوة. حاول مجدداً.')
     } finally {
       setVerifying(false)
     }

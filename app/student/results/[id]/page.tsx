@@ -50,7 +50,7 @@ export default async function ResultDetailPage({ params }: Props) {
     `
     )
     .eq('id', params.id)
-    .single()) as any
+    .maybeSingle()) as any
 
   // If not found by attempt id, try as exam_id (fallback)
   if (!attempt.data) {
@@ -63,7 +63,7 @@ export default async function ResultDetailPage({ params }: Props) {
       .not('completed_at', 'is', null)
       .order('completed_at', { ascending: false })
       .limit(1)
-      .single()
+      .maybeSingle()
 
     if (fallbackAttempt) {
       redirect(`/student/results/${(fallbackAttempt as any).id}`)

@@ -23,14 +23,14 @@ export default async function TeacherSettingsPage({
     .from('teachers')
     .select('*')
     .eq('id', profile.id)
-    .single()
+    .maybeSingle()
 
   const { data: subject } = teacher?.subject_id
     ? await supabase
         .from('subjects')
         .select('name_ar')
         .eq('id', teacher.subject_id)
-        .single()
+        .maybeSingle()
     : { data: null }
 
   const { data: subjects } = await supabase
