@@ -45,21 +45,22 @@ export default async function TeacherQuestionsPage({
     .eq('id', profile.id)
     .maybeSingle()
 
-  const teacherSubjectId = teacherData?.subject_id ?? null
+  const teacherSubjectId = (teacherData?.subject_id as number | null) ?? null
   const teacherSubject = teacherData?.subjects as unknown as {
     name_ar: string
     icon: string
   } | null
 
-  // الـ layout يتحقق من subject_id ويحيل إلى onboarding عند الحاجة
-  // إزالة الـ redirect المكرر هنا يمنع سلسلة الإحالة الخاطئة
-  if (!teacherSubjectId) {
-    // في حال نادر: إذا لم تكن المادة محددة، لا يُعاد توجيه المستخدم خارج بوابة المعلم
-    return (
-      <div className="flex flex-col items-center justify-center py-20 text-center">
-        <p className="text-lg font-bold text-slate-500">لم يتم تحديد مادتك بعد. يرجى إعداد حسابك من الإعدادات.</p>
-      </div>
-    )
+  // fallback: اجلب المادة من teacher_grade_subjects إن كانت فارغة
+  let resolvedSubjectId: number | null = teacherSubjectId
+  if (!resolvedSubjectId) {
+    const { data: tgs } = await supabase
+      .from('teacher_grade_subjects')
+      .select('subject_id')
+      .eq('teacher_id', profile.id)
+      .limit(1)
+      .maybeSingle()
+    if (tgs?.subject_id) resolvedSubjectId = tgs.subject_id
   }
 
   const [{ data: grades }, { data: semesters }] = await Promise.all([
@@ -74,7 +75,7 @@ export default async function TeacherQuestionsPage({
     .from('units')
     .select('id, name_ar')
     .eq('grade_id', searchParams.grade)
-    .eq('subject_id', teacherSubjectId)
+    .eq('subject_id', resolvedSubjectId)
     .order('sort_order')
 
   if (searchParams.semester) {
@@ -82,7 +83,7 @@ export default async function TeacherQuestionsPage({
   }
 
   const { data: units } =
-    searchParams.grade && teacherSubjectId ? await unitsQuery : { data: null }
+    searchParams.grade && resolvedSubjectId ? await unitsQuery : { data: null }
 
   const { data: lessons } = searchParams.unit
     ? await supabase

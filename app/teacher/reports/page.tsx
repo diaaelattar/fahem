@@ -1,6 +1,6 @@
 import { getCurrentProfile } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
-import { BarChart, Users, FileText, CheckCircle, Target } from 'lucide-react'
+import { BarChart, FileText } from 'lucide-react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { AnalyticsDashboard } from '@/components/teacher/AnalyticsDashboard'

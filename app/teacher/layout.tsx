@@ -25,7 +25,26 @@ export default async function TeacherLayout({
     .eq('id', profile.id)
     .maybeSingle()
 
-  if (!teacher?.subject_id) {
+  // fallback: اجلب المادة من teacher_grade_subjects إن كانت teachers.subject_id فارغة
+  let resolvedSubjectId = teacher?.subject_id
+  if (!resolvedSubjectId) {
+    const { data: tgs } = await supabase
+      .from('teacher_grade_subjects')
+      .select('subject_id')
+      .eq('teacher_id', profile.id)
+      .limit(1)
+      .maybeSingle()
+    if (tgs?.subject_id) {
+      resolvedSubjectId = tgs.subject_id
+      // حدّث teachers.subject_id تلقائياً لتجنب هذا الـ fallback مستقبلاً
+      await supabase
+        .from('teachers')
+        .update({ subject_id: tgs.subject_id })
+        .eq('id', profile.id)
+    }
+  }
+
+  if (!resolvedSubjectId) {
     redirect('/auth/teacher-onboarding')
   }
 
