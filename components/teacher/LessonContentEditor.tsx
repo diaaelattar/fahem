@@ -4,13 +4,10 @@ import { useState, useTransition, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
 import {
-  BookOpen,
   BookText,
   Brain,
-  CheckCircle2,
   ChevronDown,
   ChevronUp,
-  Eye,
   GripVertical,
   Loader2,
   Plus,
@@ -64,18 +61,17 @@ const genId = () => Math.random().toString(36).slice(2, 9)
 
 export function LessonContentEditor({
   lessonId,
-  lessonName,
+  // lessonName and currentStatus are available for future use
   initialSections,
   initialExercises,
-  currentStatus,
 }: Props) {
   const router = useRouter()
-  const [isPending, startTransition] = useTransition()
+  const [, startTransition] = useTransition()
 
   // ─── حالة الأقسام ─────────────────────────────────────────────────────────
   const [sections, setSections] = useState<Section[]>(
     initialSections.length > 0
-      ? initialSections.map((s: any) => ({ ...s, id: s.id ?? genId() }))
+      ? initialSections.map((s: Section & { id?: string }) => ({ ...s, id: s.id ?? genId() }))
       : [{ id: genId(), section_type: 'content', title: '', body: '' }]
   )
 
@@ -155,11 +151,11 @@ export function LessonContentEditor({
 
       setExercises((prev) => [
         ...prev,
-        ...data.exercises.map((ex: any) => ({ ...ex, id: undefined })),
+        ...data.exercises.map((ex: Omit<Exercise, 'id'>) => ({ ...ex, id: undefined })),
       ])
       setActiveTab('exercises')
-    } catch (err: any) {
-      setAiError(err.message)
+    } catch (err: unknown) {
+      setAiError(err instanceof Error ? err.message : String(err))
     } finally {
       setAiGenerating(false)
     }
@@ -191,8 +187,8 @@ export function LessonContentEditor({
         startTransition(() => router.refresh())
         setSaveMsg(null)
       }, 1500)
-    } catch (err: any) {
-      setSaveMsg('خطأ: ' + err.message)
+    } catch (err: unknown) {
+      setSaveMsg('خطأ: ' + (err instanceof Error ? err.message : String(err)))
     } finally {
       setSaving(false)
     }
@@ -239,7 +235,7 @@ export function LessonContentEditor({
         ].map(({ key, label, icon: Icon }) => (
           <button
             key={key}
-            onClick={() => setActiveTab(key as any)}
+            onClick={() => setActiveTab(key as 'content' | 'exercises')}
             className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-sm transition-all ${
               activeTab === key
                 ? 'bg-indigo-600 text-white font-bold shadow-md shadow-indigo-100'

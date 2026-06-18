@@ -7,7 +7,12 @@ import { NotificationsDropdown } from '@/components/shared/NotificationsDropdown
 import Link from 'next/link'
 
 interface Props {
-  profile: any
+  profile: {
+    id: string
+    full_name: string
+    email?: string
+    avatar_url?: string
+  }
 }
 
 export function TeacherTopbar({ profile }: Props) {
