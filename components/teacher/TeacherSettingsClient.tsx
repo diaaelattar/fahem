@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import {
   User,
@@ -55,6 +56,7 @@ export function TeacherSettingsClient({
   errorMsg,
 }: Props) {
   const supabase = createClient()
+  const router = useRouter()
 
   /* ── Grade-Subject Pairs State ── */
   const [gradeSubjectPairs, setGradeSubjectPairs] = useState<
@@ -96,6 +98,7 @@ export function TeacherSettingsClient({
         .eq('id', profile.id)
 
       setGsMsg({ type: 'ok', text: `تم حفظ ${gradeSubjectPairs.length} مادة / صف بنجاح ✓` })
+      router.refresh() // تحديث البيانات من السيرفر لعرض اسم المادة المحدث
       setTimeout(() => setGsMsg(null), 4000)
     } catch (err: unknown) {
       setGsMsg({ type: 'err', text: 'فشل الحفظ: ' + (err instanceof Error ? err.message : String(err)) })

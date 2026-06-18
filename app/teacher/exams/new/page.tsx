@@ -21,6 +21,7 @@ export default async function NewTeacherExamPage() {
     { data: units },
     { data: lessons },
     { data: groups },
+    { data: teacherGradeSubjects },
   ] = await Promise.all([
     supabase
       .from('teachers')
@@ -43,7 +44,20 @@ export default async function NewTeacherExamPage() {
       .select('id, name_ar')
       .eq('teacher_id', profile?.id)
       .order('created_at'),
+    // جلب المواد المرتبطة بالمعلم كاحتياطي إذا كانت subject_id فارغة
+    supabase
+      .from('teacher_grade_subjects')
+      .select('subject_id')
+      .eq('teacher_id', profile?.id)
+      .limit(1)
+      .maybeSingle(),
   ])
+
+  // استخدام subject_id من teachers أولاً، ثم من teacher_grade_subjects كاحتياطي
+  const resolvedSubjectId =
+    teacherData?.subject_id?.toString() ||
+    teacherGradeSubjects?.subject_id?.toString() ||
+    ''
 
   return (
     <div className="mx-auto max-w-7xl animate-fade-in space-y-6 pb-20">
@@ -67,7 +81,7 @@ export default async function NewTeacherExamPage() {
 
       {/* Builder */}
       <TeacherExamBuilder
-        teacherSubjectId={teacherData?.subject_id?.toString() || ''}
+        teacherSubjectId={resolvedSubjectId}
         subjects={subjects || []}
         grades={grades || []}
         semesters={semesters || []}
