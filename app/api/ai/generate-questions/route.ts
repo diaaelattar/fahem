@@ -12,14 +12,8 @@ import {
   formatZodError,
 } from '@/lib/schemas/ai-generation'
 
-// ─── رفع حد حجم الطلبات إلى 20MB لدعم ملفات PDF/صور كبيرة ───────────────────
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: '20mb',
-    },
-  },
-}
+// ─── رفع حد حجم الطلبات لدعم ملفات PDF/صور كبيرة ───────────────────────────
+export const maxDuration = 60
 
 // ─── إعداد Gemini ───────────────────────────────────────────────────────────
 function getGenAI() {
