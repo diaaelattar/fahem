@@ -61,6 +61,19 @@ export async function POST(req: NextRequest) {
     // جلب الصورة كـ base64
     const imageData = await fetchImageAsBase64(imageUrl)
 
+    // جلب exam_id من محاولة الامتحان (BUG-7)
+    let examId: string | undefined = undefined
+    if (attemptId) {
+      const { data: attemptData } = await supabase
+        .from('exam_attempts')
+        .select('exam_id')
+        .eq('id', attemptId)
+        .single()
+      if (attemptData) {
+        examId = attemptData.exam_id
+      }
+    }
+
     const prompt = `أنت مصحح امتحانات خبير متخصص في المناهج المصرية. مهمتك قراءة إجابة طالب مكتوبة بخط اليد وتقييمها.
 
 ## بيانات التقييم:
@@ -85,7 +98,7 @@ export async function POST(req: NextRequest) {
   "confidence": "high/medium/low (مدى وضوح خط اليد)"
 }`
 
-    let lastError: any = null
+    let lastError: unknown = null
 
     for (const modelName of MODELS) {
       try {
@@ -117,7 +130,7 @@ export async function POST(req: NextRequest) {
               {
                 attempt_id: attemptId,
                 student_id: user.id,
-                exam_id: undefined, // سيتم جلبه من attempt
+                exam_id: examId, // سيتم جلبه من attempt
                 question_id: questionId,
                 answer_image_url: imageUrl,
                 student_answer: parsed.extracted_text || '[إجابة مصوّرة]',
@@ -158,10 +171,13 @@ export async function POST(req: NextRequest) {
     }
 
     throw lastError || new Error('All models failed')
-  } catch (error: any) {
+  } catch (error) {
     console.error('[Vision Grade] Error:', error)
     return NextResponse.json(
-      { error: 'فشل تقييم الصورة', details: error.message },
+      {
+        error: 'فشل تقييم الصورة',
+        details: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 }
     )
   }

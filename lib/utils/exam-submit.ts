@@ -122,17 +122,26 @@ export async function submitExamSafely(
     }
   }
 
-  // الخطوة 3.5: حفظ الإجابات في قاعدة البيانات لضمان دقتها قبل التصحيح
+  // الخطوة 3.5: حفظ الإجابات في قاعدة البيانات لضمان دقتها قبل التصحيح (BUG-3)
   try {
     const { error: updateError } = await supabase
       .from('exam_attempts')
-      .update({ answers })
+      .update({
+        answers,
+        answer_images: imageAnswers || {},
+      })
       .eq('id', attemptId)
     if (updateError) {
-      console.error('[ExamSubmit] فشل حفظ الإجابات في قاعدة البيانات:', updateError.message)
+      console.error(
+        '[ExamSubmit] فشل حفظ الإجابات في قاعدة البيانات:',
+        updateError.message
+      )
     }
   } catch (dbErr) {
-    console.error('[ExamSubmit] خطأ أثناء الاتصال بقاعدة البيانات لحفظ الإجابات:', dbErr)
+    console.error(
+      '[ExamSubmit] خطأ أثناء الاتصال بقاعدة البيانات لحفظ الإجابات:',
+      dbErr
+    )
   }
 
   // الخطوة 4: إرسال الطلب للـ API

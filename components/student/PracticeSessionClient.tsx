@@ -8,22 +8,21 @@ import {
   ChevronLeft,
   Trophy,
   RotateCcw,
-  BookOpen,
   Zap,
-  Target,
   Mic,
   Square,
   Loader2,
   Calculator,
 } from 'lucide-react'
 import { MathRenderer } from '@/components/ui/MathRenderer'
-import { MathKeyboard } from '@/components/ui/MathKeyboard'
+
 import { AIExplainButton } from '@/components/student/AIExplainButton'
 import { MathLiveInput } from '@/components/ui/MathLiveInput'
 import {
   getSubjectDirection,
   getSubjectTextAlignClass,
 } from '@/lib/utils/subject-formatting'
+import { checkAnswer, normalizeArabic } from '@/lib/utils/grading'
 
 interface Question {
   id: string
@@ -49,14 +48,14 @@ export function PracticeSessionClient({
   subject,
   studentId,
 }: Props) {
-  const supabase = createClient() as any
+  const supabase = createClient()
   const [currentIdx, setCurrentIdx] = useState(0)
   const [selected, setSelected] = useState<string | null>(null)
   const [fillInput, setFillInput] = useState('')
   const [showAnswer, setShowAnswer] = useState(false)
   const [score, setScore] = useState({ correct: 0, wrong: 0 })
   const [answers, setAnswers] = useState<Record<string, string>>({})
-  const [feedbacks, setFeedbacks] = useState<Record<string, any>>({})
+  const [feedbacks, setFeedbacks] = useState<Record<string, unknown>>({})
   const [isGrading, setIsGrading] = useState(false)
   const [finished, setFinished] = useState(false)
   const [streak, setStreak] = useState(0)
@@ -71,17 +70,7 @@ export function PracticeSessionClient({
     setShowMath(false)
   }, [currentIdx])
 
-  // ─── Arabic Normalization ───
-  const normalizeArabic = (text: string) => {
-    if (!text) return ''
-    return text
-      .trim()
-      .toLowerCase()
-      .replace(/[أإآ]/g, 'ا')
-      .replace(/ة/g, 'ه')
-      .replace(/ى/g, 'ي')
-      .replace(/[\u064B-\u065F]/g, '') // Remove diacritics
-  }
+  // ─── Arabic Normalization is imported from lib/utils/grading.ts ───
 
   // ─── Audio Recording ───
   const [isRecording, setIsRecording] = useState(false)
@@ -206,8 +195,11 @@ export function PracticeSessionClient({
 
       // ─── التصحيح العادي ───
       setShowAnswer(true)
-      const isCorrect =
-        normalizeArabic(answer) === normalizeArabic(current.correct_answer)
+      const isCorrect = checkAnswer(
+        answer,
+        current.correct_answer,
+        current.question_type
+      )
 
       if (isCorrect) {
         const newStreak = streak + 1
@@ -245,10 +237,6 @@ export function PracticeSessionClient({
   const handleFillSubmit = () => {
     if (!fillInput.trim()) return
     handleAnswer(fillInput.trim())
-  }
-
-  const handleMathInsert = (symbol: string) => {
-    setFillInput((prev) => prev + symbol)
   }
 
   const handleNext = useCallback(async () => {

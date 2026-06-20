@@ -14,43 +14,66 @@ export async function GET(request: Request) {
         data: { user },
       } = await supabase.auth.getUser()
       if (user) {
-        // تحقق إذا كان البروفايل موجوداً
+        // ⚡ Try to read from JWT metadata first (Zero-DB Hits for existing users)
+        const role = user.user_metadata?.role
+
+        if (role === 'admin') {
+          return NextResponse.redirect(`${origin}/admin/dashboard`)
+        }
+
+        if (role === 'student') {
+          const hasGrade = !!user.user_metadata?.grade_id
+          if (!hasGrade) {
+            return NextResponse.redirect(`${origin}/student/onboarding`)
+          }
+          return NextResponse.redirect(`${origin}/student/dashboard`)
+        }
+
+        if (role === 'teacher') {
+          const hasSubject = !!user.user_metadata?.subject_id
+          if (!hasSubject) {
+            return NextResponse.redirect(`${origin}/auth/teacher-onboarding`)
+          }
+          return NextResponse.redirect(`${origin}/teacher/dashboard`)
+        }
+
+        // 🔍 Fallback: check database if role metadata is not present yet
         const { data: profile } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', user.id)
           .maybeSingle()
 
-        if (profile?.role === 'admin') {
-          return NextResponse.redirect(`${origin}/admin/dashboard`)
-        }
-
-        if (profile?.role === 'student') {
-          // تحقق إذا اختار الطالب صفه (onboarding مكتمل)
-          const { data: student } = await supabase
-            .from('students')
-            .select('grade_id')
-            .eq('id', user.id)
-            .maybeSingle()
-
-          if (!student?.grade_id) {
-            return NextResponse.redirect(`${origin}/student/onboarding`)
+        if (profile) {
+          if (profile.role === 'admin') {
+            return NextResponse.redirect(`${origin}/admin/dashboard`)
           }
-          return NextResponse.redirect(`${origin}/student/dashboard`)
-        }
 
-        if (profile?.role === 'teacher') {
-          // Check if teacher has completed onboarding (has a subject_id)
-          const { data: teacher } = await supabase
-            .from('teachers')
-            .select('subject_id')
-            .eq('id', user.id)
-            .maybeSingle()
-          
-          if (!teacher?.subject_id) {
-            return NextResponse.redirect(`${origin}/auth/teacher-onboarding`)
+          if (profile.role === 'student') {
+            const { data: student } = await supabase
+              .from('students')
+              .select('grade_id')
+              .eq('id', user.id)
+              .maybeSingle()
+
+            if (!student?.grade_id) {
+              return NextResponse.redirect(`${origin}/student/onboarding`)
+            }
+            return NextResponse.redirect(`${origin}/student/dashboard`)
           }
-          return NextResponse.redirect(`${origin}/teacher/dashboard`)
+
+          if (profile.role === 'teacher') {
+            const { data: teacher } = await supabase
+              .from('teachers')
+              .select('subject_id')
+              .eq('id', user.id)
+              .maybeSingle()
+
+            if (!teacher?.subject_id) {
+              return NextResponse.redirect(`${origin}/auth/teacher-onboarding`)
+            }
+            return NextResponse.redirect(`${origin}/teacher/dashboard`)
+          }
         }
 
         // مستخدم Google جديد — إنشاء بروفايل

@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
 import {
@@ -24,11 +23,14 @@ import { MathLiveInput } from '@/components/ui/MathLiveInput'
 import { Calculator } from 'lucide-react'
 import { HandwritingUploader } from '@/components/shared/HandwritingUploader'
 import { ExamProctoring } from '@/components/student/ExamProctoring'
+import { getSubjectDirection } from '@/lib/utils/subject-formatting'
 import {
-  getSubjectDirection,
-  getSubjectTextAlignClass,
-} from '@/lib/utils/subject-formatting'
-import { submitExamSafely } from '@/lib/utils/exam-submit'
+  submitExamSafely,
+  saveAnswersDraft,
+  loadAnswersDraft,
+} from '@/lib/utils/exam-submit'
+import { toast } from 'sonner'
+import { checkAnswer } from '@/lib/utils/grading'
 
 interface Question {
   id: string
@@ -54,19 +56,29 @@ interface ExamData {
   subjects?: { name_ar: string } | null
 }
 
+interface GradingResult {
+  is_passed: boolean
+  score: number
+  total: number
+  percentage: number
+}
+
 export function ExamInterface({
   exam,
   questions,
   attemptId,
   isPreview = false,
+  initialAnswers = {},
+  initialImages = {},
 }: {
   exam: ExamData
   questions: Question[]
   attemptId: string
   isPreview?: boolean
+  initialAnswers?: Record<string, string>
+  initialImages?: Record<string, string>
 }) {
-  const router = useRouter()
-  const supabase = createClient() as any
+  const supabase = createClient()
   const [currentIdx, setCurrentIdx] = useState(0)
 
   const [isHydrated, setIsHydrated] = useState(false)
@@ -85,23 +97,48 @@ export function ExamInterface({
     tickTime,
     startExam,
     submitExam,
+    setSubmitting,
     isSubmitting: storeSubmitting,
     clearSession,
   } = useExamStore()
+
+  const isSubmittingRef = useRef(false)
 
   // --- Determine text direction ---
   const subjectName = exam.subjects?.name_ar || ''
   const dir = getSubjectDirection(subjectName)
   const isRTL = dir === 'rtl'
-  const textAlign = getSubjectTextAlignClass(subjectName)
 
-  // Initialize store if empty
+  // Initialize store if empty (BUG-9)
   useEffect(() => {
     if (!isHydrated) return
-    if (useExamStore.getState().attemptId !== attemptId) {
-      startExam(exam.id, attemptId, exam.duration_minutes * 60)
+    const currentStoreAttempt = useExamStore.getState().attemptId
+    if (currentStoreAttempt !== attemptId) {
+      // 1. Try loading from local draft first
+      const draft = loadAnswersDraft(attemptId)
+      const initialAns = draft ? draft.answers : initialAnswers
+      const initialImgs = draft ? draft.imageAnswers : initialImages
+
+      startExam(exam.id, attemptId, exam.duration_minutes * 60, initialAns)
+      setImageAnswers(initialImgs)
+    } else {
+      // If attempt matches, load the images from localStorage draft or DB to local state
+      const draft = loadAnswersDraft(attemptId)
+      if (draft && Object.keys(draft.imageAnswers).length > 0) {
+        setImageAnswers(draft.imageAnswers)
+      } else if (initialImages && Object.keys(initialImages).length > 0) {
+        setImageAnswers(initialImages)
+      }
     }
-  }, [exam.id, attemptId, exam.duration_minutes, startExam, isHydrated])
+  }, [
+    exam.id,
+    attemptId,
+    exam.duration_minutes,
+    startExam,
+    isHydrated,
+    initialAnswers,
+    initialImages,
+  ])
 
   // --- Grouping Logic ---
   const groups: {
@@ -131,7 +168,7 @@ export function ExamInterface({
   })
 
   const [submitted, setSubmitted] = useState(false)
-  const [result, setResult] = useState<any>(null)
+  const [result, setResult] = useState<GradingResult | null>(null)
   const [showConfirm, setShowConfirm] = useState(false)
   const confirmRef = useRef<HTMLDivElement>(null)
   useFocusTrap(confirmRef, showConfirm, () => setShowConfirm(false))
@@ -175,7 +212,8 @@ export function ExamInterface({
 
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       e.preventDefault()
-      e.returnValue = 'هل أنت متأكد من رغبتك في الخروج؟ قد يؤدي هذا إلى فقدان إجاباتك غير المسلمة.'
+      e.returnValue =
+        'هل أنت متأكد من رغبتك في الخروج؟ قد يؤدي هذا إلى فقدان إجاباتك غير المسلمة.'
       return e.returnValue
     }
 
@@ -266,143 +304,7 @@ export function ExamInterface({
     [setAnswer]
   )
 
-  // Strip LaTeX, commas inside numbers (thousands only), extra spaces
-  const normalizeMath = (text: string): string => {
-    if (!text) return ''
-    return text
-      .replace(/\$+/g, '') // remove $ delimiters
-      .replace(/\\text\{([^}]*)\}/g, '$1') // \text{x} → x
-      .replace(/\\[a-zA-Z]+\s*/g, '') // remove LaTeX commands
-      .replace(/(\d),(\d{3})(?=[^\d]|$)/g, '$1$2') // thousands ONLY: 5,000 → 5000  (NOT 9,81)
-      .replace(/\s+/g, ' ')
-      .trim()
-      .toLowerCase()
-  }
-
-  // Extract all distinct numbers from a string (e.g. "side=9 cm area=81" → [9, 81])
-  const extractNumbers = (text: string): number[] => {
-    const clean = normalizeMath(text)
-    const matches = clean.match(/\d+(\.\d+)?/g) || []
-    return Array.from(new Set(matches.map(Number)))
-  }
-
-  // Extract the final result of an equation (the part after last '=')
-  const extractEquationResult = (text: string): string | null => {
-    const clean = normalizeMath(text)
-    const parts = clean.split('=')
-    if (parts.length >= 2) return parts[parts.length - 1].trim()
-    return null
-  }
-
-  const normalizeArabic = (text: string) => {
-    if (!text) return ''
-    return text
-      .trim()
-      .toLowerCase()
-      .replace(/[أإآ]/g, 'ا')
-      .replace(/ة/g, 'ه')
-      .replace(/ى/g, 'ي')
-      .replace(/[\u064B-\u065F]/g, '')
-      .replace(/[،\-_/\\.:؛"']/g, ' ')
-      .replace(/\s+/g, ' ')
-  }
-
-  const checkAnswer = (
-    studentAns: string,
-    correctAns: string,
-    type: string
-  ): boolean => {
-    if (!studentAns || !correctAns) return false
-
-    // True/False comparison
-    if (type === 'true_false') {
-      const isSTrue =
-        studentAns === '\u0635\u062d' || studentAns.toLowerCase() === 'true'
-      const isCTrue =
-        correctAns === '\u0635\u062d' || correctAns.toLowerCase() === 'true'
-      const isSFalse =
-        studentAns === '\u062e\u0637\u0623' ||
-        studentAns.toLowerCase() === 'false'
-      const isCFalse =
-        correctAns === '\u062e\u0637\u0623' ||
-        correctAns.toLowerCase() === 'false'
-      return (isSTrue && isCTrue) || (isSFalse && isCFalse)
-    }
-
-    // ── Math-aware comparison ──
-    const ms = normalizeMath(studentAns)
-    const mc = normalizeMath(correctAns)
-
-    // Exact match after normalization
-    if (ms === mc) return true
-    // Ignore all spaces: "7+60+400" == "7 + 60 + 400"
-    if (ms.replace(/\s/g, '') === mc.replace(/\s/g, '')) return true
-
-    // Equation result: student writes "\frac{35}{5}=7", correct is "7"
-    const studentResult = extractEquationResult(studentAns)
-    if (studentResult && studentResult === mc) return true
-    const srNum = Number(studentResult)
-    const crNum = Number(mc.replace(/[^\d.]/g, ''))
-    if (
-      studentResult &&
-      !isNaN(srNum) &&
-      !isNaN(crNum) &&
-      srNum > 0 &&
-      Math.abs(srNum - crNum) < 1e-9
-    )
-      return true
-
-    // Key-numbers set: "9,81" vs "$9$ cm area=$81$" → both have {9,81}
-    const correctNums = extractNumbers(correctAns)
-    if (correctNums.length >= 2) {
-      const studentNums = extractNumbers(studentAns)
-      if (correctNums.every((n) => studentNums.includes(n))) return true
-    }
-
-    // Numeric-core: "10" matches "10 trees"
-    const numCoreS = ms.match(/^[\d./+\-\s\u00d7\u00f7*]+/)?.[0]?.trim()
-    const numCoreC = mc.match(/^[\d./+\-\s\u00d7\u00f7*]+/)?.[0]?.trim()
-    if (
-      numCoreS &&
-      numCoreC &&
-      numCoreS.replace(/\s/g, '') === numCoreC.replace(/\s/g, '')
-    )
-      return true
-
-    // Numeric equivalence: 1/2 == 0.5
-    const numS = Number(ms.replace(/[^\d.]/g, ''))
-    const numC = Number(mc.replace(/[^\d.]/g, ''))
-    if (
-      !isNaN(numS) &&
-      !isNaN(numC) &&
-      numS > 0 &&
-      Math.abs(numS - numC) < 1e-9
-    )
-      return true
-
-    // Arabic text comparison
-    const normStudent = normalizeArabic(studentAns)
-    const normCorrect = normalizeArabic(correctAns)
-
-    if (type === 'mcq') return normStudent === normCorrect
-
-    if (normStudent === normCorrect) return true
-    if (normStudent.length >= 3 && normCorrect.includes(normStudent))
-      return true
-    if (normCorrect.length >= 3 && normStudent.includes(normCorrect))
-      return true
-
-    const sw = normStudent.split(/\s+/).filter((w) => w.length >= 2)
-    const cw = normCorrect.split(/\s+/).filter((w) => w.length >= 2)
-    if (sw.length > 0 && cw.length > 0) {
-      const common = cw.filter((w) => sw.includes(w))
-      if (sw.length <= 2 && common.length === sw.length) return true
-      if (common.length / cw.length >= 0.4 || common.length / sw.length >= 0.5)
-        return true
-    }
-
-    return false
-  }
+  // ── تم نقل checkAnswer / normalizeMath / normalizeArabic إلى lib/utils/grading.ts (BUG-1) ──
 
   const getDisplayCorrectAnswer = (correctAns: string, type: string) => {
     if (!correctAns) return ''
@@ -416,7 +318,8 @@ export function ExamInterface({
   }
 
   const handleSubmit = useCallback(async () => {
-    if (storeSubmitting || submitted) return
+    if (isSubmittingRef.current || storeSubmitting || submitted) return
+    isSubmittingRef.current = true
     submitExam() // sets isSubmitting to true in store
 
     if (isPreview) {
@@ -440,6 +343,7 @@ export function ExamInterface({
       })
       setSubmitted(true)
       clearSession()
+      isSubmittingRef.current = false
       return
     }
 
@@ -457,8 +361,11 @@ export function ExamInterface({
       setResult(gradingResult)
       setSubmitted(true)
       clearSession() // clear local storage
-    } catch (err: any) {
-      alert('حدث خطأ أثناء تسليم الاختبار: ' + err.message)
+      isSubmittingRef.current = false
+    } catch (err) {
+      isSubmittingRef.current = false
+      setSubmitting(false)
+      toast.error(err instanceof Error ? err.message : 'فشل تسليم الاختبار')
     }
   }, [
     answers,
@@ -470,6 +377,7 @@ export function ExamInterface({
     submitted,
     supabase,
     submitExam,
+    setSubmitting,
     clearSession,
     isPreview,
     questions,
@@ -489,14 +397,27 @@ export function ExamInterface({
     return () => clearInterval(interval)
   }, [submitted, handleSubmit, tickTime])
 
-  // Auto-save every 30 seconds
+  // Auto-save every 30 seconds (BUG-3)
   useEffect(() => {
-    if (submitted || Object.keys(answers).length === 0 || isPreview) return
+    const hasAnswers = Object.keys(answers).length > 0
+    const hasImages = Object.keys(imageAnswers).length > 0
+    if (submitted || (!hasAnswers && !hasImages) || isPreview) return
+
     const interval = setInterval(() => {
-      supabase.from('exam_attempts').update({ answers }).eq('id', attemptId)
+      // 1. Save locally to localStorage (safety net)
+      saveAnswersDraft(attemptId, answers, imageAnswers)
+      // 2. Save to Supabase
+      supabase
+        .from('exam_attempts')
+        .update({
+          answers,
+          answer_images: imageAnswers,
+        })
+        .eq('id', attemptId)
     }, 30000)
+
     return () => clearInterval(interval)
-  }, [answers, attemptId, submitted, supabase, isPreview])
+  }, [answers, imageAnswers, attemptId, submitted, supabase, isPreview])
 
   const formatTime = (secs: number | null) => {
     if (secs === null || secs < 0) return '--:--'
@@ -560,11 +481,6 @@ export function ExamInterface({
     if (exam.show_results_immediately && answers[qId]) {
       setImmediateFeedback((prev) => ({ ...prev, [qId]: true }))
     }
-  }
-
-  const handleMathInsert = (qId: string, symbol: string) => {
-    const currentVal = answers[qId] || ''
-    handleAnswer(qId, (currentVal as string) + symbol, '')
   }
 
   if (submitted && result) {
@@ -644,8 +560,14 @@ export function ExamInterface({
             aria-labelledby="confirm-title"
             className="w-full max-w-md rounded-3xl bg-white p-8 shadow-2xl"
           >
-            <AlertTriangle className="mx-auto mb-4 h-12 w-12 text-yellow-500" aria-hidden="true" />
-            <h3 id="confirm-title" className="mb-2 text-center text-xl font-bold">
+            <AlertTriangle
+              className="mx-auto mb-4 h-12 w-12 text-yellow-500"
+              aria-hidden="true"
+            />
+            <h3
+              id="confirm-title"
+              className="mb-2 text-center text-xl font-bold"
+            >
               إنهاء الاختبار؟
             </h3>
             <p className="mb-2 text-center text-sm text-muted-foreground">
@@ -682,12 +604,16 @@ export function ExamInterface({
       {/* Header */}
       <div className="sticky top-4 z-10 mb-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-md">
         <div className="mb-3 flex items-center justify-between gap-3">
-          <h1 className="line-clamp-1 text-base font-bold text-slate-800">{exam.title}</h1>
-          <div className={`flex items-center gap-2 rounded-xl px-4 py-2 font-mono font-bold tabular-nums ${
-            timeRemainingSeconds !== null && timeRemainingSeconds < 300
-              ? 'bg-red-50 text-red-600 border border-red-200'
-              : 'bg-slate-100 text-slate-700'
-          }`}>
+          <h1 className="line-clamp-1 text-base font-bold text-slate-800">
+            {exam.title}
+          </h1>
+          <div
+            className={`flex items-center gap-2 rounded-xl px-4 py-2 font-mono font-bold tabular-nums ${
+              timeRemainingSeconds !== null && timeRemainingSeconds < 300
+                ? 'border border-red-200 bg-red-50 text-red-600'
+                : 'bg-slate-100 text-slate-700'
+            }`}
+          >
             <Clock className="h-4 w-4" />
             {formatTime(timeRemainingSeconds)}
           </div>
@@ -738,21 +664,28 @@ export function ExamInterface({
             correction: 'bg-rose-50 text-rose-700 border-rose-200',
           }
           return (
-          <div key={currentQ.id} className="question-card overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div
+              key={currentQ.id}
+              className="question-card overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+            >
               {/* Question header bar */}
               <div className="flex items-center justify-between gap-3 border-b border-slate-100 bg-slate-50 px-5 py-3">
                 <div className="flex items-center gap-2">
                   <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-indigo-600 text-xs font-black text-white">
                     {globalQIndex + 1}
                   </span>
-                  <span className={`rounded-full border px-2.5 py-0.5 text-xs font-bold ${
-                    typeColors[currentQ.question_type] ?? 'bg-slate-50 text-slate-600 border-slate-200'
-                  }`}>
+                  <span
+                    className={`rounded-full border px-2.5 py-0.5 text-xs font-bold ${
+                      typeColors[currentQ.question_type] ??
+                      'border-slate-200 bg-slate-50 text-slate-600'
+                    }`}
+                  >
                     {typeLabels[currentQ.question_type] ?? 'سؤال'}
                   </span>
                 </div>
                 <span className="rounded-full bg-indigo-50 px-3 py-0.5 text-xs font-bold text-indigo-700">
-                  {(currentQ as any)?.points || 0} {(currentQ as any)?.points === 1 ? 'درجة' : 'درجات'}
+                  {currentQ.points || 0}{' '}
+                  {currentQ.points === 1 ? 'درجة' : 'درجات'}
                 </span>
               </div>
 
@@ -799,21 +732,38 @@ export function ExamInterface({
 
                 {/* MCQ Options */}
                 {currentQ.question_type === 'mcq' && currentQ.options && (
-                  <div className="mt-4 space-y-2.5" role="radiogroup" aria-label="خيارات الإجابة">
+                  <div
+                    className="mt-4 space-y-2.5"
+                    role="radiogroup"
+                    aria-label="خيارات الإجابة"
+                  >
                     {currentQ.options.map((opt, i) => {
                       const isSelected = answers[currentQ.id] === opt
-                      const isCorrectOpt = checkAnswer(opt, currentQ.correct_answer || '', 'mcq')
-                      const showFeedback = exam.show_results_immediately && immediateFeedback[currentQ.id]
+                      const isCorrectOpt = checkAnswer(
+                        opt,
+                        currentQ.correct_answer || '',
+                        'mcq'
+                      )
+                      const showFeedback =
+                        exam.show_results_immediately &&
+                        immediateFeedback[currentQ.id]
 
                       let btnClass = `group w-full flex items-center gap-3 rounded-xl border-2 px-4 py-3 text-sm text-${isRTL ? 'right' : 'left'} transition-all duration-150 `
                       if (showFeedback) {
-                        if (isCorrectOpt) btnClass += 'border-emerald-400 bg-emerald-50 text-emerald-800'
-                        else if (isSelected) btnClass += 'border-rose-400 bg-rose-50 text-rose-800'
-                        else btnClass += 'border-slate-200 bg-slate-50 text-slate-400 opacity-60'
+                        if (isCorrectOpt)
+                          btnClass +=
+                            'border-emerald-400 bg-emerald-50 text-emerald-800'
+                        else if (isSelected)
+                          btnClass += 'border-rose-400 bg-rose-50 text-rose-800'
+                        else
+                          btnClass +=
+                            'border-slate-200 bg-slate-50 text-slate-400 opacity-60'
                       } else if (isSelected) {
-                        btnClass += 'border-indigo-500 bg-indigo-50 text-indigo-800 shadow-sm shadow-indigo-100'
+                        btnClass +=
+                          'border-indigo-500 bg-indigo-50 text-indigo-800 shadow-sm shadow-indigo-100'
                       } else {
-                        btnClass += 'border-slate-200 bg-white text-slate-700 hover:border-indigo-300 hover:bg-indigo-50/40'
+                        btnClass +=
+                          'border-slate-200 bg-white text-slate-700 hover:border-indigo-300 hover:bg-indigo-50/40'
                       }
 
                       return (
@@ -824,20 +774,30 @@ export function ExamInterface({
                           aria-checked={isSelected}
                           className={btnClass}
                         >
-                          <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold border-2 transition-colors ${
-                            showFeedback && isCorrectOpt
-                              ? 'border-emerald-500 bg-emerald-500 text-white'
-                              : showFeedback && isSelected && !isCorrectOpt
-                                ? 'border-rose-400 bg-rose-400 text-white'
-                                : isSelected
-                                  ? 'border-indigo-500 bg-indigo-500 text-white'
-                                  : 'border-slate-300 text-slate-500'
-                          }`}>
+                          <span
+                            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border-2 text-sm font-bold transition-colors ${
+                              showFeedback && isCorrectOpt
+                                ? 'border-emerald-500 bg-emerald-500 text-white'
+                                : showFeedback && isSelected && !isCorrectOpt
+                                  ? 'border-rose-400 bg-rose-400 text-white'
+                                  : isSelected
+                                    ? 'border-indigo-500 bg-indigo-500 text-white'
+                                    : 'border-slate-300 text-slate-500'
+                            }`}
+                          >
                             {['أ', 'ب', 'ج', 'د'][i]}
                           </span>
-                          <MathRenderer text={opt} className="flex-1 text-right text-sm" dir={dir} />
-                          {showFeedback && isCorrectOpt && <CheckCircle className="mr-auto h-5 w-5 shrink-0 text-emerald-500" />}
-                          {showFeedback && isSelected && !isCorrectOpt && <XCircle className="mr-auto h-5 w-5 shrink-0 text-rose-400" />}
+                          <MathRenderer
+                            text={opt}
+                            className="flex-1 text-right text-sm"
+                            dir={dir}
+                          />
+                          {showFeedback && isCorrectOpt && (
+                            <CheckCircle className="mr-auto h-5 w-5 shrink-0 text-emerald-500" />
+                          )}
+                          {showFeedback && isSelected && !isCorrectOpt && (
+                            <XCircle className="mr-auto h-5 w-5 shrink-0 text-rose-400" />
+                          )}
                         </button>
                       )
                     })}
@@ -846,18 +806,33 @@ export function ExamInterface({
 
                 {/* True/False Options */}
                 {currentQ.question_type === 'true_false' && (
-                  <div className="mt-4 grid grid-cols-2 gap-3" role="radiogroup" aria-label="خيارات الإجابة">
+                  <div
+                    className="mt-4 grid grid-cols-2 gap-3"
+                    role="radiogroup"
+                    aria-label="خيارات الإجابة"
+                  >
                     {['صح', 'خطأ'].map((opt) => {
                       const isSelected = answers[currentQ.id] === opt
-                      const isCorrectOpt = checkAnswer(opt, currentQ.correct_answer || '', 'true_false')
-                      const showFeedback = exam.show_results_immediately && immediateFeedback[currentQ.id]
+                      const isCorrectOpt = checkAnswer(
+                        opt,
+                        currentQ.correct_answer || '',
+                        'true_false'
+                      )
+                      const showFeedback =
+                        exam.show_results_immediately &&
+                        immediateFeedback[currentQ.id]
                       const isTrue = opt === 'صح'
 
                       let btnClass = `flex flex-col items-center justify-center gap-2 rounded-2xl border-2 py-6 font-bold transition-all `
                       if (showFeedback) {
-                        if (isCorrectOpt) btnClass += 'border-emerald-400 bg-emerald-50 text-emerald-700'
-                        else if (isSelected) btnClass += 'border-rose-400 bg-rose-50 text-rose-700'
-                        else btnClass += 'border-slate-200 bg-slate-50 text-slate-400 opacity-50'
+                        if (isCorrectOpt)
+                          btnClass +=
+                            'border-emerald-400 bg-emerald-50 text-emerald-700'
+                        else if (isSelected)
+                          btnClass += 'border-rose-400 bg-rose-50 text-rose-700'
+                        else
+                          btnClass +=
+                            'border-slate-200 bg-slate-50 text-slate-400 opacity-50'
                       } else if (isSelected) {
                         btnClass += isTrue
                           ? 'border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm'
@@ -871,12 +846,16 @@ export function ExamInterface({
                       return (
                         <button
                           key={opt}
-                          onClick={() => handleAnswer(currentQ.id, opt, 'true_false')}
+                          onClick={() =>
+                            handleAnswer(currentQ.id, opt, 'true_false')
+                          }
                           role="radio"
                           aria-checked={isSelected}
                           className={btnClass}
                         >
-                          <span className="text-3xl" aria-hidden="true">{isTrue ? '✅' : '❌'}</span>
+                          <span className="text-3xl" aria-hidden="true">
+                            {isTrue ? '✅' : '❌'}
+                          </span>
                           <span className="text-lg">{opt}</span>
                         </button>
                       )
@@ -884,303 +863,334 @@ export function ExamInterface({
                   </div>
                 )}
 
-              {/* Fill Blank */}
-              {currentQ.question_type === 'fill_blank' && (
-                <div className="mt-4">
-                  <input
-                    type="text"
-                    value={answers[currentQ.id] || ''}
-                    onChange={(e) =>
-                      handleAnswer(currentQ.id, e.target.value, 'fill_blank')
-                    }
-                    onKeyDown={(e) =>
-                      e.key === 'Enter' && submitTextAnswer(currentQ.id)
-                    }
-                    disabled={
-                      exam.show_results_immediately &&
-                      immediateFeedback[currentQ.id]
-                    }
-                    placeholder="اكتب إجابتك هنا..."
-                    className="w-full rounded-xl border-2 border-border px-4 py-3 transition-colors focus:border-primary focus:outline-none"
-                    dir={dir}
-                  />
-                  {exam.show_results_immediately &&
-                    !immediateFeedback[currentQ.id] &&
-                    answers[currentQ.id] && (
-                      <button
-                        onClick={() => submitTextAnswer(currentQ.id)}
-                        className="mt-3 w-full rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-primary/90 sm:w-auto"
-                      >
-                        تحقق من الإجابة
-                      </button>
-                    )}
-                </div>
-              )}
-
-              {/* Essay / Correction — with handwriting image upload option */}
-              {(currentQ.question_type === 'essay' ||
-                currentQ.question_type === 'correction') && (
-                <div className="mt-4 flex flex-col gap-3">
-                  {/* Mode toggle: نص / صورة */}
-                  <div className="flex w-fit items-center gap-2 rounded-xl bg-slate-100 p-1">
-                    <button
-                      onClick={() =>
-                        setAnswerMode((prev) => ({
-                          ...prev,
-                          [currentQ.id]: 'text',
-                        }))
+                {/* Fill Blank */}
+                {currentQ.question_type === 'fill_blank' && (
+                  <div className="mt-4">
+                    <input
+                      type="text"
+                      value={answers[currentQ.id] || ''}
+                      onChange={(e) =>
+                        handleAnswer(currentQ.id, e.target.value, 'fill_blank')
+                      }
+                      onKeyDown={(e) =>
+                        e.key === 'Enter' && submitTextAnswer(currentQ.id)
                       }
                       disabled={
                         exam.show_results_immediately &&
                         immediateFeedback[currentQ.id]
                       }
-                      className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
-                        getMode(currentQ.id) === 'text'
-                          ? 'bg-white text-primary shadow-sm'
-                          : 'text-slate-500 hover:text-slate-700'
-                      }`}
-                    >
-                      <Keyboard className="h-3.5 w-3.5" />
-                      كتابة نصية
-                    </button>
-                    <button
-                      onClick={() =>
-                        setAnswerMode((prev) => ({
-                          ...prev,
-                          [currentQ.id]: 'image',
-                        }))
-                      }
-                      disabled={
-                        exam.show_results_immediately &&
-                        immediateFeedback[currentQ.id]
-                      }
-                      className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
-                        getMode(currentQ.id) === 'image'
-                          ? 'bg-white text-primary shadow-sm'
-                          : 'text-slate-500 hover:text-slate-700'
-                      }`}
-                    >
-                      <Camera className="h-3.5 w-3.5" />
-                      صورة بخط اليد
-                    </button>
-                  </div>
-
-                  {/* ─── Text mode ─── */}
-                  {getMode(currentQ.id) === 'text' && (
-                    <>
-                      <div className="flex justify-end">
+                      placeholder="اكتب إجابتك هنا..."
+                      className="w-full rounded-xl border-2 border-border px-4 py-3 transition-colors focus:border-primary focus:outline-none"
+                      dir={dir}
+                    />
+                    {exam.show_results_immediately &&
+                      !immediateFeedback[currentQ.id] &&
+                      answers[currentQ.id] && (
                         <button
-                          onClick={() => setShowMath(!showMath)}
-                          aria-expanded={showMath}
-                          className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-bold transition-colors ${
-                            showMath
-                              ? 'border-primary bg-primary text-white'
-                              : 'border-border bg-slate-50 text-slate-600 hover:bg-slate-100'
-                          }`}
+                          onClick={() => submitTextAnswer(currentQ.id)}
+                          className="mt-3 w-full rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-primary/90 sm:w-auto"
                         >
-                          <Calculator className="h-4 w-4" aria-hidden="true" />
-                          {showMath
-                            ? 'إغلاق لوحة الرياضيات'
-                            : 'كتابة رموز رياضية'}
+                          تحقق من الإجابة
                         </button>
-                      </div>
-
-                      {showMath ? (
-                        <MathLiveInput
-                          value={(answers[currentQ.id] as string) || ''}
-                          onChange={(val) =>
-                            handleAnswer(
-                              currentQ.id,
-                              val,
-                              currentQ.question_type
-                            )
-                          }
-                          className="w-full text-left font-mono"
-                        />
-                      ) : (
-                        <textarea
-                          value={
-                            (answers[currentQ.id] as string)?.startsWith(
-                              '[image:'
-                            )
-                              ? ''
-                              : (answers[currentQ.id] as string) || ''
-                          }
-                          onChange={(e) =>
-                            handleAnswer(
-                              currentQ.id,
-                              e.target.value,
-                              currentQ.question_type
-                            )
-                          }
-                          disabled={
-                            exam.show_results_immediately &&
-                            immediateFeedback[currentQ.id]
-                          }
-                          placeholder="اكتب إجابتك هنا بوضوح..."
-                          className="h-36 w-full resize-none rounded-xl border-2 border-border px-4 py-3 transition-colors focus:border-primary focus:outline-none"
-                          dir={dir}
-                        />
                       )}
+                  </div>
+                )}
 
-                      {exam.show_results_immediately &&
-                        !immediateFeedback[currentQ.id] &&
-                        answers[currentQ.id] && (
-                          <button
-                            onClick={() => submitTextAnswer(currentQ.id)}
-                            className="w-full rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-primary/90 sm:w-auto"
-                          >
-                            تحقق من الإجابة
-                          </button>
-                        )}
-                    </>
-                  )}
-
-                  {/* ─── Image mode ─── */}
-                  {getMode(currentQ.id) === 'image' && (
-                    <>
-                      <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-muted-foreground">
-                        <span className="mt-0.5 text-base leading-none text-amber-500">
-                          💡
-                        </span>
-                        <span>
-                          اكتب الإجابة على ورقة بيضاء بخط واضح، ثم صوّرها
-                          بكاميرا هاتفك أو ارفعها من جهازك. سيقوم الذكاء
-                          الاصطناعي بقراءتها وتقييمها.
-                        </span>
-                      </div>
-
-                      <HandwritingUploader
-                        questionId={currentQ.id}
-                        attemptId={attemptId}
-                        existingImageUrl={imageAnswers[currentQ.id] || null}
-                        onImageUploaded={(url) =>
-                          handleImageUploaded(currentQ.id, url, currentQ)
+                {/* Essay / Correction — with handwriting image upload option */}
+                {(currentQ.question_type === 'essay' ||
+                  currentQ.question_type === 'correction') && (
+                  <div className="mt-4 flex flex-col gap-3">
+                    {/* Mode toggle: نص / صورة */}
+                    <div className="flex w-fit items-center gap-2 rounded-xl bg-slate-100 p-1">
+                      <button
+                        onClick={() =>
+                          setAnswerMode((prev) => ({
+                            ...prev,
+                            [currentQ.id]: 'text',
+                          }))
                         }
-                        onImageRemoved={() => handleImageRemoved(currentQ.id)}
                         disabled={
                           exam.show_results_immediately &&
                           immediateFeedback[currentQ.id]
                         }
-                      />
+                        className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+                          getMode(currentQ.id) === 'text'
+                            ? 'bg-white text-primary shadow-sm'
+                            : 'text-slate-500 hover:text-slate-700'
+                        }`}
+                      >
+                        <Keyboard className="h-3.5 w-3.5" />
+                        كتابة نصية
+                      </button>
+                      <button
+                        onClick={() =>
+                          setAnswerMode((prev) => ({
+                            ...prev,
+                            [currentQ.id]: 'image',
+                          }))
+                        }
+                        disabled={
+                          exam.show_results_immediately &&
+                          immediateFeedback[currentQ.id]
+                        }
+                        className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+                          getMode(currentQ.id) === 'image'
+                            ? 'bg-white text-primary shadow-sm'
+                            : 'text-slate-500 hover:text-slate-700'
+                        }`}
+                      >
+                        <Camera className="h-3.5 w-3.5" />
+                        صورة بخط اليد
+                      </button>
+                    </div>
 
-                      {/* Vision grading loading */}
-                      {visionGrading[currentQ.id]?.loading && (
-                        <div className="flex items-center gap-3 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
-                          <Loader2 className="h-5 w-5 shrink-0 animate-spin text-primary" />
-                          <div>
-                            <p className="text-sm font-bold text-primary">
-                              الذكاء الاصطناعي يقرأ إجابتك...
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              يتم تحليل خط يدك وتقييم الحل
-                            </p>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Vision grading error */}
-                      {visionGrading[currentQ.id]?.error && (
-                        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-                          ⚠️ {visionGrading[currentQ.id]?.error}
-                        </div>
-                      )}
-
-                      {/* Vision grading result (practice mode) */}
-                      {visionGrading[currentQ.id]?.result &&
-                        exam.show_results_immediately && (
-                          <div
-                            className={`rounded-xl border-2 p-4 ${
-                              visionGrading[currentQ.id]!.result!.is_correct
-                                ? 'border-green-200 bg-green-50'
-                                : 'border-orange-200 bg-orange-50'
+                    {/* ─── Text mode ─── */}
+                    {getMode(currentQ.id) === 'text' && (
+                      <>
+                        <div className="flex justify-end">
+                          <button
+                            onClick={() => setShowMath(!showMath)}
+                            aria-expanded={showMath}
+                            className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-bold transition-colors ${
+                              showMath
+                                ? 'border-primary bg-primary text-white'
+                                : 'border-border bg-slate-50 text-slate-600 hover:bg-slate-100'
                             }`}
                           >
-                            <div className="mb-2 flex items-center justify-between">
-                              <h4
-                                className={`flex items-center gap-2 font-bold ${
-                                  visionGrading[currentQ.id]!.result!.is_correct
-                                    ? 'text-green-700'
-                                    : 'text-orange-700'
-                                }`}
-                              >
-                                {visionGrading[currentQ.id]!.result!
-                                  .is_correct ? (
-                                  <>
-                                    <CheckCircle className="h-5 w-5" /> ممتاز!
-                                  </>
-                                ) : (
-                                  <>
-                                    <Eye className="h-5 w-5" /> راجع إجابتك
-                                  </>
-                                )}
-                              </h4>
-                              <span
-                                className={`text-lg font-black ${
-                                  visionGrading[currentQ.id]!.result!.is_correct
-                                    ? 'text-green-600'
-                                    : 'text-orange-600'
-                                }`}
-                              >
-                                {
-                                  visionGrading[currentQ.id]!.result!
-                                    .earned_score
-                                }
-                                /{currentQ.points}
-                              </span>
+                            <Calculator
+                              className="h-4 w-4"
+                              aria-hidden="true"
+                            />
+                            {showMath
+                              ? 'إغلاق لوحة الرياضيات'
+                              : 'كتابة رموز رياضية'}
+                          </button>
+                        </div>
+
+                        {showMath ? (
+                          <MathLiveInput
+                            value={(answers[currentQ.id] as string) || ''}
+                            onChange={(val) =>
+                              handleAnswer(
+                                currentQ.id,
+                                val,
+                                currentQ.question_type
+                              )
+                            }
+                            className="w-full text-left font-mono"
+                          />
+                        ) : (
+                          <textarea
+                            value={
+                              (answers[currentQ.id] as string)?.startsWith(
+                                '[image:'
+                              )
+                                ? ''
+                                : (answers[currentQ.id] as string) || ''
+                            }
+                            onChange={(e) =>
+                              handleAnswer(
+                                currentQ.id,
+                                e.target.value,
+                                currentQ.question_type
+                              )
+                            }
+                            disabled={
+                              exam.show_results_immediately &&
+                              immediateFeedback[currentQ.id]
+                            }
+                            placeholder="اكتب إجابتك هنا بوضوح..."
+                            className="h-36 w-full resize-none rounded-xl border-2 border-border px-4 py-3 transition-colors focus:border-primary focus:outline-none"
+                            dir={dir}
+                          />
+                        )}
+
+                        {exam.show_results_immediately &&
+                          !immediateFeedback[currentQ.id] &&
+                          answers[currentQ.id] && (
+                            <button
+                              onClick={() => submitTextAnswer(currentQ.id)}
+                              className="w-full rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-primary/90 sm:w-auto"
+                            >
+                              تحقق من الإجابة
+                            </button>
+                          )}
+                      </>
+                    )}
+
+                    {/* ─── Image mode ─── */}
+                    {getMode(currentQ.id) === 'image' && (
+                      <>
+                        <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-muted-foreground">
+                          <span className="mt-0.5 text-base leading-none text-amber-500">
+                            💡
+                          </span>
+                          <span>
+                            اكتب الإجابة على ورقة بيضاء بخط واضح، ثم صوّرها
+                            بكاميرا هاتفك أو ارفعها من جهازك. سيقوم الذكاء
+                            الاصطناعي بقراءتها وتقييمها.
+                          </span>
+                        </div>
+
+                        <HandwritingUploader
+                          questionId={currentQ.id}
+                          attemptId={attemptId}
+                          existingImageUrl={imageAnswers[currentQ.id] || null}
+                          onImageUploaded={(url) =>
+                            handleImageUploaded(currentQ.id, url, currentQ)
+                          }
+                          onImageRemoved={() => handleImageRemoved(currentQ.id)}
+                          disabled={
+                            exam.show_results_immediately &&
+                            immediateFeedback[currentQ.id]
+                          }
+                        />
+
+                        {/* Vision grading loading */}
+                        {visionGrading[currentQ.id]?.loading && (
+                          <div className="flex items-center gap-3 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
+                            <Loader2 className="h-5 w-5 shrink-0 animate-spin text-primary" />
+                            <div>
+                              <p className="text-sm font-bold text-primary">
+                                الذكاء الاصطناعي يقرأ إجابتك...
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                يتم تحليل خط يدك وتقييم الحل
+                              </p>
                             </div>
-                            {visionGrading[currentQ.id]!.result!
-                              .extracted_text && (
-                              <div className="mb-2 rounded-lg bg-white/60 px-3 py-2 text-xs text-slate-600">
-                                <span className="mb-1 block font-bold">
-                                  ما قرأه الذكاء الاصطناعي:
-                                </span>
-                                {
-                                  visionGrading[currentQ.id]!.result!
-                                    .extracted_text
-                                }
-                              </div>
-                            )}
-                            <p className="text-sm text-slate-700">
-                              {visionGrading[currentQ.id]!.result!.feedback}
-                            </p>
                           </div>
                         )}
-                    </>
-                  )}
-                </div>
-              )}
+
+                        {/* Vision grading error */}
+                        {visionGrading[currentQ.id]?.error && (
+                          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                            ⚠️ {visionGrading[currentQ.id]?.error}
+                          </div>
+                        )}
+
+                        {/* Vision grading result (practice mode) */}
+                        {visionGrading[currentQ.id]?.result &&
+                          exam.show_results_immediately && (
+                            <div
+                              className={`rounded-xl border-2 p-4 ${
+                                visionGrading[currentQ.id]!.result!.is_correct
+                                  ? 'border-green-200 bg-green-50'
+                                  : 'border-orange-200 bg-orange-50'
+                              }`}
+                            >
+                              <div className="mb-2 flex items-center justify-between">
+                                <h4
+                                  className={`flex items-center gap-2 font-bold ${
+                                    visionGrading[currentQ.id]!.result!
+                                      .is_correct
+                                      ? 'text-green-700'
+                                      : 'text-orange-700'
+                                  }`}
+                                >
+                                  {visionGrading[currentQ.id]!.result!
+                                    .is_correct ? (
+                                    <>
+                                      <CheckCircle className="h-5 w-5" /> ممتاز!
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Eye className="h-5 w-5" /> راجع إجابتك
+                                    </>
+                                  )}
+                                </h4>
+                                <span
+                                  className={`text-lg font-black ${
+                                    visionGrading[currentQ.id]!.result!
+                                      .is_correct
+                                      ? 'text-green-600'
+                                      : 'text-orange-600'
+                                  }`}
+                                >
+                                  {
+                                    visionGrading[currentQ.id]!.result!
+                                      .earned_score
+                                  }
+                                  /{currentQ.points}
+                                </span>
+                              </div>
+                              {visionGrading[currentQ.id]!.result!
+                                .extracted_text && (
+                                <div className="mb-2 rounded-lg bg-white/60 px-3 py-2 text-xs text-slate-600">
+                                  <span className="mb-1 block font-bold">
+                                    ما قرأه الذكاء الاصطناعي:
+                                  </span>
+                                  {
+                                    visionGrading[currentQ.id]!.result!
+                                      .extracted_text
+                                  }
+                                </div>
+                              )}
+                              <p className="text-sm text-slate-700">
+                                {visionGrading[currentQ.id]!.result!.feedback}
+                              </p>
+                            </div>
+                          )}
+                      </>
+                    )}
+                  </div>
+                )}
 
                 {/* Immediate Feedback Box (Practice Mode) */}
                 {exam.show_results_immediately &&
                   immediateFeedback[currentQ.id] &&
                   currentQ.correct_answer && (
-                    <div className={`mt-5 overflow-hidden rounded-2xl border-2 ${
-                      checkAnswer(answers[currentQ.id] as string, currentQ.correct_answer, currentQ.question_type)
-                        ? 'border-emerald-300 bg-emerald-50'
-                        : 'border-rose-300 bg-rose-50'
-                    }`}>
+                    <div
+                      className={`mt-5 overflow-hidden rounded-2xl border-2 ${
+                        checkAnswer(
+                          answers[currentQ.id] as string,
+                          currentQ.correct_answer,
+                          currentQ.question_type
+                        )
+                          ? 'border-emerald-300 bg-emerald-50'
+                          : 'border-rose-300 bg-rose-50'
+                      }`}
+                    >
                       {/* Result header */}
-                      <div className={`flex items-center gap-2 px-4 py-3 font-bold ${
-                        checkAnswer(answers[currentQ.id] as string, currentQ.correct_answer, currentQ.question_type)
-                          ? 'bg-emerald-100 text-emerald-800'
-                          : 'bg-rose-100 text-rose-800'
-                      }`}>
-                        {checkAnswer(answers[currentQ.id] as string, currentQ.correct_answer, currentQ.question_type) ? (
-                          <><CheckCircle className="h-5 w-5" /> إجابة صحيحة! أحسنت صنعاً</>
+                      <div
+                        className={`flex items-center gap-2 px-4 py-3 font-bold ${
+                          checkAnswer(
+                            answers[currentQ.id] as string,
+                            currentQ.correct_answer,
+                            currentQ.question_type
+                          )
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : 'bg-rose-100 text-rose-800'
+                        }`}
+                      >
+                        {checkAnswer(
+                          answers[currentQ.id] as string,
+                          currentQ.correct_answer,
+                          currentQ.question_type
+                        ) ? (
+                          <>
+                            <CheckCircle className="h-5 w-5" /> إجابة صحيحة!
+                            أحسنت صنعاً
+                          </>
                         ) : (
-                          <><XCircle className="h-5 w-5" /> إجابة خاطئة</>
+                          <>
+                            <XCircle className="h-5 w-5" /> إجابة خاطئة
+                          </>
                         )}
                       </div>
 
                       <div className="space-y-3 p-4">
                         {/* Correct answer - always shown */}
-                        <div className="flex items-start gap-2 rounded-xl bg-white border border-emerald-200 px-4 py-3">
+                        <div className="flex items-start gap-2 rounded-xl border border-emerald-200 bg-white px-4 py-3">
                           <CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
                           <div>
-                            <p className="text-xs font-bold text-emerald-700 mb-0.5">الإجابة الصحيحة</p>
+                            <p className="mb-0.5 text-xs font-bold text-emerald-700">
+                              الإجابة الصحيحة
+                            </p>
                             <MathRenderer
-                              text={getDisplayCorrectAnswer(currentQ.correct_answer, currentQ.question_type)}
+                              text={getDisplayCorrectAnswer(
+                                currentQ.correct_answer,
+                                currentQ.question_type
+                              )}
                               className="text-sm font-semibold text-slate-800"
                               dir={dir}
                             />
@@ -1189,13 +1199,17 @@ export function ExamInterface({
 
                         {/* Explanation - if exists */}
                         {currentQ.explanation && (
-                          <div className="flex items-start gap-2 rounded-xl bg-white border border-slate-200 px-4 py-3">
-                            <span className="text-lg leading-none shrink-0">💡</span>
+                          <div className="flex items-start gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3">
+                            <span className="shrink-0 text-lg leading-none">
+                              💡
+                            </span>
                             <div>
-                              <p className="text-xs font-bold text-slate-500 mb-0.5">شرح وتفسير</p>
+                              <p className="mb-0.5 text-xs font-bold text-slate-500">
+                                شرح وتفسير
+                              </p>
                               <MathRenderer
                                 text={currentQ.explanation}
-                                className="text-sm text-slate-700 leading-relaxed"
+                                className="text-sm leading-relaxed text-slate-700"
                                 dir={dir}
                               />
                             </div>
@@ -1203,18 +1217,26 @@ export function ExamInterface({
                         )}
 
                         {/* AI Explain Button - wrong answers only */}
-                        {!checkAnswer(answers[currentQ.id] as string, currentQ.correct_answer, currentQ.question_type) && (
+                        {!checkAnswer(
+                          answers[currentQ.id] as string,
+                          currentQ.correct_answer,
+                          currentQ.question_type
+                        ) && (
                           <AIExplainButton
                             questionId={currentQ.id}
                             questionText={currentQ.question_text}
-                            correctAnswer={getDisplayCorrectAnswer(currentQ.correct_answer, currentQ.question_type)}
+                            correctAnswer={getDisplayCorrectAnswer(
+                              currentQ.correct_answer,
+                              currentQ.question_type
+                            )}
                             studentAnswer={answers[currentQ.id] as string}
                           />
                         )}
                       </div>
                     </div>
                   )}
-              </div>{/* end question body */}
+              </div>
+              {/* end question body */}
             </div>
           )
         })}

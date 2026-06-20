@@ -55,7 +55,11 @@ export async function middleware(request: NextRequest) {
           supabaseResponse = NextResponse.next({ request })
           // ── الخطوة 3: اكتب الكوكيز على الـ response حتى تصل للمتصفح
           cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options as Parameters<typeof supabaseResponse.cookies.set>[2])
+            supabaseResponse.cookies.set(
+              name,
+              value,
+              options as Parameters<typeof supabaseResponse.cookies.set>[2]
+            )
           )
         },
       },
@@ -67,8 +71,22 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser()
   const pathname = request.nextUrl.pathname
 
+  // ── 0. حماية IP على مسارات المصادقة ضد هجمات التخمين (Brute-Force) ─────────────
+  if (pathname.startsWith('/auth/') || pathname.startsWith('/api/auth/')) {
+    const ip =
+      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+      request.headers.get('x-real-ip') ||
+      '127.0.0.1'
+    const rateCheck = await checkIPRateLimit(ip, 20, 60000) // 20 طلب في الدقيقة
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        { error: 'تجاوزت عدد المحاولات المسموح به. يرجى المحاولة لاحقاً.' },
+        { status: 429 }
+      )
+    }
+  }
+
   // ── Session Timeout لمديري المدارس (30 دقيقة خمول) ─────────────────────
-  // يتوافق مع FERPA / NIST 800-63B: المستخدمون الإداريون يجب أن تنتهي جلساتهم تلقائياً
   const SCHOOL_SESSION_TIMEOUT_MS = 30 * 60 * 1000 // 30 دقيقة
   const isSchoolRoute = pathname.startsWith('/school')
 
@@ -81,7 +99,11 @@ export async function middleware(request: NextRequest) {
       if (elapsed > SCHOOL_SESSION_TIMEOUT_MS) {
         // انتهت الجلسة → تسجيل خروج وإعادة توجيه
         await supabase.auth.signOut()
-        const loginRedirect = redirectWithCookies(request, '/auth/school/login', supabaseResponse)
+        const loginRedirect = redirectWithCookies(
+          request,
+          '/auth/school/login',
+          supabaseResponse
+        )
         loginRedirect.cookies.delete('school_last_activity')
         return loginRedirect
       }
@@ -98,12 +120,8 @@ export async function middleware(request: NextRequest) {
   }
 
   // ── Session Timeout للمعلمين (30 دقيقة خمول) ─────────────────────
-  // يتوافق مع معايير NIST 800-63B لحماية جلسات المعلمين الإدارية
   const TEACHER_SESSION_TIMEOUT_MS = 30 * 60 * 1000 // 30 دقيقة
   const isTeacherRoute = pathname.startsWith('/teacher')
-
-  // استثناء: صفحة انتهاء التجربة يجب أن تكون قابلة للوصول دائماً
-  // لمنع حلقة إعادة توجيه لانهائية عند انتهاء الجلسة هناك
   const isTrialExpiredPage = pathname === '/teacher/trial-expired'
 
   if (user && isTeacherRoute && !isTrialExpiredPage) {
@@ -114,7 +132,11 @@ export async function middleware(request: NextRequest) {
       const elapsed = now - parseInt(lastActivity, 10)
       if (elapsed > TEACHER_SESSION_TIMEOUT_MS) {
         await supabase.auth.signOut()
-        const loginRedirect = redirectWithCookies(request, '/auth/login', supabaseResponse)
+        const loginRedirect = redirectWithCookies(
+          request,
+          '/auth/login',
+          supabaseResponse
+        )
         loginRedirect.cookies.delete('teacher_last_activity')
         return loginRedirect
       }
@@ -142,42 +164,10 @@ export async function middleware(request: NextRequest) {
     return supabaseResponse
   }
 
-  // ── 0. حماية IP على مسارات المصادقة ضد هجمات التخمين (Brute-Force) ─────────────
-  if (pathname.startsWith('/auth/') || pathname.startsWith('/api/auth/')) {
-    const ip =
-      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-      request.headers.get('x-real-ip') ||
-      '127.0.0.1'
-    const rateCheck = await checkIPRateLimit(ip, 20, 60000) // 20 طلب في الدقيقة
-    if (!rateCheck.allowed) {
-      return NextResponse.json(
-        { error: 'تجاوزت عدد المحاولات المسموح به. يرجى المحاولة لاحقاً.' },
-        { status: 429 }
-      )
-    }
-  }
+  // ── 4. استخراج الدور من الـ JWT Metadata مباشرة (Zero-DB Hits!) ──────────
+  const role = user?.user_metadata?.role || null
 
-  // ── إصلاح: جلب الـ profile مرة واحدة فقط بدلاً من 3 استعلامات ──────────
-  // يُقلص latency بـ 100–300ms لكل طلب ويُخفف الضغط على connection pool
-  let profileRole: string | null = null
-  let profileFetched = false
-
-  async function getProfileRole(): Promise<string | null> {
-    if (profileFetched) return profileRole
-    profileFetched = true
-    if (!user) return null
-
-    const { data } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .maybeSingle()
-
-    profileRole = data?.role ?? null
-    return profileRole
-  }
-
-  // ── 0b. حماية مسارات API الخاصة بالمعلمين والأدمن والمدارس ──────────────────────
+  // ── 5. حماية مسارات API الخاصة بالمعلمين والأدمن والمدارس بالاعتماد على JWT ──────
   const isTeacherAPI = pathname.startsWith('/api/teacher/')
   const isAdminAPI = pathname.startsWith('/api/admin/')
   const isSchoolAPI = pathname.startsWith('/api/school/')
@@ -189,8 +179,6 @@ export async function middleware(request: NextRequest) {
         { status: 401 }
       )
     }
-
-    const role = await getProfileRole()
 
     if (isTeacherAPI && role !== 'teacher') {
       return NextResponse.json(
@@ -214,23 +202,18 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // ── 1. غير مسجل يحاول الوصول لمسار محمي → صفحة الدخول ──────────────────
+  // ── 6. غير مسجل يحاول الوصول لمسار محمي → صفحة الدخول ──────────────────
   if (!user && isProtectedRoute) {
     return redirectWithCookies(request, '/auth/login', supabaseResponse)
   }
 
-  // ── 2. مسجل يحاول الوصول لمسار محمي → تحقق من الدور ──────────────────────
+  // ── 7. مسجل يحاول الوصول لمسار محمي → تحقق من الدور والتوجيه (Zero-DB) ─────
   if (user && isProtectedRoute) {
-    const role = await getProfileRole() // يُعيد القيمة المخزّنة إذا سبق جلبها
-
-    // خطأ في جلب البروفايل (الدالة ستُعيد null) — اترك الصفحة تتعامل معه
-    if (role === null && profileFetched) {
-      // لا يوجد بروفايل أصلاً (مستخدم جديد)
-      // أدمن أو معلم بدون بروفايل → صفحة الدخول
+    if (role === null) {
+      // لا يوجد دور (مستخدم جديد)
       if (isAdminRoute || isTeacherRoute) {
         return redirectWithCookies(request, '/auth/login', supabaseResponse)
       }
-      // طالب بدون بروفايل → onboarding
       if (pathname === '/student/onboarding') return supabaseResponse
       return redirectWithCookies(
         request,
@@ -239,102 +222,95 @@ export async function middleware(request: NextRequest) {
       )
     }
 
-    if (role) {
-      // ── حماية المسارات بحسب الدور ─────────────────────────────────────────
+    // منع تداخل مسارات الأدوار المختلفة
+    if (
+      role === 'admin' &&
+      (isStudentRoute || isTeacherRoute || isSchoolAdminRoute)
+    ) {
+      return redirectWithCookies(request, '/admin/dashboard', supabaseResponse)
+    }
 
-      // الأدمن يحاول الدخول لمسار طالب أو معلم أو مدرسة → لوحة الأدمن
-      if (
-        role === 'admin' &&
-        (isStudentRoute || isTeacherRoute || isSchoolAdminRoute)
-      ) {
+    if (
+      role === 'school_admin' &&
+      (isAdminRoute || isStudentRoute || isTeacherRoute)
+    ) {
+      return redirectWithCookies(request, '/school/dashboard', supabaseResponse)
+    }
+
+    if (
+      role === 'teacher' &&
+      (isAdminRoute || isStudentRoute || isSchoolAdminRoute)
+    ) {
+      return redirectWithCookies(
+        request,
+        '/teacher/dashboard',
+        supabaseResponse
+      )
+    }
+
+    if (
+      role === 'student' &&
+      (isAdminRoute || isTeacherRoute || isSchoolAdminRoute)
+    ) {
+      return redirectWithCookies(
+        request,
+        '/student/dashboard',
+        supabaseResponse
+      )
+    }
+
+    // ── فحص اختيار الصف للطالب (Zero-DB) ──
+    if (role === 'student' && isStudentRoute) {
+      const hasGrade = !!user.user_metadata?.grade_id
+      const isOnboardingPage = pathname === '/student/onboarding'
+
+      if (!hasGrade && !isOnboardingPage) {
         return redirectWithCookies(
           request,
-          '/admin/dashboard',
+          '/student/onboarding',
           supabaseResponse
         )
       }
 
-      // مدير المدرسة يحاول الدخول لمسار أدمن أو طالب أو معلم → لوحة المدرسة
-      if (
-        role === 'school_admin' &&
-        (isAdminRoute || isStudentRoute || isTeacherRoute)
-      ) {
-        return redirectWithCookies(
-          request,
-          '/school/dashboard',
-          supabaseResponse
-        )
-      }
-
-      // المعلم يحاول الدخول لمسار أدمن أو طالب أو مدرسة → لوحة المعلم
-      if (
-        role === 'teacher' &&
-        (isAdminRoute || isStudentRoute || isSchoolAdminRoute)
-      ) {
-        return redirectWithCookies(
-          request,
-          '/teacher/dashboard',
-          supabaseResponse
-        )
-      }
-
-      // الطالب يحاول الدخول لمسار أدمن أو معلم أو مدرسة → لوحة الطالب
-      if (
-        role === 'student' &&
-        (isAdminRoute || isTeacherRoute || isSchoolAdminRoute)
-      ) {
+      if (hasGrade && isOnboardingPage) {
         return redirectWithCookies(
           request,
           '/student/dashboard',
           supabaseResponse
         )
       }
+    }
 
-      // ── فحص اختيار الصف للطالب ──────────────────────────────────────────────
-      if (role === 'student' && isStudentRoute) {
-        const { data: student } = await supabase
-          .from('students')
-          .select('grade_id')
-          .eq('id', user.id)
-          .maybeSingle()
+    // ── فحص اختيار المادة للمعلم (Zero-DB: منع تخطي الإعداد) ──
+    if (role === 'teacher' && isTeacherRoute) {
+      const hasSubject = !!user.user_metadata?.subject_id
+      const isOnboardingPage = pathname === '/auth/teacher-onboarding'
 
-        const hasGrade = !!student?.grade_id
-        const isOnboardingPage = pathname === '/student/onboarding'
+      if (!hasSubject && !isOnboardingPage) {
+        return redirectWithCookies(
+          request,
+          '/auth/teacher-onboarding',
+          supabaseResponse
+        )
+      }
 
-        if (!hasGrade && !isOnboardingPage) {
-          // طالب لم يختر صفه → Onboarding
-          return redirectWithCookies(
-            request,
-            '/student/onboarding',
-            supabaseResponse
-          )
-        }
-
-        if (hasGrade && isOnboardingPage) {
-          // طالب اختار صفه بالفعل ويحاول الدخول للـ Onboarding → Dashboard
-          return redirectWithCookies(
-            request,
-            '/student/dashboard',
-            supabaseResponse
-          )
-        }
+      if (hasSubject && isOnboardingPage) {
+        return redirectWithCookies(
+          request,
+          '/teacher/dashboard',
+          supabaseResponse
+        )
       }
     }
   }
 
-  // ── 3. المستخدم المسجل على الصفحة الرئيسية أو صفحة تسجيل دخول المعلم → وجهه للوحة التحكم ──
+  // ── 8. المستخدم المسجل على الصفحة الرئيسية أو صفحة تسجيل دخول المعلم → وجهه للوحة التحكم ──
   const isTeacherLoginPage = pathname === '/auth/teacher-login'
   if (user && (pathname === '/' || isTeacherLoginPage)) {
-    const role = await getProfileRole() // يُعيد القيمة المخزّنة إذا سبق جلبها
-
     if (role === 'admin') {
       return redirectWithCookies(request, '/admin/dashboard', supabaseResponse)
     } else if (role === 'school_admin') {
-      return redirectWithCookies(
-        request,
-        '/school/dashboard',
-        supabaseResponse
-      )
+      return redirectWithCookies(request, '/school/dashboard', supabaseResponse)
     } else if (role === 'teacher') {
       return redirectWithCookies(
         request,

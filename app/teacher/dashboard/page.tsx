@@ -1,16 +1,29 @@
-import { getCurrentProfile } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import {
   Users,
   FileText,
   TrendingUp,
-  Link as LinkIcon,
-  PlusCircle,
   Clock,
   ShieldCheck,
   AlertTriangle,
+  PlusCircle,
 } from 'lucide-react'
 import Link from 'next/link'
+
+interface StudentGroupRow {
+  id: string
+  name_ar: string
+  invite_code: string
+  group_students: { count: number }[]
+}
+
+interface TeacherExamRow {
+  id: string
+  title: string
+  is_published: boolean
+  student_groups: { name_ar: string } | null
+}
+
 import { redirect } from 'next/navigation'
 import {
   AnimatedBanner,
@@ -19,32 +32,43 @@ import {
 } from '@/components/teacher/DashboardAnimations'
 
 export default async function TeacherDashboard() {
-  const profile = await getCurrentProfile()
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) redirect('/auth/login')
+
+  // ⚡ استعلامات متوازية (Parallel Queries) لحل الـ Waterfall للوحة المعلم
+  const [profileResult, teacherResult, groupsResult, examsResult] =
+    await Promise.all([
+      supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
+
+      supabase
+        .from('teachers')
+        .select('is_verified, subscription_status, subscription_ends_at')
+        .eq('id', user.id)
+        .maybeSingle(),
+
+      supabase
+        .from('student_groups')
+        .select('*, group_students(count)')
+        .eq('teacher_id', user.id)
+        .order('created_at', { ascending: false }),
+
+      supabase
+        .from('exams')
+        .select('id, title, is_published, created_at, student_groups(name_ar)')
+        .eq('teacher_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(5),
+    ])
+
+  const profile = profileResult.data
   if (!profile || profile.role !== 'teacher') redirect('/auth/login')
 
-  const supabase = await createClient()
-
-  // Fetch teacher data including trial status
-  const { data: teacher } = await supabase
-    .from('teachers')
-    .select('is_verified, subscription_status, subscription_ends_at')
-    .eq('id', profile.id)
-    .maybeSingle()
-
-  // Fetch teacher's groups and total students
-  const { data: groups } = await supabase
-    .from('student_groups')
-    .select('*, group_students(count)')
-    .eq('teacher_id', profile.id)
-    .order('created_at', { ascending: false })
-
-  // Fetch teacher's exams
-  const { data: exams } = await supabase
-    .from('exams')
-    .select('id, title, is_published, created_at, student_groups(name_ar)')
-    .eq('teacher_id', profile.id)
-    .order('created_at', { ascending: false })
-    .limit(5)
+  const teacher = teacherResult.data
+  const groups = groupsResult.data as unknown as StudentGroupRow[] | null
+  const exams = examsResult.data as unknown as TeacherExamRow[] | null
 
   const totalGroups = groups?.length || 0
   const totalStudents =
@@ -64,11 +88,10 @@ export default async function TeacherDashboard() {
     : null
 
   return (
-    <div className="space-y-6">
-      {/* ── بانر الفترة التجريبية (يظهر للمعلمين غير الموثقين فقط) ── */}
+    <div className="space-y-6" dir="rtl">
+      {/* ── بانر الفترة التجريبية ── */}
       {isInTrial && (
         <div className="relative animate-fade-in overflow-hidden rounded-2xl border border-amber-200 bg-gradient-to-l from-amber-50 to-orange-50 p-5 shadow-sm">
-          {/* خلفية زخرفية */}
           <div className="pointer-events-none absolute -left-10 -top-10 h-40 w-40 rounded-full bg-amber-200/30 blur-2xl" />
           <div className="pointer-events-none absolute -bottom-6 -right-6 h-32 w-32 rounded-full bg-orange-200/40 blur-xl" />
 
@@ -81,14 +104,13 @@ export default async function TeacherDashboard() {
                 <p className="text-base font-black leading-tight text-amber-900">
                   حسابك في فترة التجربة — بانتظار موافقة الإدارة
                 </p>
-                <p className="mt-1 text-sm font-medium text-amber-700">
+                <p className="mt-1 text-sm text-amber-700">
                   يمكنك استخدام المنصة بالكامل الآن. بعد مراجعة بياناتك،
-                  سيُفعَّل حسابك بشكل دائم من قِبل الأدمن.
+                  سيُفعَّل حسابك بشكل دائم.
                 </p>
               </div>
             </div>
 
-            {/* عداد الأيام */}
             <div className="flex shrink-0 items-center gap-3 rounded-xl border border-amber-200 bg-white px-5 py-3 shadow-sm">
               <AlertTriangle className="h-5 w-5 shrink-0 text-amber-500" />
               <div className="text-center">
@@ -132,15 +154,13 @@ export default async function TeacherDashboard() {
                 href="/teacher/groups/new"
                 className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-white px-6 py-3 font-bold text-indigo-700 transition-colors hover:bg-indigo-50 md:flex-none"
               >
-                <PlusCircle className="h-5 w-5" />
-                مجموعة جديدة
+                <PlusCircle className="h-5 w-5" /> مجموعة جديدة
               </Link>
               <Link
                 href="/teacher/exams/new"
                 className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-indigo-400 bg-indigo-500 px-6 py-3 font-bold text-white transition-colors hover:bg-indigo-400 md:flex-none"
               >
-                <FileText className="h-5 w-5" />
-                اختبار جديد
+                <FileText className="h-5 w-5" /> اختبار جديد
               </Link>
             </div>
           </div>
@@ -194,18 +214,18 @@ export default async function TeacherDashboard() {
         </AnimatedStatCard>
       </div>
 
+      {/* الأقسام التفصيلية */}
       <AnimatedSection delay={0.4}>
         <div className="grid gap-6 md:grid-cols-2">
-          {/* Quick Groups View */}
+          {/* المجموعات */}
           <div className="flex flex-col overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
             <div className="flex items-center justify-between border-b border-border p-5">
               <h2 className="flex items-center gap-2 text-lg font-bold text-slate-800">
-                <Users className="h-5 w-5 text-indigo-500" />
                 أحدث مجموعاتك
               </h2>
               <Link
                 href="/teacher/groups"
-                className="text-sm font-bold text-indigo-600 hover:text-indigo-800"
+                className="text-sm font-bold text-indigo-600 hover:underline"
               >
                 عرض الكل
               </Link>
@@ -213,53 +233,42 @@ export default async function TeacherDashboard() {
             <div className="flex-1 p-5">
               {groups && groups.length > 0 ? (
                 <div className="space-y-3">
-                  {groups.slice(0, 4).map((group: any) => (
+                  {groups.slice(0, 4).map((group) => (
                     <div
                       key={group.id}
-                      className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 p-4 transition-colors hover:border-indigo-200"
+                      className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 p-4"
                     >
                       <div>
                         <h3 className="font-bold text-slate-800">
                           {group.name_ar}
                         </h3>
-                        <div className="mt-1 flex items-center gap-2 text-xs text-slate-500">
-                          <Users className="h-3.5 w-3.5" />{' '}
+                        <p className="text-xs text-slate-500">
                           {group.group_students[0]?.count || 0} طالب
-                        </div>
+                        </p>
                       </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <span className="text-[10px] font-bold text-slate-500">
-                          كود الدعوة
-                        </span>
-                        <span className="rounded border border-indigo-100 bg-indigo-50 px-2 py-1 font-mono font-bold tracking-widest text-indigo-600">
-                          {group.invite_code}
-                        </span>
-                      </div>
+                      <span className="rounded border border-indigo-100 bg-indigo-50 px-2 py-1 font-mono font-bold tracking-widest text-indigo-600">
+                        {group.invite_code}
+                      </span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="flex h-full flex-col items-center justify-center space-y-3 py-8 text-center text-slate-500">
-                  <Users className="h-12 w-12 text-slate-300" />
-                  <div>
-                    <p className="font-bold">لا توجد مجموعات بعد</p>
-                    <p className="text-sm">ابدأ بإنشاء مجموعة لطلابك لدعوتهم</p>
-                  </div>
-                </div>
+                <p className="py-6 text-center text-sm text-slate-500">
+                  لا توجد مجموعات حتى الآن.
+                </p>
               )}
             </div>
           </div>
 
-          {/* Recent Exams */}
+          {/* الاختبارات */}
           <div className="flex flex-col overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
             <div className="flex items-center justify-between border-b border-border p-5">
               <h2 className="flex items-center gap-2 text-lg font-bold text-slate-800">
-                <FileText className="h-5 w-5 text-emerald-500" />
                 أحدث الاختبارات
               </h2>
               <Link
                 href="/teacher/exams"
-                className="text-sm font-bold text-indigo-600 hover:text-indigo-800"
+                className="text-sm font-bold text-indigo-600 hover:underline"
               >
                 عرض الكل
               </Link>
@@ -267,18 +276,18 @@ export default async function TeacherDashboard() {
             <div className="flex-1 p-5">
               {exams && exams.length > 0 ? (
                 <div className="space-y-3">
-                  {exams.map((exam: any) => (
+                  {exams.map((exam) => (
                     <div
                       key={exam.id}
-                      className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 p-4 transition-colors hover:border-emerald-200"
+                      className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 p-4"
                     >
                       <div>
                         <h3 className="font-bold text-slate-800">
                           {exam.title}
                         </h3>
-                        <div className="mt-1 text-xs text-slate-500">
+                        <p className="text-xs text-slate-500">
                           مجموعة: {exam.student_groups?.name_ar || 'عام'}
-                        </div>
+                        </p>
                       </div>
                       <span
                         className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${exam.is_published ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}
@@ -289,15 +298,9 @@ export default async function TeacherDashboard() {
                   ))}
                 </div>
               ) : (
-                <div className="flex h-full flex-col items-center justify-center space-y-3 py-8 text-center text-slate-500">
-                  <FileText className="h-12 w-12 text-slate-300" />
-                  <div>
-                    <p className="font-bold">لم تنشئ أي اختبارات بعد</p>
-                    <p className="text-sm">
-                      يمكنك سحب الأسئلة من البنك المركزي بسهولة
-                    </p>
-                  </div>
-                </div>
+                <p className="py-6 text-center text-sm text-slate-500">
+                  لم تنشئ أي اختبارات بعد.
+                </p>
               )}
             </div>
           </div>

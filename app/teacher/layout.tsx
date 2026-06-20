@@ -52,6 +52,7 @@ export default async function TeacherLayout({
   // إذا المعلم غير موثق ولديه تاريخ انتهاء تجربة وقد انتهى
   const trialPath = '/teacher/trial-expired'
   if (
+    teacher &&
     !teacher.is_verified &&
     teacher.subscription_ends_at &&
     new Date(teacher.subscription_ends_at) < new Date()
@@ -63,7 +64,9 @@ export default async function TeacherLayout({
     <div
       className="flex min-h-screen"
       dir="rtl"
-      style={{ background: 'linear-gradient(180deg, #0a1628 0%, #070e1c 100%)' }}
+      style={{
+        background: 'linear-gradient(180deg, #0a1628 0%, #070e1c 100%)',
+      }}
     >
       {/* Desktop Sidebar — hidden on mobile */}
       <div className="hidden md:block">
@@ -73,7 +76,10 @@ export default async function TeacherLayout({
       {/* Main content area */}
       <div className="flex min-w-0 flex-1 flex-col md:mr-64">
         <TeacherTopbar profile={profile} />
-        <main id="main-content" className="flex-1 overflow-auto p-4 pb-28 md:p-6 md:pb-6 text-slate-100">
+        <main
+          id="main-content"
+          className="flex-1 overflow-auto p-4 pb-28 text-slate-100 md:p-6 md:pb-6"
+        >
           {children}
         </main>
       </div>

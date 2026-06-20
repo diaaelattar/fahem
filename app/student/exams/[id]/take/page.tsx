@@ -14,6 +14,33 @@ interface Props {
   searchParams: { attemptId?: string }
 }
 
+interface ExamRow {
+  id: string
+  title: string
+  duration_minutes: number
+  total_points: number
+  passing_score: number | null
+  show_results_immediately: boolean
+  instructions: string | null
+  subjects: { name_ar: string } | null
+}
+
+interface ExamQuestionTakeRow {
+  question_order: number
+  points_override: number | null
+  questions: {
+    id: string
+    question_type: 'mcq' | 'true_false' | 'fill_blank' | 'essay' | 'correction'
+    context_passage: string | null
+    question_text: string
+    options: string[] | null
+    points: number | null
+    question_image_url: string | null
+    correct_answer?: string | null
+    explanation?: string | null
+  } | null
+}
+
 export default async function TakeExamPage({ params, searchParams }: Props) {
   const profile = await requireStudent()
   const supabase = await createClient()
@@ -27,7 +54,7 @@ export default async function TakeExamPage({ params, searchParams }: Props) {
   // التحقق من أن المحاولة تخص هذا الطالب وهذا الاختبار
   const { data: attempt } = await supabase
     .from('exam_attempts')
-    .select('id, exam_id, student_id, completed_at, answers')
+    .select('id, exam_id, student_id, completed_at, answers, answer_images')
     .eq('id', attemptId)
     .eq('student_id', profile.id)
     .eq('exam_id', params.id)
@@ -75,6 +102,7 @@ export default async function TakeExamPage({ params, searchParams }: Props) {
     .single()
 
   if (!exam) notFound()
+  const typedExam = exam as unknown as ExamRow
 
   const isPracticeMode = exam.show_results_immediately === true
 
@@ -108,33 +136,38 @@ export default async function TakeExamPage({ params, searchParams }: Props) {
   }
 
   // بناء قائمة الأسئلة — الإجابات موجودة فقط في وضع التدريب
-  const questions = examQuestions
-    .filter((eq: any) => eq.questions !== null)
-    .sort((a: any, b: any) => a.question_order - b.question_order)
-    .map((eq: any) => ({
-      id: eq.questions.id,
-      question_type: eq.questions.question_type,
-      context_passage: eq.questions.context_passage,
-      question_text: eq.questions.question_text,
-      options: eq.questions.options,
-      // استخدم points_override إذا حددها المدير، وإلا فالدرجة الافتراضية من السؤال (1 كحد أدنى)
-      points: eq.points_override || Math.max(1, eq.questions.points || 1),
-      question_image_url: eq.questions.question_image_url,
-      // الإجابات الصحيحة فقط في وضع التدريب
-      ...(isPracticeMode
-        ? {
-            correct_answer: eq.questions.correct_answer,
-            explanation: eq.questions.explanation,
-          }
-        : {}),
-    }))
+  const questions = (examQuestions as unknown as ExamQuestionTakeRow[])
+    .filter((eq) => eq.questions !== null)
+    .sort((a, b) => a.question_order - b.question_order)
+    .map((eq) => {
+      const q = eq.questions!
+      return {
+        id: q.id,
+        question_type: q.question_type,
+        context_passage: q.context_passage,
+        question_text: q.question_text,
+        options: q.options as string[] | null,
+        // استخدم points_override إذا حددها المدير، وإلا فالدرجة الافتراضية من السؤال (1 كحد أدنى)
+        points: eq.points_override || Math.max(1, q.points || 1),
+        question_image_url: q.question_image_url,
+        // الإجابات الصحيحة فقط في وضع التدريب
+        ...(isPracticeMode
+          ? {
+              correct_answer: q.correct_answer || undefined,
+              explanation: q.explanation || undefined,
+            }
+          : {}),
+      }
+    })
 
   return (
     <ClientErrorBoundary sectionName="exam">
       <ExamInterface
-        exam={exam as any}
+        exam={typedExam}
         questions={questions}
         attemptId={attemptId}
+        initialAnswers={(attempt?.answers as Record<string, string>) || {}}
+        initialImages={(attempt?.answer_images as Record<string, string>) || {}}
       />
     </ClientErrorBoundary>
   )

@@ -4,18 +4,20 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 interface ExamState {
   examId: string | null
   attemptId: string | null
-  answers: Record<string, any> // questionId -> studentAnswer
+  answers: Record<string, string> // questionId -> studentAnswer
   timeRemainingSeconds: number | null
   isSubmitting: boolean
 
   startExam: (
     examId: string,
     attemptId: string,
-    durationSeconds: number
+    durationSeconds: number,
+    initialAnswers?: Record<string, string>
   ) => void
-  setAnswer: (questionId: string, answer: any) => void
+  setAnswer: (questionId: string, answer: string) => void
   tickTime: () => void
   submitExam: () => void
+  setSubmitting: (isSubmitting: boolean) => void
   clearSession: () => void
 }
 
@@ -28,11 +30,11 @@ export const useExamStore = create<ExamState>()(
       timeRemainingSeconds: null,
       isSubmitting: false,
 
-      startExam: (examId, attemptId, durationSeconds) =>
+      startExam: (examId, attemptId, durationSeconds, initialAnswers = {}) =>
         set({
           examId,
           attemptId,
-          answers: {},
+          answers: initialAnswers,
           timeRemainingSeconds: durationSeconds,
           isSubmitting: false,
         }),
@@ -56,6 +58,8 @@ export const useExamStore = create<ExamState>()(
 
       submitExam: () => set({ isSubmitting: true }),
 
+      setSubmitting: (isSubmitting) => set({ isSubmitting }),
+
       clearSession: () =>
         set({
           examId: null,
@@ -67,7 +71,7 @@ export const useExamStore = create<ExamState>()(
     }),
     {
       name: 'fahem-exam-storage', // unique name for localStorage
-      storage: createJSONStorage(() => sessionStorage), // Use sessionStorage so it survives reloads but clears on new tab
+      storage: createJSONStorage(() => localStorage), // Use localStorage for offline resilience (BUG-2)
     }
   )
 )

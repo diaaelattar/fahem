@@ -48,7 +48,7 @@ export default function LoginPage() {
         return
       }
 
-      // ✅ Fetch user role and redirect to the correct dashboard
+      // ✅ Fetch user role and redirect to the correct dashboard from user_metadata (Zero-DB Hits!)
       const {
         data: { user },
       } = await supabase.auth.getUser()
@@ -57,36 +57,22 @@ export default function LoginPage() {
         return
       }
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .maybeSingle()
+      const role = user.user_metadata?.role
 
       // ── استخدام window.location.href بدلاً من router.push لإجبار المتصفح ──
       // على تحديث كامل يضمن مزامنة كوكيز الجلسة مع الـ middleware
-      if (profile?.role === 'admin') {
+      if (role === 'admin') {
         window.location.href = '/admin/dashboard'
-      } else if (profile?.role === 'teacher') {
-        const { data: teacher } = await supabase
-          .from('teachers')
-          .select('subject_id')
-          .eq('id', user.id)
-          .maybeSingle()
-
-        if (!teacher?.subject_id) {
+      } else if (role === 'teacher') {
+        const hasSubject = !!user.user_metadata?.subject_id
+        if (!hasSubject) {
           window.location.href = '/auth/teacher-onboarding'
         } else {
           window.location.href = '/teacher/dashboard'
         }
-      } else if (profile?.role === 'student') {
-        const { data: student } = await supabase
-          .from('students')
-          .select('grade_id')
-          .eq('id', user.id)
-          .maybeSingle()
-
-        if (!student?.grade_id) {
+      } else if (role === 'student') {
+        const hasGrade = !!user.user_metadata?.grade_id
+        if (!hasGrade) {
           window.location.href = '/student/onboarding'
         } else {
           window.location.href = '/student/dashboard'
@@ -290,7 +276,7 @@ export default function LoginPage() {
                 إنشاء حساب مجاني <ArrowRight className="h-4 w-4 rotate-180" />
               </Link>
             </p>
-            <div className="border-t border-border pt-3 space-y-2">
+            <div className="space-y-2 border-t border-border pt-3">
               <Link
                 href="/auth/teacher-login"
                 className="inline-flex w-full items-center justify-center gap-2 rounded-xl border-2 border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-bold text-emerald-700 transition-colors hover:bg-emerald-100"

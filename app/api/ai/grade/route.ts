@@ -2,14 +2,22 @@ import { NextResponse } from 'next/server'
 import { AI_GRADING_PROMPT } from '@/lib/ai/prompts'
 
 // دالة لجلب الموديل المناسب للتقييم
-async function gradeWithFallback(prompt: string): Promise<any> {
+async function gradeWithFallback(prompt: string): Promise<unknown> {
   const models = ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-1.5-flash']
   let lastError = null
+
+  const keys = [
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY_2,
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY_3,
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY_4,
+  ].filter(Boolean) as string[]
+  const selectedKey = keys[Math.floor(Math.random() * keys.length)] || ''
 
   for (const model of models) {
     try {
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${selectedKey}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -67,10 +75,13 @@ export async function POST(req: Request) {
     const result = await gradeWithFallback(prompt)
 
     return NextResponse.json(result)
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error grading essay:', error)
     return NextResponse.json(
-      { error: 'Failed to grade answer', details: error.message },
+      {
+        error: 'Failed to grade answer',
+        details: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 }
     )
   }
