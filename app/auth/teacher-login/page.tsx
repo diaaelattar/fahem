@@ -304,19 +304,25 @@ export default function TeacherLoginPage() {
             <p className="text-sm font-medium text-slate-600">
               معلم جديد؟{' '}
               <Link
-                href="/auth/register"
+                href="/auth/register?role=teacher"
                 className="mt-1 flex items-center justify-center gap-1 font-bold text-emerald-600 hover:underline"
               >
                 إنشاء حساب معلم مجاني{' '}
                 <ArrowRight className="h-4 w-4 rotate-180" />
               </Link>
             </p>
-            <div className="border-t border-border pt-3">
+            <div className="border-t border-border pt-3 space-y-2">
               <Link
-                href="/auth/login"
+                href="/auth/login?portal=student"
                 className="inline-flex w-full items-center justify-center gap-2 rounded-xl border-2 border-indigo-200 bg-indigo-50 px-4 py-2.5 text-sm font-bold text-indigo-700 transition-colors hover:bg-indigo-100"
               >
                 🎓 أنا طالب — الذهاب لبوابة الطلاب
+              </Link>
+              <Link
+                href="/auth/school/login"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border-2 border-cyan-200 bg-cyan-50 px-4 py-2 text-xs font-bold text-cyan-800 transition-colors hover:bg-cyan-100"
+              >
+                🏛️ بوابة الإدارة المدرسية والمنشآت
               </Link>
             </div>
           </div>

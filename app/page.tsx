@@ -226,17 +226,27 @@ export default function HomePage() {
         setSchoolLoginSuccess('تم تسجيل دخول المشرف بنجاح! جاري التوجيه للوحة تحكم الإدارة العامة...')
         setTimeout(() => {
           window.location.href = '/admin/dashboard'
-        }, 1500)
+        }, 1200)
+      } else if (profile?.role === 'school_admin') {
+        setSchoolLoginSuccess('تم تسجيل دخول مدير المدرسة بنجاح! جاري التوجيه للوحة تحكم المدرسة...')
+        setTimeout(() => {
+          window.location.href = '/school/dashboard'
+        }, 1200)
       } else if (profile?.role === 'teacher') {
-        setSchoolLoginSuccess('تم تسجيل دخول قائد المجموعة بنجاح! جاري التوجيه للوحة تحكم المعلمين...')
+        setSchoolLoginSuccess('تم تسجيل دخول المعلم بنجاح! جاري التوجيه للوحة تحكم المعلمين...')
         setTimeout(() => {
           window.location.href = '/teacher/dashboard'
-        }, 1500)
-      } else {
-        setSchoolLoginSuccess('تم التحقق بنجاح! حسابك مسجل ومحفوظ بأمان. جاري إعداد وتوجيه بوابتكم للمدارس...')
+        }, 1200)
+      } else if (profile?.role === 'student') {
+        setSchoolLoginSuccess('تم تسجيل الدخول بنجاح! جاري التوجيه للوحة تحكم الطالب...')
         setTimeout(() => {
           window.location.href = '/student/dashboard'
-        }, 2000)
+        }, 1200)
+      } else {
+        setSchoolLoginSuccess('تم التحقق بنجاح! جاري التوجيه للوحة التحكم...')
+        setTimeout(() => {
+          window.location.href = '/school/dashboard'
+        }, 1500)
       }
     } catch (err: any) {
       setSchoolLoginError(err.message || 'فشل في الاتصال بمزود المصادقة.')
@@ -903,39 +913,80 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="grid gap-8 md:grid-cols-2">
+          <div className="grid gap-6 md:grid-cols-3">
             {/* Student CTA */}
-            <div className="flex flex-col items-center rounded-3xl border border-indigo-500/10 bg-[#0b1426] p-8 text-center transition-all duration-300 hover:border-amber-500/25 hover:shadow-xl hover:shadow-amber-500/5">
-              <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl border border-indigo-500/20 bg-[#070e1c] shadow-inner">
-                <Trophy className="h-8 w-8 text-amber-500" />
+            <div className="flex flex-col items-center rounded-3xl border border-indigo-500/10 bg-[#0b1426] p-7 text-center transition-all duration-300 hover:border-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/5">
+              <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-indigo-500/20 bg-[#070e1c] shadow-inner text-indigo-400">
+                <Trophy className="h-7 w-7 text-amber-400" />
               </div>
-              <h3 className="mb-3 text-2xl font-black text-white">بوابة الطالب المتفوق</h3>
-              <p className="mb-8 flex-1 text-sm leading-relaxed text-slate-400 font-medium">
-                تحدى أقرانك في منافسات ١ ضد ١ حية، حل تدريبات تفاعلية مكيّفة بمستواك، اجمع نقاط الخبرة (XP)، وتصدر لوحة الشرف الأسبوعية على مستوى جمهورية مصر العربية!
+              <h3 className="mb-2 text-xl font-black text-white">بوابة الطلاب</h3>
+              <p className="mb-6 flex-1 text-xs leading-relaxed text-slate-400 font-medium">
+                تحدى أقرانك في منافسات ١ ضد ١ حية، حل تدريبات تفاعلية مكيّفة بمستواك، اجمع نقاط XP وتصدر لوحة الشرف الأسبوعية على مستوى الجمهورية!
               </p>
-              <Link
-                href="/auth/register"
-                className="w-full rounded-xl bg-indigo-600 hover:bg-indigo-500 py-4 font-bold text-white shadow-lg shadow-indigo-600/10 transition-all"
-              >
-                إنشاء حساب طالب مجاناً
-              </Link>
+              <div className="w-full space-y-2">
+                <Link
+                  href="/auth/login?portal=student"
+                  className="block w-full rounded-xl bg-indigo-600 hover:bg-indigo-500 py-3 text-xs sm:text-sm font-bold text-white shadow-md shadow-indigo-600/10 transition-all"
+                >
+                  دخول بوابة الطلاب
+                </Link>
+                <Link
+                  href="/auth/register"
+                  className="block w-full rounded-xl border border-indigo-500/30 bg-indigo-950/20 hover:bg-indigo-950/40 py-2.5 text-xs font-semibold text-slate-300 transition-all"
+                >
+                  إنشاء حساب طالب جديد
+                </Link>
+              </div>
             </div>
 
             {/* Teacher CTA */}
-            <div className="flex flex-col items-center rounded-3xl border border-indigo-500/10 bg-[#0b1426] p-8 text-center transition-all duration-300 hover:border-indigo-500/25 hover:shadow-xl hover:shadow-indigo-500/5">
-              <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl border border-indigo-500/20 bg-[#070e1c] shadow-inner">
-                <Brain className="h-8 w-8 text-indigo-400" />
+            <div className="flex flex-col items-center rounded-3xl border border-amber-500/15 bg-[#0b1426] p-7 text-center transition-all duration-300 hover:border-amber-500/35 hover:shadow-xl hover:shadow-amber-500/5">
+              <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-amber-500/20 bg-[#070e1c] shadow-inner text-amber-400">
+                <Brain className="h-7 w-7" />
               </div>
-              <h3 className="mb-3 text-2xl font-black text-white">بوابة المعلم المبدع</h3>
-              <p className="mb-8 flex-1 text-sm leading-relaxed text-slate-400 font-medium">
-                أدر مجموعات فصولك ودروسك بذكاء، صمم امتحانات شاملة من الكتب ومقاطع يوتيوب في ثوانٍ، وتتبع تقارير أداء ومستوى استيعاب كل طالب تلقائياً دون تصحيح يدوي.
+              <h3 className="mb-2 text-xl font-black text-white">بوابة المعلمين</h3>
+              <p className="mb-6 flex-1 text-xs leading-relaxed text-slate-400 font-medium">
+                أدر مجموعات فصولك، صمم امتحانات شاملة من الكتب والفيديوهات في ٤٥ ثانية، وتتبع تقارير أداء واستيعاب كل طالب تلقائياً دون تصحيح يدوي.
               </p>
-              <Link
-                href="/auth/register?role=teacher"
-                className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 py-4 font-black text-slate-900 shadow-lg shadow-amber-500/10 transition-all"
-              >
-                إنشاء بوابة معلم مجاناً
-              </Link>
+              <div className="w-full space-y-2">
+                <Link
+                  href="/auth/login?portal=teacher"
+                  className="block w-full rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 py-3 text-xs sm:text-sm font-black text-slate-900 shadow-md shadow-amber-500/10 transition-all"
+                >
+                  دخول بوابة المعلمين
+                </Link>
+                <Link
+                  href="/auth/register?role=teacher"
+                  className="block w-full rounded-xl border border-amber-500/30 bg-amber-950/20 hover:bg-amber-950/40 py-2.5 text-xs font-semibold text-amber-200 transition-all"
+                >
+                  إنشاء حساب معلم مجاناً
+                </Link>
+              </div>
+            </div>
+
+            {/* School CTA */}
+            <div className="flex flex-col items-center rounded-3xl border border-cyan-500/15 bg-[#0b1426] p-7 text-center transition-all duration-300 hover:border-cyan-500/35 hover:shadow-xl hover:shadow-cyan-500/5">
+              <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-cyan-500/20 bg-[#070e1c] shadow-inner text-cyan-400">
+                <School className="h-7 w-7" />
+              </div>
+              <h3 className="mb-2 text-xl font-black text-white">بوابة الإدارة المدرسية</h3>
+              <p className="mb-6 flex-1 text-xs leading-relaxed text-slate-400 font-medium">
+                منظومة مخصصة باسم وشعار مدرستك، مع لوحة تحكم مركزية لمتابعة كافة المعلمين والفصول، وتقارير استيعاب دقيقة وربط مع أولياء الأمور.
+              </p>
+              <div className="w-full space-y-2">
+                <Link
+                  href="/auth/login?portal=school"
+                  className="block w-full rounded-xl bg-cyan-700 hover:bg-cyan-600 py-3 text-xs sm:text-sm font-bold text-white shadow-md shadow-cyan-700/10 transition-all"
+                >
+                  دخول إدارة المدرسة
+                </Link>
+                <a
+                  href="#schools"
+                  className="block w-full rounded-xl border border-cyan-500/30 bg-cyan-950/20 hover:bg-cyan-950/40 py-2.5 text-xs font-semibold text-cyan-300 transition-all"
+                >
+                  طلب انضمام وترخيص مدرسة
+                </a>
+              </div>
             </div>
           </div>
         </div>
@@ -1161,19 +1212,18 @@ export default function HomePage() {
             المنصة والمنظومة التعليمية والتحديات الذكية للطلاب والمعلمين والمدارس بجمهورية مصر العربية.
           </p>
 
-          <div className="my-4 flex w-full max-w-xl items-center justify-center gap-6 border-y border-indigo-500/10 py-4 text-xs sm:text-sm font-semibold">
-            <Link href="/auth/login" className="transition-colors hover:text-white">تسجيل الدخول</Link>
+          <div className="my-4 flex flex-wrap w-full max-w-2xl items-center justify-center gap-4 sm:gap-6 border-y border-indigo-500/10 py-4 text-xs sm:text-sm font-semibold">
+            <Link href="/auth/login?portal=student" className="transition-colors hover:text-white">بوابة الطلاب</Link>
             <span className="text-slate-800">|</span>
-            <Link href="/auth/register" className="transition-colors hover:text-white">حساب جديد</Link>
+            <Link href="/auth/login?portal=teacher" className="transition-colors hover:text-amber-400">بوابة المعلمين</Link>
+            <span className="text-slate-800">|</span>
+            <Link href="/auth/login?portal=school" className="transition-colors hover:text-cyan-400">بوابة المدارس</Link>
             <span className="text-slate-800">|</span>
             <Link href="/auth/admin-login" className="transition-colors hover:text-white">بوابة الإدارة</Link>
             <span className="text-slate-800">|</span>
-            <a
-              href="#schools"
-              className="transition-colors text-amber-400 hover:text-amber-300 font-bold"
-            >
-              استبق مصر للمدارس
-            </a>
+            <Link href="/auth/register" className="transition-colors text-amber-400 hover:text-amber-300 font-bold">
+              حساب جديد
+            </Link>
           </div>
 
           <p className="mt-2 text-xs font-semibold text-slate-500">

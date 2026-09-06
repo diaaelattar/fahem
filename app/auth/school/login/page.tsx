@@ -79,16 +79,21 @@ export default function SchoolLoginPage() {
     setMfaLoading(true)
     setError('')
     try {
-      const { data: challengeData, error: challengeErr } = await supabase.auth.mfa.challenge({
-        factorId: '', // يتم جلبه ديناميكياً
-      })
-
       // جلب العوامل النشطة أولاً
       const { data: factors } = await supabase.auth.mfa.listFactors()
       const totpFactor = factors?.totp?.[0]
 
       if (!totpFactor) {
         setError('لا يوجد عامل TOTP مسجّل.')
+        return
+      }
+
+      const { data: challengeData, error: challengeErr } = await supabase.auth.mfa.challenge({
+        factorId: totpFactor.id,
+      })
+
+      if (challengeErr) {
+        setError('فشل في إنشاء تحدي التحقق المزدوج: ' + challengeErr.message)
         return
       }
 

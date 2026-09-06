@@ -304,9 +304,15 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // ── 8. المستخدم المسجل على الصفحة الرئيسية أو صفحة تسجيل دخول المعلم → وجهه للوحة التحكم ──
-  const isTeacherLoginPage = pathname === '/auth/teacher-login'
-  if (user && (pathname === '/' || isTeacherLoginPage)) {
+  // ── 8. المستخدم المسجل على الصفحة الرئيسية أو صفحات الدخول → وجهه للوحة التحكم ──
+  const isAuthLoginPage =
+    pathname === '/auth/login' ||
+    pathname === '/auth/teacher-login' ||
+    pathname === '/auth/student-login' ||
+    pathname === '/auth/school/login' ||
+    pathname === '/auth/admin-login'
+
+  if (user && (pathname === '/' || isAuthLoginPage)) {
     if (role === 'admin') {
       return redirectWithCookies(request, '/admin/dashboard', supabaseResponse)
     } else if (role === 'school_admin') {

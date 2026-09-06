@@ -152,17 +152,26 @@ export default function StudentCodeLoginPage() {
             </div>
           </div>
 
-          <div className="border-t border-border bg-slate-50 p-5 text-center">
+          <div className="border-t border-border bg-slate-50 p-5 text-center space-y-2">
             <p className="text-sm font-medium text-slate-600">
-              لديك حساب عادي؟{' '}
+              لديك حساب مسجل؟{' '}
               <Link
-                href="/auth/login"
+                href="/auth/login?portal=student"
                 className="inline-flex items-center gap-1 font-bold text-primary hover:underline"
               >
-                تسجيل الدخول بالبريد{' '}
+                تسجيل الدخول بالبريد أو Google{' '}
                 <ArrowRight className="h-3.5 w-3.5 rotate-180" />
               </Link>
             </p>
+            <div className="flex items-center justify-center gap-4 text-xs font-semibold text-slate-500 pt-1">
+              <Link href="/auth/teacher-login" className="hover:text-amber-600">
+                بوابة المعلمين
+              </Link>
+              <span>•</span>
+              <Link href="/auth/school/login" className="hover:text-cyan-700">
+                بوابة المدارس
+              </Link>
+            </div>
           </div>
         </div>
       </div>

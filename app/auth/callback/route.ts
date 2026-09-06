@@ -14,11 +14,21 @@ export async function GET(request: Request) {
         data: { user },
       } = await supabase.auth.getUser()
       if (user) {
+        // If a valid relative next param is provided, prioritize it
+        const next = searchParams.get('next')
+        if (next && next.startsWith('/')) {
+          return NextResponse.redirect(`${origin}${next}`)
+        }
+
         // ⚡ Try to read from JWT metadata first (Zero-DB Hits for existing users)
         const role = user.user_metadata?.role
 
         if (role === 'admin') {
           return NextResponse.redirect(`${origin}/admin/dashboard`)
+        }
+
+        if (role === 'school_admin') {
+          return NextResponse.redirect(`${origin}/school/dashboard`)
         }
 
         if (role === 'student') {
@@ -47,6 +57,10 @@ export async function GET(request: Request) {
         if (profile) {
           if (profile.role === 'admin') {
             return NextResponse.redirect(`${origin}/admin/dashboard`)
+          }
+
+          if (profile.role === 'school_admin') {
+            return NextResponse.redirect(`${origin}/school/dashboard`)
           }
 
           if (profile.role === 'student') {
