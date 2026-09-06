@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { checkAnswer } from '@/lib/utils/grading'
 
@@ -134,14 +135,15 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 2. Fetch Questions — مع Pagination لتجنب بطء الامتحانات الكبيرة (إصلاح م1)
+    // 2. Fetch Questions — مع استخدام adminClient لضمان عزل الإجابات عن متصفح الطالب (Zero-Leak)
+    const adminClient = createAdminClient()
     const PAGE_SIZE = 50
     let allExamQuestions: ExamQuestionRow[] = []
     let from = 0
     let hasMore = true
 
     while (hasMore) {
-      const { data: page, error: pageError } = await supabase
+      const { data: page, error: pageError } = await adminClient
         .from('exam_questions')
         .select(
           'points_override, questions(id, question_type, correct_answer, points, question_text, explanation)'
@@ -152,7 +154,10 @@ export async function POST(req: NextRequest) {
       if (pageError) throw pageError
       if (!page || page.length === 0) break
 
-      allExamQuestions = [...allExamQuestions, ...page]
+      allExamQuestions = [
+        ...allExamQuestions,
+        ...(page as unknown as ExamQuestionRow[]),
+      ]
       if (page.length < PAGE_SIZE) hasMore = false
       from += PAGE_SIZE
     }
@@ -305,7 +310,7 @@ export async function POST(req: NextRequest) {
           scoreAwarded = qPoints
         }
       } else if (q.question_type === 'fill_blank') {
-        if (checkAnswer(studentAns, q.correct_answer, 'fill_blank')) {
+        if (checkAnswer(studentAns, q.correct_answer || '', 'fill_blank')) {
           isCorrect = true
           scoreAwarded = qPoints
         }
@@ -453,7 +458,7 @@ export async function POST(req: NextRequest) {
     // نسبة النجاح (passing_score مخزنة كنسبة مئوية 0-100، وليس درجة مطلقة)
     const percentage =
       finalTotalPoints > 0 ? (totalScore / finalTotalPoints) * 100 : 0
-    const passThreshold = examData.passing_score ?? 50 // مباشرة كنسبة مئوية
+    const passThreshold = examData?.passing_score ?? 50 // مباشرة كنسبة مئوية
     const isPassed = percentage >= passThreshold
 
     // 5. Update Attempt in DB

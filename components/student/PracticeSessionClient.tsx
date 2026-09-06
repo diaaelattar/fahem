@@ -37,6 +37,12 @@ interface Question {
   context_passage?: string | null
 }
 
+interface QuestionFeedback {
+  is_correct?: boolean
+  earned_score?: number
+  feedback?: string
+}
+
 interface Props {
   questions: Question[]
   subject: { id: string; name_ar: string; icon: string }
@@ -55,7 +61,7 @@ export function PracticeSessionClient({
   const [showAnswer, setShowAnswer] = useState(false)
   const [score, setScore] = useState({ correct: 0, wrong: 0 })
   const [answers, setAnswers] = useState<Record<string, string>>({})
-  const [feedbacks, setFeedbacks] = useState<Record<string, unknown>>({})
+  const [feedbacks, setFeedbacks] = useState<Record<string, QuestionFeedback>>({})
   const [isGrading, setIsGrading] = useState(false)
   const [finished, setFinished] = useState(false)
   const [streak, setStreak] = useState(0)
@@ -457,7 +463,7 @@ export function PracticeSessionClient({
         )}
 
         {/* MCQ */}
-        {current.question_type === 'mcq' && current.options && (
+        {current.question_type === 'mcq' && Array.isArray(current.options) && (
           <div className="space-y-3">
             {current.options.map((opt, i) => {
               const isSelected = selected === opt

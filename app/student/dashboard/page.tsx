@@ -6,8 +6,10 @@ import Link from 'next/link'
 import dynamic from 'next/dynamic'
 
 interface ExamAttemptRow {
+  id: string
   completed_at: string
   percentage: number | null
+  is_passed: boolean | null
   exams: {
     title: string
     total_points: number
@@ -129,7 +131,7 @@ export default async function StudentDashboardPage() {
   const attempts = attemptsResult.data
   const wrongAnswersCount = wrongAnswersCountResult.count
   const rankData = rankDataResult.data
-  const bloomStats = bloomStatsResult.data
+  const bloomStats = bloomStatsResult.data || []
 
   // Check if student is group-only
   const isGroupOnlyStudent =
@@ -217,7 +219,7 @@ export default async function StudentDashboardPage() {
         month: 'short',
       }),
       score: Math.round(a.percentage || 0),
-      title: a.exams?.title,
+      title: a.exams?.title || 'اختبار',
     })) || []
 
   return (

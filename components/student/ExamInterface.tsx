@@ -358,7 +358,12 @@ export function ExamInterface({
         throw new Error(gradingResult.error || 'فشل التقييم')
       }
 
-      setResult(gradingResult)
+      setResult({
+        is_passed: Boolean(gradingResult.is_passed),
+        score: gradingResult.score ?? 0,
+        total: gradingResult.total ?? exam.total_points,
+        percentage: gradingResult.percentage ?? 0,
+      })
       setSubmitted(true)
       clearSession() // clear local storage
       isSubmittingRef.current = false

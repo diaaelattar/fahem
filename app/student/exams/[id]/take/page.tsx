@@ -107,19 +107,91 @@ export default async function TakeExamPage({ params, searchParams }: Props) {
   const isPracticeMode = exam.show_results_immediately === true
 
   // جلب أسئلة الاختبار
-  // في وضع الاختبار الحقيقي: لا نجلب correct_answer و explanation أبداً من قاعدة البيانات
-  // في وضع التدريب فقط: نجلب الإجابات لعرض التغذية الراجعة الفورية
-  const questionsSelect = isPracticeMode
-    ? 'question_order, points_override, questions(id, question_type, context_passage, question_text, options, points, question_image_url, correct_answer, explanation)'
-    : 'question_order, points_override, questions(id, question_type, context_passage, question_text, options, points, question_image_url)'
+  let questions: Array<{
+    id: string
+    question_type: 'mcq' | 'true_false' | 'fill_blank' | 'essay' | 'correction'
+    context_passage: string | null
+    question_text: string
+    options: string[] | null
+    points: number
+    question_image_url: string | null
+    correct_answer?: string
+    explanation?: string
+  }> = []
 
-  const { data: examQuestions } = await supabase
-    .from('exam_questions')
-    .select(questionsSelect)
-    .eq('exam_id', params.id)
-    .order('question_order')
+  // 🔒 في وضع الاختبار الحقيقي: الاستعلام المباشر من الـ Secure View المعزول تماماً
+  if (!isPracticeMode) {
+    const { data: viewQuestions } = await supabase
+      .from('student_exam_questions')
+      .select('id, question_type, context_passage, question_text, options, effective_points, question_image_url, question_order')
+      .eq('exam_id', params.id)
+      .order('question_order')
 
-  if (!examQuestions || examQuestions.length === 0) {
+    if (viewQuestions && viewQuestions.length > 0) {
+      questions = viewQuestions.map((q: any) => ({
+        id: q.id,
+        question_type: q.question_type,
+        context_passage: q.context_passage,
+        question_text: q.question_text,
+        options: q.options as string[] | null,
+        points: q.effective_points || 1,
+        question_image_url: q.question_image_url,
+      }))
+    }
+  }
+
+  // في حال التدريب أو عدم توفر الـ View: جلب الأسئلة عبر exam_questions
+  if (questions.length === 0) {
+    const questionsSelect = isPracticeMode
+      ? 'question_order, points_override, questions(id, question_type, context_passage, question_text, options, points, question_image_url, correct_answer, explanation)'
+      : 'question_order, points_override, questions(id, question_type, context_passage, question_text, options, points, question_image_url)'
+
+    const { data: examQuestions } = await supabase
+      .from('exam_questions')
+      .select(questionsSelect)
+      .eq('exam_id', params.id)
+      .order('question_order')
+
+    if (!examQuestions || examQuestions.length === 0) {
+      return (
+        <div className="mx-auto max-w-lg py-16 text-center">
+          <AlertCircle className="mx-auto mb-4 h-12 w-12 text-yellow-400" />
+          <h2 className="mb-2 text-xl font-bold">الاختبار لا يحتوي على أسئلة</h2>
+          <p className="mb-6 text-muted-foreground">يرجى التواصل مع معلمك</p>
+          <a
+            href="/student/exams"
+            className="rounded-xl bg-primary px-6 py-2.5 text-sm font-medium text-white"
+          >
+            العودة
+          </a>
+        </div>
+      )
+    }
+
+    questions = (examQuestions as unknown as ExamQuestionTakeRow[])
+      .filter((eq) => eq.questions !== null)
+      .sort((a, b) => a.question_order - b.question_order)
+      .map((eq) => {
+        const q = eq.questions!
+        return {
+          id: q.id,
+          question_type: q.question_type,
+          context_passage: q.context_passage,
+          question_text: q.question_text,
+          options: q.options as string[] | null,
+          points: eq.points_override || Math.max(1, q.points || 1),
+          question_image_url: q.question_image_url,
+          ...(isPracticeMode
+            ? {
+                correct_answer: q.correct_answer || undefined,
+                explanation: q.explanation || undefined,
+              }
+            : {}),
+        }
+      })
+  }
+
+  if (questions.length === 0) {
     return (
       <div className="mx-auto max-w-lg py-16 text-center">
         <AlertCircle className="mx-auto mb-4 h-12 w-12 text-yellow-400" />
@@ -134,31 +206,6 @@ export default async function TakeExamPage({ params, searchParams }: Props) {
       </div>
     )
   }
-
-  // بناء قائمة الأسئلة — الإجابات موجودة فقط في وضع التدريب
-  const questions = (examQuestions as unknown as ExamQuestionTakeRow[])
-    .filter((eq) => eq.questions !== null)
-    .sort((a, b) => a.question_order - b.question_order)
-    .map((eq) => {
-      const q = eq.questions!
-      return {
-        id: q.id,
-        question_type: q.question_type,
-        context_passage: q.context_passage,
-        question_text: q.question_text,
-        options: q.options as string[] | null,
-        // استخدم points_override إذا حددها المدير، وإلا فالدرجة الافتراضية من السؤال (1 كحد أدنى)
-        points: eq.points_override || Math.max(1, q.points || 1),
-        question_image_url: q.question_image_url,
-        // الإجابات الصحيحة فقط في وضع التدريب
-        ...(isPracticeMode
-          ? {
-              correct_answer: q.correct_answer || undefined,
-              explanation: q.explanation || undefined,
-            }
-          : {}),
-      }
-    })
 
   return (
     <ClientErrorBoundary sectionName="exam">

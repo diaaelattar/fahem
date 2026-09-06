@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 // ─────────────────────────────────────────────────
 // Gemini Vision: تقييم الإجابة المكتوبة بخط اليد
@@ -58,6 +59,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'بيانات ناقصة' }, { status: 400 })
     }
 
+    // 🔒 حماية أمنية: التحقق من الإجابة النموذجية مباشرة من قاعدة البيانات لمنع التلاعب بالطلب من العميل
+    const adminClient = createAdminClient()
+    let verifiedIdealAnswer = idealAnswer
+
+    if (questionId) {
+      const { data: qData } = await adminClient
+        .from('questions')
+        .select('correct_answer, question_text')
+        .eq('id', questionId)
+        .maybeSingle()
+      if (qData?.correct_answer) {
+        verifiedIdealAnswer = qData.correct_answer
+      }
+    }
+
     // جلب الصورة كـ base64
     const imageData = await fetchImageAsBase64(imageUrl)
 
@@ -78,7 +94,7 @@ export async function POST(req: NextRequest) {
 
 ## بيانات التقييم:
 - **السؤال:** ${questionText}
-- **الإجابة النموذجية:** ${idealAnswer || 'لا توجد إجابة نموذجية محددة، قيّم بناءً على صحة الحل الرياضي والعلمي'}
+- **الإجابة النموذجية المعتمدة:** ${verifiedIdealAnswer || 'لا توجد إجابة نموذجية محددة، قيّم بناءً على صحة الحل الرياضي والعلمي'}
 - **الدرجة العظمى:** ${maxScore}
 
 ## تعليمات التصحيح:
