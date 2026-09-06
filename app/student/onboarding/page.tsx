@@ -848,28 +848,42 @@ export default function OnboardingPage() {
                       subtitle="هذه المواد ستكون متاحة لك على المنصة"
                     />
 
-                    <div className="mb-6 grid max-h-64 grid-cols-2 gap-2.5 overflow-y-auto pr-1">
+                    <div className="mb-6 grid max-h-72 grid-cols-1 sm:grid-cols-2 gap-2.5 overflow-y-auto pr-1">
                       {displaySubjects().map((subj) => {
                         const lang = subj.teaching_language || 'arabic'
                         const badge = LANG_BADGE[lang] || LANG_BADGE.arabic
                         return (
                           <div
                             key={subj.id}
-                            className="flex items-center gap-2.5 rounded-xl border border-border bg-slate-50 p-3 transition-colors hover:bg-white"
+                            className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-xs transition-all hover:border-primary/40 hover:shadow-sm"
                           >
-                            <span className="shrink-0 text-2xl">
-                              {subj.icon || '📚'}
-                            </span>
-                            <div className="min-w-0">
-                              <div className="truncate text-xs font-bold leading-tight">
-                                {subj.name_ar}
-                              </div>
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
                               <span
-                                className={`mt-1 inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${badge.color}`}
+                                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-2xl"
+                                aria-hidden="true"
                               >
-                                {badge.flag} {badge.label}
+                                {subj.icon || '📚'}
                               </span>
+                              <div className="min-w-0 flex-1">
+                                <div
+                                  className="text-sm font-bold text-slate-800 leading-snug break-words"
+                                  title={subj.name_ar}
+                                >
+                                  {subj.name_ar}
+                                </div>
+                                {subj.name_en && (
+                                  <div className="text-[10px] text-slate-400 font-medium truncate">
+                                    {subj.name_en}
+                                  </div>
+                                )}
+                              </div>
                             </div>
+                            <span
+                              className={`shrink-0 inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-bold ${badge.color}`}
+                            >
+                              <span>{badge.flag}</span>
+                              <span>{badge.label}</span>
+                            </span>
                           </div>
                         )
                       })}
