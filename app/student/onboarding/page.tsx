@@ -454,17 +454,26 @@ export default function OnboardingPage() {
       const {
         data: { user },
       } = await supabase.auth.getUser()
-      if (!user) return
-      await saveStudentGradeAction(
+      if (!user) {
+        alert('يرجى تسجيل الدخول أولاً')
+        router.push('/auth/login')
+        return
+      }
+      const res = await saveStudentGradeAction(
         user.id,
         selectedGrade,
         selectedEduType,
-        'traditional', // system_type — يمكن تطويره لاحقاً
+        'traditional',
         gradeHasTracks && selectedTrack !== 'skip' ? selectedTrack : null
       )
+      if (!res.success) {
+        alert('تعذر حفظ البيانات: ' + (res.error || 'يرجى المحاولة مرة أخرى'))
+        setLoading(false)
+        return
+      }
       window.location.href = '/student/dashboard'
     } catch (err: any) {
-      alert('حدث خطأ: ' + err.message)
+      alert('حدث خطأ غير متوقع: ' + err.message)
       setLoading(false)
     }
   }
