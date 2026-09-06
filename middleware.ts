@@ -72,12 +72,16 @@ export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
 
   // ── 0. حماية IP على مسارات المصادقة ضد هجمات التخمين (Brute-Force) ─────────────
-  if (pathname.startsWith('/auth/') || pathname.startsWith('/api/auth/')) {
+  // نُطبقها حصراً على طلبات POST (محاولات الدخول والتسجيل الفعلية) وليس على استعراض الصفحات
+  if (
+    request.method === 'POST' &&
+    (pathname.startsWith('/api/auth/') || pathname.startsWith('/auth/'))
+  ) {
     const ip =
       request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
       request.headers.get('x-real-ip') ||
       '127.0.0.1'
-    const rateCheck = await checkIPRateLimit(ip, 20, 60000) // 20 طلب في الدقيقة
+    const rateCheck = await checkIPRateLimit(ip, 40, 60000) // 40 طلب POST في الدقيقة
     if (!rateCheck.allowed) {
       return NextResponse.json(
         { error: 'تجاوزت عدد المحاولات المسموح به. يرجى المحاولة لاحقاً.' },
