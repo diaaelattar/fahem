@@ -259,9 +259,11 @@ export async function middleware(request: NextRequest) {
       )
     }
 
-    // ── فحص اختيار الصف للطالب (Zero-DB) ──
+    // ── فحص اختيار الصف للطالب (Zero-DB + Cookie fallback) ──
     if (role === 'student' && isStudentRoute) {
-      const hasGrade = !!user.user_metadata?.grade_id
+      const hasGrade =
+        !!user.user_metadata?.grade_id ||
+        !!request.cookies.get('student_grade_id')?.value
       const isOnboardingPage = pathname === '/student/onboarding'
 
       if (!hasGrade && !isOnboardingPage) {
@@ -281,9 +283,11 @@ export async function middleware(request: NextRequest) {
       }
     }
 
-    // ── فحص اختيار المادة للمعلم (Zero-DB: منع تخطي الإعداد) ──
+    // ── فحص اختيار المادة للمعلم (Zero-DB + Cookie fallback) ──
     if (role === 'teacher' && isTeacherRoute) {
-      const hasSubject = !!user.user_metadata?.subject_id
+      const hasSubject =
+        !!user.user_metadata?.subject_id ||
+        !!request.cookies.get('teacher_subject_id')?.value
       const isOnboardingPage = pathname === '/auth/teacher-onboarding'
 
       if (!hasSubject && !isOnboardingPage) {

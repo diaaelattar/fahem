@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { cookies } from 'next/headers'
 
 export async function saveStudentGradeAction(
   userId: string,
@@ -105,7 +106,38 @@ export async function saveStudentGradeAction(
       return { success: false, error: studentError.message }
     }
 
-    // 3. منح نقاط الترحيب (XP) إن أمكن
+    // 3. مزامنة الصف في Auth Metadata وفي الكوكيز لتخطي الـ Middleware فورياً
+    try {
+      await supabase.auth.updateUser({
+        data: { grade_id: gradeId, role: 'student' },
+      })
+    } catch {
+      // non-critical
+    }
+
+    if (serviceKey && process.env.NEXT_PUBLIC_SUPABASE_URL) {
+      try {
+        await (dbClient as any).auth.admin.updateUserById(userId, {
+          user_metadata: { grade_id: gradeId, role: 'student' },
+        })
+      } catch {
+        // non-critical
+      }
+    }
+
+    try {
+      const cookieStore = cookies()
+      cookieStore.set('student_grade_id', String(gradeId), {
+        path: '/',
+        maxAge: 60 * 60 * 24 * 365,
+        sameSite: 'lax',
+        httpOnly: false,
+      })
+    } catch {
+      // non-critical
+    }
+
+    // 4. منح نقاط الترحيب (XP) إن أمكن
     try {
       await dbClient.rpc('award_xp', {
         p_student_id: userId,

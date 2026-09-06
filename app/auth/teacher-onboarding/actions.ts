@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { cookies } from 'next/headers'
 
 export async function saveTeacherSubjectAction(userId: string, subjectId: number) {
   // ── أمان: التحقق من هوية المستخدم من الجلسة السيرفرية ──────────────
@@ -54,4 +55,24 @@ export async function saveTeacherSubjectAction(userId: string, subjectId: number
   }, { onConflict: 'id' })
 
   if (error) throw new Error(error.message)
+
+  try {
+    await supabase.auth.updateUser({
+      data: { subject_id: subjectId, role: 'teacher' }
+    })
+  } catch {
+    // non-critical
+  }
+
+  try {
+    const cookieStore = cookies()
+    cookieStore.set('teacher_subject_id', String(subjectId), {
+      path: '/',
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: 'lax',
+      httpOnly: false,
+    })
+  } catch {
+    // non-critical
+  }
 }
