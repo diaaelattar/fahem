@@ -31,6 +31,7 @@ import {
 } from '@/lib/utils/exam-submit'
 import { toast } from 'sonner'
 import { checkAnswer } from '@/lib/utils/grading'
+import { ExamTopBar, SyncStatus } from './ExamTopBar'
 
 interface Question {
   id: string
@@ -200,6 +201,17 @@ export function ExamInterface({
       }
     >
   >({})
+
+  // ── Offline-First Resilience & Sync State ──────────
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>('synced')
+  const [isOnline, setIsOnline] = useState<boolean>(() =>
+    typeof navigator !== 'undefined' ? navigator.onLine : true
+  )
+  const isDirtyRef = useRef<boolean>(false)
+  const answersRef = useRef(answers)
+  answersRef.current = answers
+  const imageAnswersRef = useRef(imageAnswers)
+  imageAnswersRef.current = imageAnswers
 
   // Reset math mode when changing questions
   useEffect(() => {
@@ -402,27 +414,104 @@ export function ExamInterface({
     return () => clearInterval(interval)
   }, [submitted, handleSubmit, tickTime])
 
-  // Auto-save every 30 seconds (BUG-3)
+  // ── 1. Zero-Latency Instant Local Persistence (Safety Net) ──
   useEffect(() => {
+    if (submitted || isPreview || !attemptId) return
     const hasAnswers = Object.keys(answers).length > 0
     const hasImages = Object.keys(imageAnswers).length > 0
-    if (submitted || (!hasAnswers && !hasImages) || isPreview) return
-
-    const interval = setInterval(() => {
-      // 1. Save locally to localStorage (safety net)
+    if (hasAnswers || hasImages) {
       saveAnswersDraft(attemptId, answers, imageAnswers)
-      // 2. Save to Supabase
-      supabase
+      isDirtyRef.current = true
+    }
+  }, [answers, imageAnswers, attemptId, submitted, isPreview])
+
+  // ── 2. Cloud Sync Function (Supabase) ──
+  const syncToCloud = useCallback(async () => {
+    if (submitted || isPreview || !attemptId) return
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      setSyncStatus('offline')
+      return
+    }
+
+    const curAnswers = answersRef.current
+    const curImages = imageAnswersRef.current
+    const hasAnswers = Object.keys(curAnswers).length > 0
+    const hasImages = Object.keys(curImages).length > 0
+    if (!hasAnswers && !hasImages) return
+
+    try {
+      setSyncStatus('saving')
+      const { error } = await supabase
         .from('exam_attempts')
         .update({
-          answers,
-          answer_images: imageAnswers,
+          answers: curAnswers,
+          answer_images: curImages,
         })
         .eq('id', attemptId)
-    }, 30000)
 
+      if (error) {
+        console.warn('[ExamSync] Cloud sync error:', error.message)
+        setSyncStatus('error')
+      } else {
+        isDirtyRef.current = false
+        setSyncStatus('synced')
+      }
+    } catch (err) {
+      console.warn('[ExamSync] Cloud sync exception:', err)
+      setSyncStatus('error')
+    }
+  }, [attemptId, isPreview, submitted, supabase])
+
+  // ── 3. Debounced Cloud Sync on Answer Changes (2.5s) ──
+  useEffect(() => {
+    if (submitted || isPreview || !attemptId) return
+    const hasAnswers = Object.keys(answers).length > 0
+    const hasImages = Object.keys(imageAnswers).length > 0
+    if (!hasAnswers && !hasImages) return
+
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      setSyncStatus('offline')
+      return
+    }
+
+    const timer = setTimeout(() => {
+      syncToCloud()
+    }, 2500)
+
+    return () => clearTimeout(timer)
+  }, [answers, imageAnswers, attemptId, isPreview, submitted, syncToCloud])
+
+  // ── 4. Independent Periodic Background Cloud Sync (every 20s) ──
+  useEffect(() => {
+    if (submitted || isPreview || !attemptId) return
+    const interval = setInterval(() => {
+      if (isDirtyRef.current) {
+        syncToCloud()
+      }
+    }, 20000)
     return () => clearInterval(interval)
-  }, [answers, imageAnswers, attemptId, submitted, supabase, isPreview])
+  }, [attemptId, isPreview, submitted, syncToCloud])
+
+  // ── 5. Network Online / Offline Listeners ──
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true)
+      toast.success('تمت استعادة الاتصال بالإنترنت - جارِ مزامنة إجاباتك 🟢')
+      syncToCloud()
+    }
+    const handleOffline = () => {
+      setIsOnline(false)
+      setSyncStatus('offline')
+      toast.warning('انقطع الاتصال بالإنترنت - لا تقلق، إجاباتك محفوظة محلياً بالكامل 📱')
+    }
+
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
+  }, [syncToCloud])
 
   const formatTime = (secs: number | null) => {
     if (secs === null || secs < 0) return '--:--'
@@ -606,36 +695,19 @@ export function ExamInterface({
         </div>
       )}
 
-      {/* Header */}
-      <div className="sticky top-4 z-10 mb-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-md">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <h1 className="line-clamp-1 text-base font-bold text-slate-800">
-            {exam.title}
-          </h1>
-          <div
-            className={`flex items-center gap-2 rounded-xl px-4 py-2 font-mono font-bold tabular-nums ${
-              timeRemainingSeconds !== null && timeRemainingSeconds < 300
-                ? 'border border-red-200 bg-red-50 text-red-600'
-                : 'bg-slate-100 text-slate-700'
-            }`}
-          >
-            <Clock className="h-4 w-4" />
-            {formatTime(timeRemainingSeconds)}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 transition-all duration-500"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-          <span className="whitespace-nowrap text-xs font-semibold text-slate-500">
-            {answeredCount}/{questions.length} مُجاب
-          </span>
-        </div>
-      </div>
+      {/* Top Bar with Real-time Sync, Timer, and Progress */}
+      <ExamTopBar
+        title={exam.title}
+        timeRemainingSeconds={timeRemainingSeconds}
+        progress={progress}
+        answeredCount={answeredCount}
+        totalQuestions={questions.length}
+        syncStatus={syncStatus}
+        isOnline={isOnline}
+        formatTime={formatTime}
+        onSubmitClick={() => setShowConfirm(true)}
+        isSubmitting={storeSubmitting}
+      />
 
       {/* Group Content */}
       <div className="mb-5 space-y-6">

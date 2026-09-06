@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 
@@ -18,6 +18,15 @@ export default function RegisterPage() {
   const [googleLoading, setGoogleLoading] = useState(false)
 
   const [role, setRole] = useState<'student' | 'teacher'>('student')
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const p = new URLSearchParams(window.location.search).get('role')
+      if (p === 'teacher' || p === 'student') {
+        setRole(p)
+      }
+    }
+  }, [])
 
   const handleGoogleLogin = async () => {
     setGoogleLoading(true)
@@ -311,16 +320,25 @@ export default function RegisterPage() {
             </form>
           </div>
 
-          <div className="border-t border-border bg-slate-50 p-6 text-center">
+          <div className="border-t border-border bg-slate-50 p-6 text-center space-y-3">
             <p className="text-sm font-medium text-slate-600">
               لديك حساب بالفعل؟{' '}
               <Link
                 href="/auth/login"
-                className="mt-1 flex items-center justify-center gap-1 font-bold text-primary hover:underline"
+                className="inline-flex items-center gap-1 font-bold text-primary hover:underline"
               >
                 تسجيل الدخول <ArrowRight className="h-4 w-4 rotate-180" />
               </Link>
             </p>
+            <div className="flex items-center justify-center gap-3 text-xs font-semibold text-slate-500 pt-2 border-t border-slate-200">
+              <Link href="/auth/school/login" className="hover:text-cyan-700">
+                بوابة المدارس
+              </Link>
+              <span>•</span>
+              <Link href="/auth/student-login" className="hover:text-indigo-600">
+                دخول الطالب بالكود
+              </Link>
+            </div>
           </div>
         </div>
       </div>

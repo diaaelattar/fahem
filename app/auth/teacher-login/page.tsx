@@ -85,6 +85,11 @@ export default function TeacherLoginPage() {
         return
       }
 
+      if (profile.role === 'school_admin') {
+        window.location.href = '/school/dashboard'
+        return
+      }
+
       if (profile.role !== 'teacher') {
         await supabase.auth.signOut()
         setError('حسابك غير مسجل كمعلم في المنصة. تواصل مع الإدارة.')
