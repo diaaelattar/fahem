@@ -318,27 +318,43 @@ export async function POST(req: NextRequest) {
         q.question_type === 'essay' ||
         q.question_type === 'correction'
       ) {
-        // AI Semantic Grading
-        const prompt = `أنت مصحح امتحانات مصري خبير ومتساهل في التصحيح.
+        // AI Semantic Grading with 3-Dimensional NCREE Pedagogical Rubric
+        const conceptsMax = Math.round(qPoints * 0.4 * 10) / 10
+        const stepsMax = Math.round(qPoints * 0.4 * 10) / 10
+        const outcomeMax = Math.round((qPoints - conceptsMax - stepsMax) * 10) / 10
 
-قم بتقييم إجابة الطالب بناءً على الإجابة النموذجية مع مراعاة هذه القواعد:
-- الإجابة المختصرة التي تحمل نفس المعنى تُعتبر صحيحة
-- الإجابة بصياغة مختلفة لكن بنفس الفكرة تُعتبر صحيحة أو شبه صحيحة
-- الأخطاء الإملائية البسيطة لا تُخصم درجات
-- إذا أجاب الطالب بجزء صحيح من الإجابة، أعطه درجة جزئية تناسب ما أجاب عنه
-- لا تتشدد في المطابقة الحرفية، قيّم الفهم والمعنى
-- إذا كانت الإجابة تحتوي على الفكرة الأساسية ولو بشكل مختصر فهي صحيحة
+        const prompt = `أنت مصحح امتحانات خبير متخصص في المناهج المصرية ومعايير المركز القومي للامتحانات والتقويم التربوي (NCREE).
+مهمتك تقييم إجابة الطالب المقالية أو التصحيحية بموضوعية ودقة تربوية وفق نموذج التقييم ثلاثي الأبعاد (3-Dimensional Rubric):
 
-السؤال: ${q.question_text}
-الإجابة النموذجية أو القاعدة: ${q.correct_answer}
-إجابة الطالب: ${studentAns}
-الدرجة الكلية للسؤال: ${qPoints}
+## بيانات السؤال:
+- نوع السؤال: ${q.question_type === 'correction' ? 'تصويب الخطأ' : 'سؤال مقالي / إنشائي'}
+- نص السؤال: ${q.question_text}
+- الإجابة النموذجية المعتمدة ومفاتيح الحل: ${q.correct_answer || 'قيّم وفق الصحة العلمية واللغوية ومفاهيم المنهج'}
+- إجابة الطالب: ${studentAns}
+- الدرجة الكلية العظمى للسؤال: ${qPoints}
 
-أرجع التقييم حصرياً بصيغة JSON كالتالي فقط بدون أي نصوص إضافية:
+## معايير التقييم الثلاثية (Rubric Dimensions):
+1. **المفاهيم والمصطلحات الأساسية (الوزن: 40% = حتى ${conceptsMax} درجة):**
+   - مدى صحة واستخدام المصطلحات العلمية/اللغوية، القوانين، أو القواعد المحورية المطلوبة.
+2. **التسلسل المنطقي وخطوات الحل/التعليل (الوزن: 40% = حتى ${stepsMax} درجة):**
+   - ترابط الخطوات، صحة الاستدلال والتعليل، وتسلسل الأفكار المنطقي دون قفزات عشوائية أو تناقض.
+3. **النتيجة النهائية ودقة الصياغة (الوزن: 20% = حتى ${outcomeMax} درجة):**
+   - الوصول إلى الاستنتاج أو التصويب الصحيح، وسلامة التعبير وخلوه من الأخطاء المفاهيمية المشوشة.
+
+## قواعد التصحيح:
+- امنح درجات جزئية عادلة ومستحقة لكل معيار بناءً على ما أنجزه الطالب فعلاً.
+- الأخطاء الإملائية البسيطة التي لا تخل بالمعنى العلمي أو اللغوي لا تخصم درجات.
+- إذا كانت الإجابة صحيحة وموجزة ووافت المعايير كاملة، يستحق الطالب الدرجة كاملة.
+- اكتب تعليقاً تربوياً بناءً وموجزاً يوضح للطالب نقاط القوة وما ينقصه.
+
+## أرجع التقييم حصرياً بصيغة JSON كالتالي فقط بدون أي نصوص إضافية:
 {
-  "is_correct": boolean,
-  "score_awarded": number (min 0, max ${qPoints}, use integers or 0.5 steps),
-  "feedback": "رسالة مشجعة للطالب تشرح له لماذا أخذ هذه الدرجة (بالعربية الفصحى أو المصرية المبسطة)"
+  "concepts_score": رقم بين 0 و ${conceptsMax},
+  "steps_score": رقم بين 0 و ${stepsMax},
+  "outcome_score": رقم بين 0 و ${outcomeMax},
+  "score_awarded": رقم بين 0 و ${qPoints} (مجموع الدرجات الثلاث مقرباً لأقرب نصف درجة),
+  "is_correct": true إذا كان مجموع الدرجات >= ${qPoints * 0.5} وإلا false,
+  "feedback": "ملاحظات التقييم التربوي باللغة العربية تشرح سبب المنح أو الخصم"
 }`
 
         let aiResultStr = ''
@@ -347,10 +363,10 @@ export async function POST(req: NextRequest) {
             const model = getModel(modelName)
             const result = await model.generateContent(prompt)
             aiResultStr = result.response.text().trim()
-            if (aiResultStr.startsWith('\`\`\`json')) {
+            if (aiResultStr.startsWith('```json')) {
               aiResultStr = aiResultStr
-                .replace(/\`\`\`json/g, '')
-                .replace(/\`\`\`/g, '')
+                .replace(/```json/g, '')
+                .replace(/```/g, '')
                 .trim()
             }
             break
@@ -361,12 +377,36 @@ export async function POST(req: NextRequest) {
 
         try {
           const aiEval = JSON.parse(aiResultStr)
-          isCorrect = aiEval.is_correct || aiEval.score_awarded > 0
+          const cScore = Math.min(
+            conceptsMax,
+            Math.max(0, Number(aiEval.concepts_score ?? aiEval.key_concepts_score) || 0)
+          )
+          const sScore = Math.min(
+            stepsMax,
+            Math.max(0, Number(aiEval.steps_score) || 0)
+          )
+          const oScore = Math.min(
+            outcomeMax,
+            Math.max(0, Number(aiEval.outcome_score) || 0)
+          )
+
+          let computedScore = Number(aiEval.score_awarded)
+          if (isNaN(computedScore) || computedScore < 0) {
+            computedScore = cScore + sScore + oScore
+          }
           scoreAwarded = Math.min(
             qPoints,
-            Math.max(0, Number(aiEval.score_awarded) || 0)
+            Math.max(0, Math.round(computedScore * 2) / 2)
           )
+          isCorrect =
+            typeof aiEval.is_correct === 'boolean'
+              ? aiEval.is_correct
+              : scoreAwarded >= qPoints * 0.5
+
+          const rubricPrefix = `[معايير NCREE: المفاهيم ${cScore}/${conceptsMax} | الخطوات ${sScore}/${stepsMax} | النتيجة ${oScore}/${outcomeMax}]`
           aiFeedback = aiEval.feedback
+            ? `${rubricPrefix} - ${aiEval.feedback}`
+            : rubricPrefix
         } catch (e) {
           console.error('Failed to parse AI grading:', aiResultStr, e)
           aiFeedback =

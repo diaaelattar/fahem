@@ -249,9 +249,11 @@ export function QuestionBankPanel({
                   <div className="flex flex-wrap gap-1.5">
                     {[
                       ['', 'الكل'],
-                      ['mcq', 'MCQ'],
+                      ['mcq', 'اختيار متعدد'],
                       ['true_false', 'صح/خطأ'],
                       ['fill_blank', 'ملء فراغ'],
+                      ['essay', 'مقالي'],
+                      ['correction', 'تصويب'],
                     ].map(([v, l]) => (
                       <button
                         key={v}

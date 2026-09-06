@@ -94,6 +94,7 @@ export function AIQuestionGeneratorModal({
     { value: 'true_false', label: 'صح وخطأ' },
     { value: 'fill_blank', label: 'أكمل الفراغ' },
     { value: 'essay', label: 'سؤال مقالي' },
+    { value: 'correction', label: 'صوب ما تحته خط / تصحيح' },
   ]
 
   // Cognitive levels list

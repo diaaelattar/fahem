@@ -120,6 +120,8 @@ export const TYPE_AR: Record<string, string> = {
   mcq: 'اختيار متعدد',
   true_false: 'صح/خطأ',
   fill_blank: 'ملء فراغ',
+  essay: 'سؤال مقالي',
+  correction: 'صوب الخطأ',
 }
 export const DIFF_AR: Record<string, string> = {
   easy: 'سهل',
@@ -135,6 +137,8 @@ export const TYPE_COLOR: Record<string, string> = {
   mcq: 'bg-blue-50 text-blue-700 border-blue-200',
   true_false: 'bg-violet-50 text-violet-700 border-violet-200',
   fill_blank: 'bg-teal-50 text-teal-700 border-teal-200',
+  essay: 'bg-amber-50 text-amber-700 border-amber-200',
+  correction: 'bg-rose-50 text-rose-700 border-rose-200',
 }
 
 export const DEFAULT_FORM: ExamFormState = {

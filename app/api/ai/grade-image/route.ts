@@ -90,26 +90,39 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const prompt = `أنت مصحح امتحانات خبير متخصص في المناهج المصرية. مهمتك قراءة إجابة طالب مكتوبة بخط اليد وتقييمها.
+    const conceptsMax = Math.round(maxScore * 0.4 * 10) / 10
+    const stepsMax = Math.round(maxScore * 0.4 * 10) / 10
+    const outcomeMax = Math.round((maxScore - conceptsMax - stepsMax) * 10) / 10
+
+    const prompt = `أنت مصحح امتحانات خبير متخصص في المناهج المصرية ومعايير المركز القومي للامتحانات والتقويم التربوي (NCREE). مهمتك قراءة إجابة طالب مكتوبة بخط اليد وتقييمها موضوعياً وفق نموذج التقييم ثلاثي الأبعاد:
 
 ## بيانات التقييم:
 - **السؤال:** ${questionText}
-- **الإجابة النموذجية المعتمدة:** ${verifiedIdealAnswer || 'لا توجد إجابة نموذجية محددة، قيّم بناءً على صحة الحل الرياضي والعلمي'}
-- **الدرجة العظمى:** ${maxScore}
+- **الإجابة النموذجية المعتمدة ومفاتيح الحل:** ${verifiedIdealAnswer || 'لا توجد إجابة نموذجية محددة، قيّم بناءً على صحة الحل العلمي/اللغوي/الرياضي'}
+- **الدرجة العظمى للسؤال:** ${maxScore}
 
-## تعليمات التصحيح:
-1. **اقرأ خط اليد بعناية** - إذا كان خط اليد غير واضح في مكان ما، قدّر الأفضل
-2. **للرياضيات:** تحقق من صحة الخطوات والناتج النهائي. الطالب يستحق درجة كاملة إذا وصل للإجابة الصحيحة حتى لو كانت الطريقة مختلفة
-3. **الدرجات الجزئية مسموحة** - أعطِ درجة تتناسب مع مدى اكتمال وصحة الإجابة
-4. **لا تتشدد** في المطابقة الحرفية، قيّم الفهم والمنطق
-5. **اكتب ما قرأته** من الصورة في حقل extracted_text
+## معايير التقييم الثلاثية (Rubric Dimensions):
+1. **المفاهيم والمصطلحات/القوانين الأساسية (الوزن: 40% = حتى ${conceptsMax} درجة):**
+   - مدى صحة القوانين، الرموز، والمفاهيم العلمية/اللغوية المستخدمة.
+2. **التسلسل المنطقي وخطوات الحل (الوزن: 40% = حتى ${stepsMax} درجة):**
+   - صحة تسلسل الخطوات الحسابية أو التعليلية ووضوح البرهان والمنطق.
+3. **الناتج النهائي ودقة الصياغة (الوزن: 20% = حتى ${outcomeMax} درجة):**
+   - الوصول إلى الناتج النهائي الصحيح مع كتابة وحدات القياس إن وجدت.
+
+## تعليمات هامة:
+1. **اقرأ خط اليد بعناية** - إذا كان خط اليد غير واضح في موضع جزئي، قدّر الأقرب بالقرائن.
+2. **للرياضيات والعلوم:** الطالب يستحق درجة الخطوات والمنطق حتى لو أخطأ في الحساب النهائي، ويستحق الدرجة كاملة إذا وصل للإجابة الصحيحة بطريقة رياضية سليمة أخرى.
+3. **اكتب ما قرأته** من الصورة بدقة في حقل extracted_text.
 
 ## المخرجات (JSON فقط، لا أي نص خارجه):
 {
   "extracted_text": "النص أو الحل الذي قرأته من الصورة",
-  "is_correct": true/false,
-  "earned_score": رقم بين 0 و ${maxScore},
-  "feedback": "تغذية راجعة تربوية مشجعة للطالب تشرح درجته",
+  "concepts_score": رقم بين 0 و ${conceptsMax},
+  "steps_score": رقم بين 0 و ${stepsMax},
+  "outcome_score": رقم بين 0 و ${outcomeMax},
+  "earned_score": رقم بين 0 و ${maxScore} (مجموع الدرجات مقرباً لأقرب نصف درجة),
+  "is_correct": true إذا كان earned_score >= ${maxScore * 0.5} وإلا false,
+  "feedback": "ملاحظات التقييم التربوي موضحة الدرجة المستحقة وما ينقص الطالب",
   "math_steps_valid": true/false,
   "confidence": "high/medium/low (مدى وضوح خط اليد)"
 }`
@@ -138,6 +151,37 @@ export async function POST(req: NextRequest) {
 
         const parsed = JSON.parse(text)
 
+        const cScore = Math.min(
+          conceptsMax,
+          Math.max(0, Number(parsed.concepts_score) || 0)
+        )
+        const sScore = Math.min(
+          stepsMax,
+          Math.max(0, Number(parsed.steps_score) || 0)
+        )
+        const oScore = Math.min(
+          outcomeMax,
+          Math.max(0, Number(parsed.outcome_score) || 0)
+        )
+
+        let computedScore = Number(parsed.earned_score)
+        if (isNaN(computedScore) || computedScore < 0) {
+          computedScore = cScore + sScore + oScore
+        }
+        const finalEarnedScore = Math.min(
+          maxScore,
+          Math.max(0, Math.round(computedScore * 2) / 2)
+        )
+        const isPassed =
+          typeof parsed.is_correct === 'boolean'
+            ? parsed.is_correct
+            : finalEarnedScore >= maxScore * 0.5
+
+        const rubricPrefix = `[معايير NCREE: المفاهيم ${cScore}/${conceptsMax} | الخطوات ${sScore}/${stepsMax} | النتيجة ${oScore}/${outcomeMax}]`
+        const finalFeedback = parsed.feedback
+          ? `${rubricPrefix} - ${parsed.feedback}`
+          : rubricPrefix
+
         // حفظ النتيجة في قاعدة البيانات إذا كانت متوفرة
         if (attemptId && questionId) {
           await supabase
@@ -150,14 +194,16 @@ export async function POST(req: NextRequest) {
                 question_id: questionId,
                 answer_image_url: imageUrl,
                 student_answer: parsed.extracted_text || '[إجابة مصوّرة]',
-                is_correct: parsed.is_correct,
-                score_awarded: Math.min(
-                  maxScore,
-                  Math.max(0, Number(parsed.earned_score) || 0)
-                ),
-                teacher_feedback: parsed.feedback,
+                is_correct: isPassed,
+                score_awarded: finalEarnedScore,
+                teacher_feedback: finalFeedback,
                 ai_vision_feedback: JSON.stringify({
                   extracted_text: parsed.extracted_text,
+                  rubric: {
+                    concepts: cScore,
+                    steps: sScore,
+                    outcome: oScore,
+                  },
                   math_steps_valid: parsed.math_steps_valid,
                   confidence: parsed.confidence,
                 }),
@@ -171,12 +217,9 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({
           success: true,
           extracted_text: parsed.extracted_text,
-          is_correct: parsed.is_correct,
-          earned_score: Math.min(
-            maxScore,
-            Math.max(0, Number(parsed.earned_score) || 0)
-          ),
-          feedback: parsed.feedback,
+          is_correct: isPassed,
+          earned_score: finalEarnedScore,
+          feedback: finalFeedback,
           math_steps_valid: parsed.math_steps_valid,
           confidence: parsed.confidence,
         })
