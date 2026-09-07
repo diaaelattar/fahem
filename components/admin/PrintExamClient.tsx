@@ -1,9 +1,23 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Printer, Eye, EyeOff, LayoutList } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import {
+  Printer,
+  Eye,
+  EyeOff,
+  LayoutList,
+  Sliders,
+  School,
+  UserCheck,
+  FileText,
+  Upload,
+  Trash2,
+  ChevronDown,
+  ChevronUp,
+  Save,
+  Sparkles,
+} from 'lucide-react'
 import { MathRenderer } from '@/components/ui/MathRenderer'
-
 import {
   getSubjectDirection,
   getSubjectTextAlignClass,
@@ -14,6 +28,44 @@ export type AnswerMode = 'none' | 'short' | 'full'
 interface PassageBlock {
   passage: string | null
   questions: any[]
+}
+
+interface PrintCustomSettings {
+  headerType: 'official' | 'personal' | 'both'
+  directorate: string
+  administration: string
+  schoolName: string
+  academicYear: string
+  displayName: string
+  title: string
+  phone: string
+  social: string
+  customTitle: string
+  examModel: string
+  durationMinutes: string
+  totalPoints: string
+  subjectName: string
+  gradeName: string
+  examDate: string
+  logoUrl: string
+  showStudentBar: boolean
+  showStudentName: boolean
+  showSeatNumber: boolean
+  showClassSection: boolean
+  classSection: string
+  showExamDate: boolean
+  showInstructions: boolean
+  instructionsText: string
+  showSignatures: boolean
+  signRole1: string
+  signRole2: string
+  signRole3: string
+  signRole4: string
+  showSchoolStamp: boolean
+  showFooterCheer: boolean
+  footerCheer: string
+  showWatermark: boolean
+  watermarkText: string
 }
 
 export function PrintExamClient({
@@ -27,26 +79,76 @@ export function PrintExamClient({
   const [showSectionHeaders, setShowSectionHeaders] = useState(true)
   const [hiddenQuestions, setHiddenQuestions] = useState<Set<string>>(new Set())
 
-  // --- Print Header Settings ---
-  const [localSettings, setLocalSettings] = useState({
+  const [isCustomizeOpen, setIsCustomizeOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState<'official' | 'exam' | 'personal' | 'footer'>('official')
+  const [savedSuccess, setSavedSuccess] = useState(false)
+  const logoInputRef = useRef<HTMLInputElement>(null)
+
+  const [localSettings, setLocalSettings] = useState<PrintCustomSettings>({
+    headerType: 'official',
     directorate: '',
     administration: '',
     schoolName: '',
-    academicYear: '',
-    teacherName: '',
-    classSection: '',
-    examDate: '',
-    headerType: 'official' as 'official' | 'personal' | 'both',
+    academicYear: '2024 / 2025',
     displayName: '',
     title: '',
     phone: '',
     social: '',
+    customTitle: exam?.title || '',
+    examModel: '',
+    durationMinutes: exam?.duration_minutes ? String(exam.duration_minutes) : '40',
+    totalPoints: exam?.total_points ? String(exam.total_points) : '25',
+    subjectName: exam?.subjects?.name_ar || '',
+    gradeName: exam?.grades?.name_ar || '',
+    examDate: '',
     logoUrl: '',
-    watermarkText: '',
+    showStudentBar: true,
+    showStudentName: true,
+    showSeatNumber: true,
+    showClassSection: false,
+    classSection: '',
+    showExamDate: false,
+    showInstructions: false,
+    instructionsText: 'تنبيه: أجب عن جميع الأسئلة الآتية - الإجابة في نفس الورقة',
+    showSignatures: true,
+    signRole1: 'واضع الامتحان',
+    signRole2: 'المراجع المختص',
+    signRole3: 'وكيل شؤون الطلاب',
+    signRole4: 'مدير المدرسة',
+    showSchoolStamp: true,
+    showFooterCheer: true,
+    footerCheer: 'انتهت الأسئلة مع أطيب التمنيات بالنجاح والتفوق',
     showWatermark: false,
+    watermarkText: '',
   })
 
   useEffect(() => {
+    const savedDefaults = localStorage.getItem('istabaq_default_print_settings')
+    let baseSettings: Partial<PrintCustomSettings> = {}
+    if (savedDefaults) {
+      try {
+        baseSettings = JSON.parse(savedDefaults)
+      } catch {}
+    }
+
+    const examSpecific = localStorage.getItem(\`print_settings_exam_\${exam?.id}\`)
+    let examSettings: Partial<PrintCustomSettings> = {}
+    if (examSpecific) {
+      try {
+        examSettings = JSON.parse(examSpecific)
+      } catch {}
+    }
+
+    setLocalSettings((prev) => ({
+      ...prev,
+      ...baseSettings,
+      ...examSettings,
+      customTitle: examSettings.customTitle || prev.customTitle || exam?.title || '',
+      subjectName: examSettings.subjectName || prev.subjectName || exam?.subjects?.name_ar || '',
+      durationMinutes: examSettings.durationMinutes || (exam?.duration_minutes ? String(exam.duration_minutes) : prev.durationMinutes),
+      totalPoints: examSettings.totalPoints || (exam?.total_points ? String(exam.total_points) : prev.totalPoints),
+    }))
+
     const handleSettingsChange = (e: Event) => {
       const customEvent = e as CustomEvent
       if (customEvent.detail) {
@@ -55,24 +157,65 @@ export function PrintExamClient({
     }
     window.addEventListener('print-settings-changed', handleSettingsChange)
 
-    // Load initial from localStorage if available (fallback)
-    const stored = localStorage.getItem(`print_settings_exam_${exam.id}`)
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored)
-        setLocalSettings((prev) => ({
-          ...prev,
-          teacherName: parsed.teacherName ?? '',
-          classSection: parsed.classSection ?? '',
-          examDate: parsed.examDate ?? '',
-        }))
-      } catch {}
-    }
-
     return () => {
       window.removeEventListener('print-settings-changed', handleSettingsChange)
     }
-  }, [exam.id])
+  }, [exam?.id])
+
+  useEffect(() => {
+    if (!exam?.id) return
+    try {
+      localStorage.setItem(
+        \`print_settings_exam_\${exam.id}\`,
+        JSON.stringify(localSettings)
+      )
+    } catch {}
+  }, [localSettings, exam?.id])
+
+  const handleSaveAsDefaults = () => {
+    try {
+      const defaultsToSave = {
+        headerType: localSettings.headerType,
+        directorate: localSettings.directorate,
+        administration: localSettings.administration,
+        schoolName: localSettings.schoolName,
+        academicYear: localSettings.academicYear,
+        displayName: localSettings.displayName,
+        title: localSettings.title,
+        phone: localSettings.phone,
+        social: localSettings.social,
+        logoUrl: localSettings.logoUrl,
+        showSignatures: localSettings.showSignatures,
+        signRole1: localSettings.signRole1,
+        signRole2: localSettings.signRole2,
+        signRole3: localSettings.signRole3,
+        signRole4: localSettings.signRole4,
+        showSchoolStamp: localSettings.showSchoolStamp,
+        footerCheer: localSettings.footerCheer,
+        watermarkText: localSettings.watermarkText,
+      }
+      localStorage.setItem(
+        'istabaq_default_print_settings',
+        JSON.stringify(defaultsToSave)
+      )
+      setSavedSuccess(true)
+      setTimeout(() => setSavedSuccess(false), 2500)
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setLocalSettings((prev) => ({ ...prev, logoUrl: reader.result as string }))
+      }
+    }
+    reader.readAsDataURL(file)
+  }
 
   const toggleQuestionVisibility = (qId: string) => {
     setHiddenQuestions((prev) => {
@@ -83,8 +226,7 @@ export function PrintExamClient({
     })
   }
 
-  // --- Direction detection ---
-  const subjectName = exam.subjects?.name_ar || ''
+  const subjectName = localSettings.subjectName || exam?.subjects?.name_ar || ''
   const dir = getSubjectDirection(subjectName)
   const isRTL = dir === 'rtl'
   const textAlign = getSubjectTextAlignClass(subjectName)
@@ -135,105 +277,760 @@ export function PrintExamClient({
 
   return (
     <div
-      className="min-h-screen bg-slate-100 p-8 print:bg-white print:p-0"
+      className="min-h-screen bg-slate-100 p-4 md:p-8 print:bg-white print:p-0"
       dir={dir}
     >
       <style
         dangerouslySetInnerHTML={{
-          __html: `
+          __html: \`
         @media print {
-          @page { margin: 15mm; }
-          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          @page { margin: 12mm 15mm; size: A4 portrait; }
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background-color: white !important; }
           .break-inside-avoid { page-break-inside: avoid; break-inside: avoid; }
           .page-break-before { page-break-before: always; break-before: page; }
+          .print-hidden { display: none !important; }
         }
-      `,
+      \`,
         }}
       />
 
       {/* ─── Control Bar (hidden when printing) ─── */}
       <div
-        className="mx-auto mb-4 max-w-4xl rounded-xl bg-white p-4 shadow-sm print:hidden"
+        className="mx-auto mb-6 max-w-4xl rounded-2xl border border-slate-200 bg-white p-4 shadow-sm print:hidden"
         dir="rtl"
       >
-        <h2 className="mb-4 text-base font-bold text-slate-800">
-          ⚙️ إعدادات الطباعة
-        </h2>
-
-        {/* Row 1: answer mode + print */}
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-2 rounded-lg bg-slate-100 p-1">
-            {(['none', 'short', 'full'] as AnswerMode[]).map((mode) => (
-              <button
-                key={mode}
-                onClick={() => setAnswerMode(mode)}
-                className={`rounded-md px-4 py-2 text-sm font-bold transition-all ${
-                  answerMode === mode
-                    ? mode === 'none'
-                      ? 'bg-white text-slate-800 shadow-sm'
-                      : mode === 'short'
-                        ? 'bg-indigo-100 text-indigo-800 shadow-sm'
-                        : 'bg-green-100 text-green-800 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                {mode === 'none'
-                  ? 'إخفاء الإجابات'
-                  : mode === 'short'
-                    ? 'الحل المختصر'
-                    : 'الحل الكامل'}
-              </button>
-            ))}
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <h2 className="flex items-center gap-2 text-lg font-black text-slate-800">
+              <Printer className="h-5 w-5 text-primary" />
+              معاينة وطباعة ورقة الاختبار
+            </h2>
+            <button
+              onClick={() => setIsCustomizeOpen((v) => !v)}
+              className={\`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition-all \${
+                isCustomizeOpen
+                  ? 'bg-primary text-white shadow-md shadow-primary/20'
+                  : 'border border-primary/30 bg-primary/5 text-primary hover:bg-primary/10'
+              }\`}
+            >
+              <Sliders className="h-4 w-4" />
+              تخصيص الترويسة والبيانات الكاملة
+              {isCustomizeOpen ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
+            </button>
           </div>
-          <button
-            onClick={handlePrint}
-            className="flex items-center gap-2 rounded-lg bg-primary px-6 py-2 text-sm font-bold text-white shadow-sm transition-colors hover:bg-primary/90"
-          >
-            <Printer className="h-4 w-4" />
-            طباعة PDF
-          </button>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handlePrint}
+              className="flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-2.5 text-sm font-black text-white shadow-md shadow-emerald-200 transition-all hover:bg-emerald-700 active:scale-95"
+            >
+              <Printer className="h-4 w-4" />
+              طباعة الاختبار (PDF)
+            </button>
+          </div>
         </div>
 
-        {/* Row 2: section headers toggle + hidden count */}
-        <div className="flex flex-wrap items-center gap-3 border-t border-slate-100 pt-3">
-          <button
-            onClick={() => setShowSectionHeaders((v) => !v)}
-            className={`flex items-center gap-2 rounded-lg border-2 px-4 py-2 text-sm font-bold transition-all ${
-              showSectionHeaders
-                ? 'border-primary bg-primary/5 text-primary'
-                : 'border-slate-300 bg-slate-50 text-slate-500'
-            }`}
-          >
-            <LayoutList className="h-4 w-4" />
-            {showSectionHeaders ? 'رؤوس الأقسام: ظاهرة' : 'رؤوس الأقسام: مخفية'}
-          </button>
-
-          {hiddenCount > 0 && (
-            <div className="flex items-center gap-2">
-              <span className="rounded-lg border border-orange-200 bg-orange-50 px-3 py-1.5 text-sm font-bold text-orange-700">
-                🙈 {hiddenCount} سؤال مخفي من الطباعة
-              </span>
-              <button
-                onClick={() => setHiddenQuestions(new Set())}
-                className="text-xs text-slate-500 underline hover:text-red-600"
-              >
-                إظهار الكل
-              </button>
+        {/* Second row of quick controls */}
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3 text-sm">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-slate-600">نمط الإجابة:</span>
+            <div className="flex rounded-lg bg-slate-100 p-1">
+              {(['none', 'short', 'full'] as AnswerMode[]).map((mode) => (
+                <button
+                  key={mode}
+                  onClick={() => setAnswerMode(mode)}
+                  className={\`rounded-md px-3 py-1 text-xs font-bold transition-all \${
+                    answerMode === mode
+                      ? mode === 'none'
+                        ? 'bg-white text-slate-800 shadow-sm'
+                        : mode === 'short'
+                          ? 'bg-indigo-100 text-indigo-800 shadow-sm'
+                          : 'bg-green-100 text-green-800 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-700'
+                  }\`}
+                >
+                  {mode === 'none'
+                    ? 'بدون حل (ورقة الطالب)'
+                    : mode === 'short'
+                      ? 'الحل المختصر'
+                      : 'نموذج الإجابة الكامل'}
+                </button>
+              ))}
             </div>
-          )}
+          </div>
 
-          <p className="mr-auto text-xs text-slate-400">
-            💡 انقر على أيقونة العين بجانب أي سؤال لإخفائه من الطباعة
-          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowSectionHeaders((v) => !v)}
+              className={\`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-bold transition-all \${
+                showSectionHeaders
+                  ? 'border-primary/40 bg-primary/5 text-primary'
+                  : 'border-slate-300 bg-slate-50 text-slate-500'
+              }\`}
+            >
+              <LayoutList className="h-3.5 w-3.5" />
+              {showSectionHeaders ? 'عناوين الأقسام: ظاهرة' : 'عناوين الأقسام: مخفية'}
+            </button>
+
+            {hiddenCount > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="rounded-lg border border-orange-200 bg-orange-50 px-2.5 py-1 text-xs font-bold text-orange-700">
+                  🙈 {hiddenCount} سؤال مخفي
+                </span>
+                <button
+                  onClick={() => setHiddenQuestions(new Set())}
+                  className="text-xs text-slate-500 underline hover:text-red-600"
+                >
+                  إظهار الكل
+                </button>
+              </div>
+            )}
+          </div>
         </div>
+
+        {/* ─── Expandable Full Customization Drawer ─── */}
+        {isCustomizeOpen && (
+          <div className="mt-5 rounded-2xl border border-primary/20 bg-slate-50/80 p-5">
+            {/* Tabs header */}
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-3">
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setActiveTab('official')}
+                  className={\`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all \${
+                    activeTab === 'official'
+                      ? 'bg-primary text-white shadow-sm'
+                      : 'bg-white text-slate-600 hover:bg-slate-100'
+                  }\`}
+                >
+                  <School className="h-4 w-4" />
+                  الترويسة المدرسية والرسمية
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('exam')}
+                  className={\`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all \${
+                    activeTab === 'exam'
+                      ? 'bg-primary text-white shadow-sm'
+                      : 'bg-white text-slate-600 hover:bg-slate-100'
+                  }\`}
+                >
+                  <FileText className="h-4 w-4" />
+                  بيانات الاختبار والنموذج
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('personal')}
+                  className={\`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all \${
+                    activeTab === 'personal'
+                      ? 'bg-primary text-white shadow-sm'
+                      : 'bg-white text-slate-600 hover:bg-slate-100'
+                  }\`}
+                >
+                  <UserCheck className="h-4 w-4" />
+                  الترويسة الشخصية والمعلم
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('footer')}
+                  className={\`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all \${
+                    activeTab === 'footer'
+                      ? 'bg-primary text-white shadow-sm'
+                      : 'bg-white text-slate-600 hover:bg-slate-100'
+                  }\`}
+                >
+                  <Sparkles className="h-4 w-4" />
+                  شريط الطالب والتذييل
+                </button>
+              </div>
+
+              {/* Action buttons: Save Default */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleSaveAsDefaults}
+                  className="flex items-center gap-1.5 rounded-xl bg-slate-800 px-3.5 py-1.5 text-xs font-bold text-white transition-all hover:bg-slate-900"
+                  title="حفظ بيانات المدرسة والمعلم كإعدادات دائمة لجميع الاختبارات القادمة"
+                >
+                  <Save className="h-3.5 w-3.5 text-emerald-400" />
+                  {savedSuccess ? '✓ تم الحفظ كافتراضي!' : 'حفظ كإعدادات افتراضية'}
+                </button>
+              </div>
+            </div>
+
+            {/* TAB 1: OFFICIAL SCHOOL HEADER */}
+            {activeTab === 'official' && (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div>
+                  <label className="mb-1.5 block text-xs font-bold text-slate-700">
+                    نوع الترويسة
+                  </label>
+                  <select
+                    value={localSettings.headerType}
+                    onChange={(e) =>
+                      setLocalSettings({
+                        ...localSettings,
+                        headerType: e.target.value as any,
+                      })
+                    }
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  >
+                    <option value="official">ترويسة رسمية (محافظة / مدرسة)</option>
+                    <option value="personal">ترويسة شخصية (المعلم / السنتر)</option>
+                    <option value="both">كلاهما معاً (رسمي + شخصي)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-xs font-bold text-slate-700">
+                    المحافظة (المديرية)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="مثال: الجيزة أو القاهرة"
+                    value={localSettings.directorate}
+                    onChange={(e) =>
+                      setLocalSettings({ ...localSettings, directorate: e.target.value })
+                    }
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-xs font-bold text-slate-700">
+                    الإدارة التعليمية
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="مثال: الدقي التعليمية"
+                    value={localSettings.administration}
+                    onChange={(e) =>
+                      setLocalSettings({ ...localSettings, administration: e.target.value })
+                    }
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-xs font-bold text-slate-700">
+                    اسم المدرسة / المعهد
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="مثال: مدرسة الأورمان الثانوية"
+                    value={localSettings.schoolName}
+                    onChange={(e) =>
+                      setLocalSettings({ ...localSettings, schoolName: e.target.value })
+                    }
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* TAB 2: EXAM DETAILS & MODEL */}
+            {activeTab === 'exam' && (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="sm:col-span-2">
+                  <label className="mb-1.5 block text-xs font-bold text-slate-700">
+                    عنوان ورقة الاختبار (يظهر في وسط الترويسة)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="مثال: اختبار الوحدة الأولى: الأعداد والعمليات عليها"
+                    value={localSettings.customTitle}
+                    onChange={(e) =>
+                      setLocalSettings({ ...localSettings, customTitle: e.target.value })
+                    }
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-xs font-bold text-slate-700">
+                    نموذج الاختبار (اختياري)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="مثال: نموذج (أ) أو نموذج 1"
+                    value={localSettings.examModel}
+                    onChange={(e) =>
+                      setLocalSettings({ ...localSettings, examModel: e.target.value })
+                    }
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-xs font-bold text-slate-700">
+                    العام الدراسي
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="2024 / 2025"
+                    value={localSettings.academicYear}
+                    onChange={(e) =>
+                      setLocalSettings({ ...localSettings, academicYear: e.target.value })
+                    }
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-xs font-bold text-slate-700">
+                    زمن الإجابة
+                  </label>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="text"
+                      placeholder="مثال: 40 دقيقة أو ساعة ونصف"
+                      value={localSettings.durationMinutes}
+                      onChange={(e) =>
+                        setLocalSettings({
+                          ...localSettings,
+                          durationMinutes: e.target.value,
+                        })
+                      }
+                      className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                    <div className="flex gap-1">
+                      {['30', '40', '60'].map((mins) => (
+                        <button
+                          key={mins}
+                          type="button"
+                          onClick={() =>
+                            setLocalSettings({
+                              ...localSettings,
+                              durationMinutes: mins,
+                            })
+                          }
+                          className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-bold text-slate-600 hover:bg-slate-100"
+                        >
+                          {mins}د
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-xs font-bold text-slate-700">
+                    الدرجة الكلية للاختبار
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="مثال: 25 أو 50"
+                    value={localSettings.totalPoints}
+                    onChange={(e) =>
+                      setLocalSettings({ ...localSettings, totalPoints: e.target.value })
+                    }
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-xs font-bold text-slate-700">
+                    المادة الدراسية
+                  </label>
+                  <input
+                    type="text"
+                    value={localSettings.subjectName}
+                    onChange={(e) =>
+                      setLocalSettings({ ...localSettings, subjectName: e.target.value })
+                    }
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-xs font-bold text-slate-700">
+                    الصف الدراسي
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="مثال: الصف الأول الإعدادي"
+                    value={localSettings.gradeName}
+                    onChange={(e) =>
+                      setLocalSettings({ ...localSettings, gradeName: e.target.value })
+                    }
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* TAB 3: PERSONAL TEACHER & LOGO */}
+            {activeTab === 'personal' && (
+              <div className="space-y-4">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  <div>
+                    <label className="mb-1.5 block text-xs font-bold text-slate-700">
+                      اسم المعلم / المعلمة
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="مثال: أ. ضياء العطار"
+                      value={localSettings.displayName}
+                      onChange={(e) =>
+                        setLocalSettings({ ...localSettings, displayName: e.target.value })
+                      }
+                      className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-xs font-bold text-slate-700">
+                      الصفة / التخصص
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="مثال: خبير تدريس الرياضيات"
+                      value={localSettings.title}
+                      onChange={(e) =>
+                        setLocalSettings({ ...localSettings, title: e.target.value })
+                      }
+                      className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-xs font-bold text-slate-700">
+                      الهاتف / واتساب
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="مثال: 010xxxxxxxx"
+                      value={localSettings.phone}
+                      onChange={(e) =>
+                        setLocalSettings({ ...localSettings, phone: e.target.value })
+                      }
+                      className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-xs font-bold text-slate-700">
+                      قناة / صفحة المعلم
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="مثال: @istabaq"
+                      value={localSettings.social}
+                      onChange={(e) =>
+                        setLocalSettings({ ...localSettings, social: e.target.value })
+                      }
+                      className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+                </div>
+
+                {/* Logo section */}
+                <div className="rounded-xl border border-slate-200 bg-white p-4">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-800">
+                        شعار المدرسة أو المعلم (لوجو أعلى الترويسة)
+                      </h4>
+                      <p className="text-xs text-slate-500">
+                        يمكنك رفع صورة شعار مباشرة من حاسوبك، أو وضع رابط لصورة خارجية.
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="file"
+                        ref={logoInputRef}
+                        onChange={handleLogoUpload}
+                        accept="image/*"
+                        className="hidden"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => logoInputRef.current?.click()}
+                        className="flex items-center gap-2 rounded-xl bg-primary/10 px-4 py-2 text-xs font-bold text-primary hover:bg-primary/20"
+                      >
+                        <Upload className="h-4 w-4" />
+                        رفع شعار من جهازك
+                      </button>
+
+                      {localSettings.logoUrl && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setLocalSettings({ ...localSettings, logoUrl: '' })
+                          }
+                          className="flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-100"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          حذف الشعار
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {localSettings.logoUrl && (
+                    <div className="mt-3 flex items-center gap-3 border-t border-slate-100 pt-3">
+                      <img
+                        src={localSettings.logoUrl}
+                        alt="Logo preview"
+                        className="h-12 w-12 rounded-lg border border-slate-200 object-contain p-1"
+                      />
+                      <span className="text-xs font-bold text-emerald-600">
+                        ✓ الشعار مفعل وسيظهر في منتصف ترويسة ورقة الامتحان.
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* TAB 4: STUDENT BAR & FOOTER */}
+            {activeTab === 'footer' && (
+              <div className="space-y-4">
+                <div className="rounded-xl border border-slate-200 bg-white p-4">
+                  <div className="mb-3 flex items-center justify-between">
+                    <h4 className="text-sm font-bold text-slate-800">
+                      شريط بيانات الطالب
+                    </h4>
+                    <label className="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={localSettings.showStudentBar}
+                        onChange={(e) =>
+                          setLocalSettings({
+                            ...localSettings,
+                            showStudentBar: e.target.checked,
+                          })
+                        }
+                        className="rounded"
+                      />
+                      إظهار شريط الطالب
+                    </label>
+                  </div>
+
+                  {localSettings.showStudentBar && (
+                    <div className="flex flex-wrap items-center gap-4 text-xs font-bold text-slate-700">
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={localSettings.showStudentName}
+                          onChange={(e) =>
+                            setLocalSettings({
+                              ...localSettings,
+                              showStudentName: e.target.checked,
+                            })
+                          }
+                        />
+                        اسم الطالب
+                      </label>
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={localSettings.showSeatNumber}
+                          onChange={(e) =>
+                            setLocalSettings({
+                              ...localSettings,
+                              showSeatNumber: e.target.checked,
+                            })
+                          }
+                        />
+                        رقم الجلوس
+                      </label>
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={localSettings.showClassSection}
+                          onChange={(e) =>
+                            setLocalSettings({
+                              ...localSettings,
+                              showClassSection: e.target.checked,
+                            })
+                          }
+                        />
+                        الفصل / الشعبة
+                      </label>
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={localSettings.showExamDate}
+                          onChange={(e) =>
+                            setLocalSettings({
+                              ...localSettings,
+                              showExamDate: e.target.checked,
+                            })
+                          }
+                        />
+                        تاريخ الامتحان
+                      </label>
+                    </div>
+                  )}
+                </div>
+
+                <div className="rounded-xl border border-slate-200 bg-white p-4">
+                  <div className="mb-2 flex items-center justify-between">
+                    <h4 className="text-sm font-bold text-slate-800">
+                      شريط تعليمات وتنبيهات الاختبار
+                    </h4>
+                    <label className="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={localSettings.showInstructions}
+                        onChange={(e) =>
+                          setLocalSettings({
+                            ...localSettings,
+                            showInstructions: e.target.checked,
+                          })
+                        }
+                      />
+                      إظهار شريط التعليمات
+                    </label>
+                  </div>
+                  {localSettings.showInstructions && (
+                    <input
+                      type="text"
+                      placeholder="مثال: تنبيه: أجب عن جميع الأسئلة الآتية - الإجابة في نفس الورقة"
+                      value={localSettings.instructionsText}
+                      onChange={(e) =>
+                        setLocalSettings({
+                          ...localSettings,
+                          instructionsText: e.target.value,
+                        })
+                      }
+                      className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  )}
+                </div>
+
+                <div className="rounded-xl border border-slate-200 bg-white p-4">
+                  <div className="mb-3 flex items-center justify-between">
+                    <h4 className="text-sm font-bold text-slate-800">
+                      تذييل الورقة والتوقيعات الرسمية
+                    </h4>
+                    <label className="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={localSettings.showSignatures}
+                        onChange={(e) =>
+                          setLocalSettings({
+                            ...localSettings,
+                            showSignatures: e.target.checked,
+                          })
+                        }
+                      />
+                      إظهار سطر التوقيعات الوزاري بالأسفل
+                    </label>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <div>
+                      <label className="mb-1 block text-xs text-slate-500 font-bold">التوقيع 1</label>
+                      <input
+                        type="text"
+                        value={localSettings.signRole1}
+                        onChange={(e) =>
+                          setLocalSettings({ ...localSettings, signRole1: e.target.value })
+                        }
+                        className="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs text-slate-500 font-bold">التوقيع 2</label>
+                      <input
+                        type="text"
+                        value={localSettings.signRole2}
+                        onChange={(e) =>
+                          setLocalSettings({ ...localSettings, signRole2: e.target.value })
+                        }
+                        className="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs text-slate-500 font-bold">التوقيع 3</label>
+                      <input
+                        type="text"
+                        value={localSettings.signRole3}
+                        onChange={(e) =>
+                          setLocalSettings({ ...localSettings, signRole3: e.target.value })
+                        }
+                        className="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs text-slate-500 font-bold">التوقيع 4 (الإدارة)</label>
+                      <input
+                        type="text"
+                        value={localSettings.signRole4}
+                        onChange={(e) =>
+                          setLocalSettings({ ...localSettings, signRole4: e.target.value })
+                        }
+                        className="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-t border-slate-100 pt-3">
+                    <div className="flex-1">
+                      <label className="mb-1 block text-xs font-bold text-slate-700">
+                        عبارة الختام والتشجيع
+                      </label>
+                      <input
+                        type="text"
+                        value={localSettings.footerCheer}
+                        onChange={(e) =>
+                          setLocalSettings({
+                            ...localSettings,
+                            footerCheer: e.target.value,
+                          })
+                        }
+                        className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-800"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                      <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={localSettings.showSchoolStamp}
+                          onChange={(e) =>
+                            setLocalSettings({
+                              ...localSettings,
+                              showSchoolStamp: e.target.checked,
+                            })
+                          }
+                        />
+                        خانة خاتم المدرسة
+                      </label>
+
+                      <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={localSettings.showWatermark}
+                          onChange={(e) =>
+                            setLocalSettings({
+                              ...localSettings,
+                              showWatermark: e.target.checked,
+                            })
+                          }
+                        />
+                        علامة مائية
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Hidden questions list */}
+      {/* Hidden questions list reminder */}
       {hiddenCount > 0 && (
         <div className="mx-auto mb-4 max-w-4xl print:hidden" dir="rtl">
           <div className="rounded-xl border border-orange-200 bg-orange-50 p-4">
             <p className="mb-2 text-sm font-bold text-orange-800">
-              الأسئلة المخفية من الطباعة:
+              الأسئلة المستبعدة من الطباعة حالياً ({hiddenCount} سؤال):
             </p>
             <div className="flex flex-wrap gap-2">
               {questions
@@ -256,9 +1053,9 @@ export function PrintExamClient({
       )}
 
       {/* ─── A4 Print Container ─── */}
-      <div className="relative mx-auto max-w-[210mm] overflow-hidden bg-white shadow-xl print:m-0 print:w-full print:max-w-none print:shadow-none">
+      <div className="relative mx-auto max-w-[210mm] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl print:m-0 print:w-full print:max-w-none print:rounded-none print:border-none print:shadow-none">
         {/* Full-page Watermark Overlay */}
-        {localSettings.showWatermark && localSettings.watermarkText && (
+        {localSettings.showWatermark && (
           <div
             className="pointer-events-none absolute inset-0 z-0 flex flex-wrap content-start justify-center gap-x-24 gap-y-48 pt-48 opacity-[0.04]"
             aria-hidden="true"
@@ -266,19 +1063,19 @@ export function PrintExamClient({
             {Array.from({ length: 30 }).map((_, i) => (
               <div
                 key={i}
-                className="rotate-[-35deg] whitespace-nowrap text-5xl font-black sm:text-7xl"
+                className="rotate-[-35deg] whitespace-nowrap text-5xl font-black sm:text-7xl text-slate-900"
               >
-                {localSettings.watermarkText}
+                {localSettings.watermarkText || localSettings.displayName || localSettings.schoolName || 'استباق مصر'}
               </div>
             ))}
           </div>
         )}
 
-        <div className="relative z-10 p-8 print:p-0">
-          {/* Premium Exam Header */}
-          <div className="relative mb-6 border-b-4 border-double border-slate-800 pb-4">
+        <div className="relative z-10 p-6 md:p-10 print:p-0">
+          {/* ─── Premium 3-Column Exam Header ─── */}
+          <div className="relative mb-5 border-b-4 border-double border-slate-800 pb-4">
             <div className="relative z-10 flex items-center justify-between text-sm font-bold">
-              {/* Right Side */}
+              {/* Right Side (اليمين: الترويسة الرسمية) */}
               <div
                 className="flex-1 text-right leading-relaxed text-slate-800"
                 dir="rtl"
@@ -290,7 +1087,7 @@ export function PrintExamClient({
                       محافظة: {localSettings.directorate || '..............'}
                     </div>
                     <div>
-                      إدارة: {localSettings.administration || '..............'}
+                      إدارة: {localSettings.administration ? \`\${localSettings.administration}\` : '..............'}
                     </div>
                     <div>
                       مدرسة: {localSettings.schoolName || '..............'}
@@ -308,24 +1105,30 @@ export function PrintExamClient({
                 )}
               </div>
 
-              {/* Center */}
+              {/* Center (الوسط: الشعار + عنوان الاختبار + المادة والصف) */}
               <div className="flex flex-1 flex-col items-center justify-center px-4 text-center">
                 {localSettings.logoUrl && (
                   <img
                     src={localSettings.logoUrl}
                     alt="Logo"
-                    className="mb-2 max-h-20 object-contain print:max-h-16"
+                    className="mb-2 max-h-16 max-w-[120px] object-contain print:max-h-14"
                   />
                 )}
                 <h1 className="text-2xl font-black leading-tight text-slate-900">
-                  {exam.title}
+                  {localSettings.customTitle || exam.title}
+                  {localSettings.examModel && (
+                    <span className="mr-2 text-primary font-bold">
+                      ({localSettings.examModel})
+                    </span>
+                  )}
                 </h1>
                 <div className="mt-1 text-sm font-bold text-slate-700">
-                  المادة: {exam.subjects?.name_ar}
+                  المادة: {localSettings.subjectName || exam.subjects?.name_ar}
+                  {localSettings.gradeName ? \` | \${localSettings.gradeName}\` : (exam.grades?.name_ar ? \` | \${exam.grades.name_ar}\` : '')}
                 </div>
               </div>
 
-              {/* Left Side */}
+              {/* Left Side (اليسار: العام الدراسي + الزمن + الدرجة أو بيانات المعلم) */}
               <div
                 className="flex-1 text-left leading-relaxed text-slate-800"
                 dir="ltr"
@@ -349,21 +1152,24 @@ export function PrintExamClient({
                 {localSettings.headerType !== 'both' && (
                   <>
                     <div className="text-right" dir="rtl">
-                      العام الدراسي:{' '}
-                      {localSettings.academicYear || '2024 / 2025'}
+                      العام الدراسي: {localSettings.academicYear || '2024 / 2025'}
                     </div>
                     <div className="text-right" dir="rtl">
-                      زمن الإجابة: {exam.duration_minutes} دقيقة
+                      زمن الإجابة:{' '}
+                      {localSettings.durationMinutes
+                        ? \`\${localSettings.durationMinutes} دقيقة\`
+                        : exam.duration_minutes
+                          ? \`\${exam.duration_minutes} دقيقة\`
+                          : '..............'}
                     </div>
                     <div className="text-right" dir="rtl">
-                      الدرجة الكلية: {exam.total_points}
+                      الدرجة الكلية:{' '}
+                      {localSettings.totalPoints || exam.total_points || '..............'}
                     </div>
-                    {localSettings.examDate && (
+                    {localSettings.showExamDate && localSettings.examDate && (
                       <div className="text-right" dir="rtl">
                         التاريخ:{' '}
-                        {new Date(localSettings.examDate).toLocaleDateString(
-                          'ar-EG'
-                        )}
+                        {new Date(localSettings.examDate).toLocaleDateString('ar-EG')}
                       </div>
                     )}
                   </>
@@ -371,41 +1177,71 @@ export function PrintExamClient({
               </div>
             </div>
 
+            {/* Sub-bar if both official & personal are enabled */}
             {localSettings.headerType === 'both' && (
-              <div className="relative z-10 mt-4 flex justify-center gap-6 border-t border-slate-300 pt-3 text-sm font-bold text-slate-700">
+              <div className="relative z-10 mt-3 flex justify-center gap-6 border-t border-slate-300 pt-2 text-sm font-bold text-slate-700">
+                <span>العام الدراسي: {localSettings.academicYear || '2024 / 2025'}</span>
                 <span>
-                  العام: {localSettings.academicYear || '2024 / 2025'}
+                  الزمن:{' '}
+                  {localSettings.durationMinutes
+                    ? \`\${localSettings.durationMinutes} دقيقة\`
+                    : \`\${exam.duration_minutes} دقيقة\`}
                 </span>
-                <span>الزمن: {exam.duration_minutes} دقيقة</span>
-                <span>الدرجة: {exam.total_points}</span>
-                {localSettings.examDate && (
+                <span>
+                  الدرجة:{' '}
+                  {localSettings.totalPoints || exam.total_points || '..............'}
+                </span>
+                {localSettings.showExamDate && localSettings.examDate && (
                   <span>
-                    التاريخ:{' '}
-                    {new Date(localSettings.examDate).toLocaleDateString(
-                      'ar-EG'
-                    )}
+                    التاريخ: {new Date(localSettings.examDate).toLocaleDateString('ar-EG')}
                   </span>
                 )}
               </div>
             )}
           </div>
 
-          {/* Student row */}
-          {answerMode === 'none' && (
-            <div className="flex items-center gap-6 border-b-2 border-slate-800 bg-slate-50 px-8 py-4 text-base font-bold print:bg-white">
-              <div className="flex flex-1 items-center gap-2">
-                <span>اسم الطالب: </span>
-                <div className="flex-1 border-b-2 border-dotted border-slate-400" />
-              </div>
-              <div className="flex w-48 items-center gap-2">
-                <span>رقم الجلوس: </span>
-                <div className="flex-1 border-b-2 border-dotted border-slate-400" />
-              </div>
+          {/* ─── Student Information Bar ─── */}
+          {localSettings.showStudentBar && answerMode === 'none' && (
+            <div className="flex flex-wrap items-center gap-4 md:gap-6 border-b-2 border-slate-800 bg-slate-50 px-6 py-3 text-sm md:text-base font-bold print:bg-white mb-4">
+              {localSettings.showStudentName && (
+                <div className="flex flex-1 items-center gap-2 min-w-[200px]">
+                  <span className="shrink-0">اسم الطالب:</span>
+                  <div className="flex-1 border-b-2 border-dotted border-slate-400" />
+                </div>
+              )}
+
+              {localSettings.showSeatNumber && (
+                <div className="flex w-36 md:w-44 items-center gap-2">
+                  <span className="shrink-0">رقم الجلوس:</span>
+                  <div className="flex-1 border-b-2 border-dotted border-slate-400" />
+                </div>
+              )}
+
+              {localSettings.showClassSection && (
+                <div className="flex w-32 md:w-40 items-center gap-2">
+                  <span className="shrink-0">الفصل:</span>
+                  <div className="flex-1 border-b-2 border-dotted border-slate-400" />
+                </div>
+              )}
+
+              {localSettings.showExamDate && (
+                <div className="flex w-32 md:w-40 items-center gap-2">
+                  <span className="shrink-0">التاريخ:</span>
+                  <div className="flex-1 border-b-2 border-dotted border-slate-400" />
+                </div>
+              )}
             </div>
           )}
 
-          {/* Questions */}
-          <div className="space-y-12 p-8">
+          {/* ─── Instructions Banner ─── */}
+          {localSettings.showInstructions && localSettings.instructionsText && (
+            <div className="mb-6 rounded-lg border border-slate-400 bg-slate-50 px-4 py-2 text-center text-xs md:text-sm font-bold text-slate-800 print:bg-white">
+              {localSettings.instructionsText}
+            </div>
+          )}
+
+          {/* ─── Questions List ─── */}
+          <div className="space-y-10 p-2 md:p-6 print:p-0">
             {activeGroups.map((type, groupIdx) => {
               const blocks = groupedByType[type]
               const labelsAR = [
@@ -414,6 +1250,9 @@ export function PrintExamClient({
                 'السؤال الثالث',
                 'السؤال الرابع',
                 'السؤال الخامس',
+                'السؤال السادس',
+                'السؤال السابع',
+                'السؤال الثامن',
               ]
               const labelsEN = [
                 'Question One',
@@ -421,19 +1260,22 @@ export function PrintExamClient({
                 'Question Three',
                 'Question Four',
                 'Question Five',
+                'Question Six',
+                'Question Seven',
+                'Question Eight',
               ]
               const labels = isRTL ? labelsAR : labelsEN
               const fallback = isRTL
-                ? `السؤال ${groupIdx + 1}`
-                : `Question ${groupIdx + 1}`
-              const groupTitle = `${labels[groupIdx] || fallback}: ${questionTypeTitles[type]}`
+                ? \`السؤال \${groupIdx + 1}\`
+                : \`Question \${groupIdx + 1}\`
+              const groupTitle = \`\${labels[groupIdx] || fallback}: \${questionTypeTitles[type]}\`
               let qCounter = 0
 
               return (
                 <div key={type} className="space-y-6">
                   {showSectionHeaders && (
                     <h3
-                      className={`mb-6 border-b-2 border-slate-800 pb-2 text-xl font-bold text-slate-800 ${textAlign}`}
+                      className={\`mb-6 border-b-2 border-slate-800 pb-2 text-xl font-bold text-slate-800 \${textAlign}\`}
                       dir={dir}
                     >
                       {groupTitle}
@@ -466,15 +1308,15 @@ export function PrintExamClient({
                           return (
                             <div
                               key={q.id}
-                              className={`break-inside-avoid space-y-3 ${block.passage ? 'border-r-2 border-amber-200 pr-4' : ''}`}
+                              className={\`break-inside-avoid space-y-3 \${block.passage ? 'border-r-2 border-amber-200 pr-4' : ''}\`}
                             >
                               <div className="flex items-start gap-2" dir={dir}>
                                 <span className="shrink-0 text-lg font-bold">
                                   {num}.
                                 </span>
-                                <div className={`flex-1 ${textAlign}`}>
+                                <div className={\`flex-1 \${textAlign}\`}>
                                   <div
-                                    className={`flex ${
+                                    className={\`flex \${
                                       q.image_position === 'top'
                                         ? 'flex-col-reverse'
                                         : q.image_position === 'right'
@@ -482,13 +1324,13 @@ export function PrintExamClient({
                                           : q.image_position === 'left'
                                             ? 'flex-row items-start gap-6'
                                             : 'flex-col'
-                                    }`}
+                                    }\`}
                                   >
                                     <div className="flex-1 text-lg font-medium leading-relaxed">
                                       <MathRenderer
                                         text={q.question_text
                                           .replace(
-                                            /^(\(?\d+[[\)\.\-\s]\s*)/,
+                                            /^(\\(?\\d+[[\\)\\.\\-\\s]\\s*)/,
                                             ''
                                           )
                                           .trim()}
@@ -497,7 +1339,7 @@ export function PrintExamClient({
                                     </div>
                                     {q.question_image_url && (
                                       <div
-                                        className={`shrink-0 text-center ${q.image_position === 'right' || q.image_position === 'left' ? 'w-1/3' : 'mt-4 w-full'}`}
+                                        className={\`shrink-0 text-center \${q.image_position === 'right' || q.image_position === 'left' ? 'w-1/3' : 'mt-4 w-full'}\`}
                                       >
                                         <img
                                           src={q.question_image_url}
@@ -520,11 +1362,11 @@ export function PrintExamClient({
                                       ? 'إظهار السؤال'
                                       : 'إخفاء السؤال من الطباعة'
                                   }
-                                  className={`shrink-0 rounded-lg border p-1.5 transition-all print:hidden ${
+                                  className={\`shrink-0 rounded-lg border p-1.5 transition-all print:hidden \${
                                     isHidden
                                       ? 'border-orange-300 bg-orange-100 text-orange-600 hover:bg-orange-200'
                                       : 'border-slate-200 bg-slate-50 text-slate-400 hover:border-red-200 hover:bg-red-50 hover:text-red-500'
-                                  }`}
+                                  }\`}
                                 >
                                   {isHidden ? (
                                     <Eye className="h-4 w-4" />
@@ -549,7 +1391,7 @@ export function PrintExamClient({
                                         : 'grid-cols-4'
                                   return (
                                     <div
-                                      className={`grid ${cols} gap-x-6 gap-y-3 ${isRTL ? 'pr-6' : 'pl-6'}`}
+                                      className={\`grid \${cols} gap-x-6 gap-y-3 \${isRTL ? 'pr-6' : 'pl-6'}\`}
                                     >
                                       {q.options.map(
                                         (opt: string, oIdx: number) => {
@@ -559,10 +1401,10 @@ export function PrintExamClient({
                                           return (
                                             <div
                                               key={oIdx}
-                                              className={`flex items-start gap-2 text-base ${correct ? 'font-bold text-green-700' : ''}`}
+                                              className={\`flex items-start gap-2 text-base \${correct ? 'font-bold text-green-700' : ''}\`}
                                             >
                                               <div
-                                                className={`mt-1 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${correct ? 'border-green-600 bg-green-100' : 'border-slate-400'}`}
+                                                className={\`mt-1 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border \${correct ? 'border-green-600 bg-green-100' : 'border-slate-400'}\`}
                                               >
                                                 {correct && (
                                                   <div className="h-2 w-2 rounded-full bg-green-600" />
@@ -582,15 +1424,15 @@ export function PrintExamClient({
                                   )
                                 })()}
 
-                              {/* Answer lines */}
+                              {/* Answer lines for essay/open questions */}
                               {answerMode === 'none' &&
                                 q.question_type !== 'mcq' && (
                                   <div
-                                    className={`mt-6 space-y-8 ${isRTL ? 'pr-6' : 'pl-6'} mb-4`}
+                                    className={\`mt-6 space-y-8 \${isRTL ? 'pr-6' : 'pl-6'} mb-4\`}
                                   >
                                     {Array.from({
                                       length:
-                                        q.question_type === 'essay' ? 8 : 2,
+                                        q.question_type === 'essay' ? 6 : 2,
                                     }).map((_, i) => (
                                       <div
                                         key={i}
@@ -600,10 +1442,10 @@ export function PrintExamClient({
                                   </div>
                                 )}
 
-                              {/* Model answer */}
+                              {/* Model answer display */}
                               {answerMode !== 'none' && (
                                 <div
-                                  className={`mt-3 space-y-2 ${isRTL ? 'pr-6' : 'pl-6'}`}
+                                  className={\`mt-3 space-y-2 \${isRTL ? 'pr-6' : 'pl-6'}\`}
                                 >
                                   {q.question_type !== 'mcq' && (
                                     <div className="rounded border border-green-200 bg-green-50 p-3">
@@ -643,6 +1485,49 @@ export function PrintExamClient({
               )
             })}
           </div>
+
+          {/* ─── Footer Cheer Message ─── */}
+          {localSettings.showFooterCheer && localSettings.footerCheer && (
+            <div className="my-10 text-center text-sm md:text-base font-bold text-slate-800 break-inside-avoid">
+              <span className="inline-block border-b-2 border-t-2 border-slate-800 px-6 py-1">
+                {localSettings.footerCheer}
+              </span>
+            </div>
+          )}
+
+          {/* ─── Official Signatures Footer ─── */}
+          {localSettings.showSignatures && (
+            <div className="mt-8 break-inside-avoid border-t-2 border-slate-800 pt-6">
+              <div className="grid grid-cols-4 gap-2 text-center text-xs md:text-sm font-bold text-slate-800">
+                <div>
+                  <div className="mb-8">{localSettings.signRole1}</div>
+                  <div className="border-t border-dotted border-slate-500 pt-1 text-xs text-slate-500">
+                    التوقيع: ....................
+                  </div>
+                </div>
+                <div>
+                  <div className="mb-8">{localSettings.signRole2}</div>
+                  <div className="border-t border-dotted border-slate-500 pt-1 text-xs text-slate-500">
+                    التوقيع: ....................
+                  </div>
+                </div>
+                <div>
+                  <div className="mb-8">{localSettings.signRole3}</div>
+                  <div className="border-t border-dotted border-slate-500 pt-1 text-xs text-slate-500">
+                    التوقيع: ....................
+                  </div>
+                </div>
+                <div className="flex flex-col items-center">
+                  <div className="mb-2">{localSettings.signRole4}</div>
+                  {localSettings.showSchoolStamp && (
+                    <div className="flex h-14 w-28 items-center justify-center rounded-lg border-2 border-dashed border-slate-400 text-[11px] text-slate-400">
+                      (خاتم المدرسة)
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
