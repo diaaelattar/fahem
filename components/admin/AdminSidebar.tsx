@@ -54,14 +54,39 @@ const MENU_SECTIONS = [
   },
 ]
 
+const ALL_ADMIN_HREFS = [
+  ...MENU_SECTIONS.flatMap((s) => s.items.map((i) => i.href)),
+  '/admin/settings',
+]
+
 export function AdminSidebar() {
   const pathname = usePathname()
   const { isOpen, close } = useSidebar()
 
-  const isActive = (href: string) =>
-    href === '/admin/dashboard'
-      ? pathname === href
-      : pathname === href || pathname.startsWith(href)
+  const isActive = (href: string) => {
+    // 1. المطابقة التامة للمسار الحالي
+    if (pathname === href) return true
+
+    // 2. إذا كان هناك عنصر آخر في القائمة له تطابق تام مع المسار، لا نفعّل العنصر الحالي
+    const hasExactMatchOther = ALL_ADMIN_HREFS.some(
+      (h) => h !== href && pathname === h
+    )
+    if (hasExactMatchOther) return false
+
+    // 3. في حالة المسارات الفرعية (مثل /admin/questions/new أو /admin/curriculum/units/1)
+    // نفعّل العنصر بشرط ألا يكون هناك عنصر آخر أكثر تحديداً في القائمة يطابق المسار
+    if (href !== '/admin/dashboard' && pathname.startsWith(href + '/')) {
+      const hasMoreSpecificMatch = ALL_ADMIN_HREFS.some(
+        (h) =>
+          h !== href &&
+          h.startsWith(href + '/') &&
+          (pathname === h || pathname.startsWith(h + '/'))
+      )
+      return !hasMoreSpecificMatch
+    }
+
+    return false
+  }
 
   return (
     <>
