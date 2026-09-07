@@ -234,31 +234,64 @@ export default async function StudentDashboardPage() {
         gradeName={student?.grades?.name_ar || 'الصف الدراسي'}
       />
 
-      {/* 💡 توصيات ذكية للأخطاء السابقة */}
-      {(wrongAnswersCount ?? 0) > 0 && (
-        <div className="flex flex-col items-center justify-between gap-4 rounded-3xl border-t border-rose-500/30 bg-rose-500/20 p-4 backdrop-blur-md sm:flex-row md:px-8">
-          <div className="flex w-full items-center gap-4 text-center sm:w-auto sm:text-right">
+      {/* 🧭 بطاقة التوجيه الذكي: ماذا أذاكر الآن؟ */}
+      <div className="relative overflow-hidden rounded-3xl border border-indigo-100/20 bg-gradient-to-r from-indigo-950 via-slate-900 to-purple-950 p-6 text-white shadow-xl">
+        <div className="absolute -left-10 -top-10 h-40 w-40 rounded-full bg-indigo-500/20 blur-3xl" />
+        <div className="absolute -bottom-10 -right-10 h-40 w-40 rounded-full bg-fuchsia-500/20 blur-3xl" />
+
+        <div className="relative z-10 flex flex-col items-center justify-between gap-5 md:flex-row">
+          <div className="flex w-full items-center gap-4 text-center sm:text-right">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-2xl shadow-inner backdrop-blur-md">
+              {(wrongAnswersCount ?? 0) > 0
+                ? '🎯'
+                : availableExams && availableExams.length > 0
+                  ? '📝'
+                  : '⚡'}
+            </div>
             <div>
-              <h4 className="text-sm font-bold text-rose-100">
-                💡 توصية ذكية من النظام
-              </h4>
-              <p className="mt-0.5 text-xs text-rose-200/80">
-                لديك{' '}
-                <strong className="text-white">
-                  {wrongAnswersCount} أسئلة
-                </strong>{' '}
-                أخطأت فيها مسبقاً. مراجعتها الآن سيضاعف نقاطك!
+              <div className="flex items-center justify-center gap-2 sm:justify-start">
+                <span className="rounded-full border border-indigo-400/30 bg-indigo-500/30 px-3 py-0.5 text-[11px] font-black text-indigo-200">
+                  ماذا أذاكر الآن؟
+                </span>
+                <span className="text-xs text-indigo-200/80">
+                  خطة ذكية مخصصة لمستواك
+                </span>
+              </div>
+              <h3 className="mt-1 text-base font-black sm:text-lg">
+                {(wrongAnswersCount ?? 0) > 0
+                  ? `لديك ${wrongAnswersCount} أسئلة في بنك الأخطاء بحاجة لتثبيت الفهم`
+                  : availableExams && availableExams.length > 0
+                    ? `اختبار مقترح لصفك: ${availableExams[0].title}`
+                    : 'جلسة تدريب سريعة لتثبيت مستواك ومضاعفة الـ XP'}
+              </h3>
+              <p className="mt-0.5 text-xs text-indigo-200/90">
+                {(wrongAnswersCount ?? 0) > 0
+                  ? 'المراجعة المنتظمة للأخطاء السابقة تضمن تثبيت المعلومة وتفادي تكرارها في الامتحانات النهائية.'
+                  : availableExams && availableExams.length > 0
+                    ? `المدة: ${availableExams[0].duration_minutes} دقيقة • عدد الأسئلة: ${availableExams[0].questions_count} أسئلة`
+                    : 'تدرب على أسئلة متنوعة متدرجة الصعوبة واكسب نقاط خبرة إضافية اليوم.'}
               </p>
             </div>
           </div>
+
           <Link
-            href="/student/practice?mode=mistakes"
-            className="w-full shrink-0 rounded-xl bg-rose-500 px-6 py-3 text-center text-xs font-bold text-white shadow-lg sm:w-auto"
+            href={
+              (wrongAnswersCount ?? 0) > 0
+                ? '/student/practice?mode=mistakes'
+                : availableExams && availableExams.length > 0
+                  ? `/student/exams/${availableExams[0].id}/start`
+                  : '/student/practice'
+            }
+            className="w-full shrink-0 rounded-2xl bg-white px-7 py-3.5 text-center text-sm font-black text-indigo-950 shadow-lg transition-all hover:scale-[1.02] hover:bg-indigo-50 active:scale-95 sm:w-auto"
           >
-            راجع أخطاءك واكسب XP
+            {(wrongAnswersCount ?? 0) > 0
+              ? 'تصفية بنك الأخطاء ←'
+              : availableExams && availableExams.length > 0
+                ? 'بدء الاختبار المقترح ←'
+                : 'بدء التدريب السريع ←'}
           </Link>
         </div>
-      )}
+      </div>
 
       {/* 👑 VIP Banner */}
       {!subscription && (

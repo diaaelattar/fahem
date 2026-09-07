@@ -13,11 +13,14 @@ import {
   Square,
   Loader2,
   Calculator,
+  Keyboard,
+  Camera,
 } from 'lucide-react'
 import { MathRenderer } from '@/components/ui/MathRenderer'
 
 import { AIExplainButton } from '@/components/student/AIExplainButton'
 import { MathLiveInput } from '@/components/ui/MathLiveInput'
+import { HandwritingUploader } from '@/components/shared/HandwritingUploader'
 import {
   getSubjectDirection,
   getSubjectTextAlignClass,
@@ -41,6 +44,12 @@ interface QuestionFeedback {
   is_correct?: boolean
   earned_score?: number
   feedback?: string
+  transcription?: string
+  breakdown?: {
+    concepts?: number
+    steps?: number
+    outcome?: number
+  }
 }
 
 interface Props {
@@ -67,13 +76,15 @@ export function PracticeSessionClient({
   const [streak, setStreak] = useState(0)
   const [maxStreak, setMaxStreak] = useState(0)
   const [showMath, setShowMath] = useState(false)
+  const [essayMode, setEssayMode] = useState<'text' | 'image'>('text')
 
   const dir = getSubjectDirection(subject?.name_ar)
   const textAlign = getSubjectTextAlignClass(subject?.name_ar)
 
-  // Reset math when question changes
+  // Reset math and essay mode when question changes
   useEffect(() => {
     setShowMath(false)
+    setEssayMode('text')
   }, [currentIdx])
 
   // ─── Arabic Normalization is imported from lib/utils/grading.ts ───
@@ -239,6 +250,77 @@ export function PracticeSessionClient({
     },
     [current, showAnswer, streak, studentId, supabase, isGrading]
   )
+
+  const handleImageSubmit = async (imageUrl: string) => {
+    setIsGrading(true)
+    const marker = `[image:${imageUrl}]`
+    setAnswers((prev) => ({ ...prev, [current.id]: marker }))
+    setSelected(marker)
+
+    try {
+      const res = await fetch('/api/ai/grade-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          questionText: current.question_text,
+          idealAnswer: current.correct_answer,
+          imageUrl,
+          maxScore: current.points,
+          questionId: current.id,
+        }),
+      })
+
+      if (res.ok) {
+        const gradingResult = await res.json()
+        setFeedbacks((prev) => ({
+          ...prev,
+          [current.id]: {
+            is_correct: gradingResult.is_correct,
+            earned_score: gradingResult.earned_score || gradingResult.score,
+            feedback: gradingResult.feedback,
+            transcription: gradingResult.transcription,
+            breakdown: gradingResult.breakdown,
+          },
+        }))
+
+        if (gradingResult.is_correct) {
+          setScore((s) => ({ ...s, correct: s.correct + 1 }))
+          setStreak((s) => s + 1)
+          setMaxStreak((m) => Math.max(m, streak + 1))
+        } else {
+          setScore((s) => ({ ...s, wrong: s.wrong + 1 }))
+          setStreak(0)
+        }
+      } else {
+        const errData = await res.json().catch(() => ({}))
+        setFeedbacks((prev) => ({
+          ...prev,
+          [current.id]: {
+            is_correct: false,
+            earned_score: 0,
+            feedback: errData.error || 'تعذر تقييم الصورة بواسطة الذكاء الاصطناعي',
+          },
+        }))
+        setScore((s) => ({ ...s, wrong: s.wrong + 1 }))
+        setStreak(0)
+      }
+    } catch (err) {
+      console.error('Failed to grade image:', err)
+      setFeedbacks((prev) => ({
+        ...prev,
+        [current.id]: {
+          is_correct: false,
+          earned_score: 0,
+          feedback: 'حدث خطأ أثناء الاتصال بالخادم لتقييم الصورة',
+        },
+      }))
+      setScore((s) => ({ ...s, wrong: s.wrong + 1 }))
+      setStreak(0)
+    } finally {
+      setIsGrading(false)
+      setShowAnswer(true)
+    }
+  }
 
   const handleFillSubmit = () => {
     if (!fillInput.trim()) return
@@ -563,102 +645,160 @@ export function PracticeSessionClient({
           current.question_type === 'correction') &&
           !showAnswer && (
             <div className="relative flex flex-col gap-3">
-              <div className="mb-1 flex justify-end">
-                <button
-                  onClick={() => setShowMath(!showMath)}
-                  className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-bold transition-colors ${
-                    showMath
-                      ? 'border-primary bg-primary text-white'
-                      : 'border-border bg-slate-50 text-slate-600 hover:bg-slate-100'
-                  }`}
-                >
-                  <Calculator className="h-4 w-4" />
-                  {showMath ? 'إغلاق لوحة الرياضيات' : 'كتابة رموز رياضية'}
-                </button>
-              </div>
-
-              {showMath ? (
-                <MathLiveInput
-                  value={fillInput}
-                  onChange={(val) => setFillInput(val)}
-                  className="w-full text-left font-mono"
-                />
-              ) : current.question_type === 'fill_blank' ? (
-                <input
-                  type="text"
-                  value={fillInput}
-                  onChange={(e) => setFillInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleFillSubmit()}
-                  placeholder="اكتب إجابتك هنا..."
-                  className="w-full rounded-xl border-2 border-border px-4 py-3 text-base transition-colors focus:border-primary focus:outline-none"
-                  autoFocus
-                  disabled={isGrading}
-                  dir={dir}
-                />
-              ) : (
-                <div className="relative">
-                  <textarea
-                    value={fillInput}
-                    onChange={(e) => setFillInput(e.target.value)}
-                    placeholder="اكتب إجابتك هنا بوضوح..."
-                    className="h-32 w-full resize-none rounded-xl border-2 border-border px-4 py-3 text-base transition-colors focus:border-primary focus:outline-none"
-                    autoFocus
-                    disabled={isGrading || isTranscribing}
-                    dir={dir}
-                  />
-
-                  {/* Audio Recording Button */}
-                  <div className="absolute bottom-4 left-4 flex items-center gap-2">
-                    {isTranscribing ? (
-                      <div className="flex animate-pulse items-center gap-2 rounded-full bg-indigo-100 px-3 py-1.5 text-xs font-bold text-indigo-700">
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        جاري تحويل الصوت لنص...
-                      </div>
-                    ) : isRecording ? (
-                      <>
-                        <button
-                          onClick={stopRecording}
-                          className="flex items-center gap-2 rounded-full bg-rose-500 px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-rose-600"
-                        >
-                          <Square className="h-3 w-3 fill-white" />
-                          إيقاف و تحويل
-                        </button>
-                        <span className="flex items-center gap-1.5 text-xs font-bold text-rose-600">
-                          <span className="inline-block h-2 w-2 animate-ping rounded-full bg-rose-500" />
-                          {Math.floor(recordingSeconds / 60)
-                            .toString()
-                            .padStart(2, '0')}
-                          :{(recordingSeconds % 60).toString().padStart(2, '0')}
-                        </span>
-                      </>
-                    ) : (
-                      <button
-                        onClick={startRecording}
-                        disabled={isGrading}
-                        className="flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-200 disabled:opacity-50"
-                        title="إجابة صوتية (يتم تحويلها لنص تلقائياً)"
-                      >
-                        <Mic className="h-3.5 w-3.5" />
-                        إجابة صوتية
-                      </button>
-                    )}
-                  </div>
+              {/* Mode Switcher for Essay / Correction */}
+              {(current.question_type === 'essay' ||
+                current.question_type === 'correction') && (
+                <div className="flex w-fit items-center gap-1.5 rounded-xl bg-slate-100 p-1 mb-1">
+                  <button
+                    type="button"
+                    onClick={() => setEssayMode('text')}
+                    className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+                      essayMode === 'text'
+                        ? 'bg-white text-primary shadow-sm'
+                        : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    <Keyboard className="h-3.5 w-3.5" />
+                    كتابة نصية / صوتية
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEssayMode('image')}
+                    className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+                      essayMode === 'image'
+                        ? 'bg-white text-primary shadow-sm'
+                        : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    <Camera className="h-3.5 w-3.5" />
+                    خط يد / تصوير ورقة أو سبورة
+                  </button>
                 </div>
               )}
-              <button
-                onClick={handleFillSubmit}
-                disabled={isGrading}
-                className="flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 font-bold text-white hover:bg-primary/90 disabled:opacity-50"
-              >
-                {isGrading ? (
-                  <>
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />{' '}
-                    المدرس الذكي يقيّم الإجابة...
-                  </>
-                ) : (
-                  'تحقق من الإجابة'
-                )}
-              </button>
+
+              {/* Image / Handwriting mode */}
+              {essayMode === 'image' &&
+              (current.question_type === 'essay' ||
+                current.question_type === 'correction') ? (
+                <HandwritingUploader
+                  questionId={current.id}
+                  attemptId={`practice_${studentId}_${subject.id}`}
+                  existingImageUrl={
+                    answers[current.id]?.startsWith('[image:')
+                      ? answers[current.id].replace('[image:', '').replace(']', '')
+                      : null
+                  }
+                  onImageUploaded={handleImageSubmit}
+                  onImageRemoved={() => {
+                    setAnswers((prev) => {
+                      const n = { ...prev }
+                      delete n[current.id]
+                      return n
+                    })
+                  }}
+                  disabled={isGrading}
+                />
+              ) : (
+                <>
+                  <div className="mb-1 flex justify-end">
+                    <button
+                      onClick={() => setShowMath(!showMath)}
+                      className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-bold transition-colors ${
+                        showMath
+                          ? 'border-primary bg-primary text-white'
+                          : 'border-border bg-slate-50 text-slate-600 hover:bg-slate-100'
+                      }`}
+                    >
+                      <Calculator className="h-4 w-4" />
+                      {showMath ? 'إغلاق لوحة الرياضيات' : 'كتابة رموز رياضية'}
+                    </button>
+                  </div>
+
+                  {showMath ? (
+                    <MathLiveInput
+                      value={fillInput}
+                      onChange={(val) => setFillInput(val)}
+                      className="w-full text-left font-mono"
+                    />
+                  ) : current.question_type === 'fill_blank' ? (
+                    <input
+                      type="text"
+                      value={fillInput}
+                      onChange={(e) => setFillInput(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleFillSubmit()}
+                      placeholder="اكتب إجابتك هنا..."
+                      className="w-full rounded-xl border-2 border-border px-4 py-3 text-base transition-colors focus:border-primary focus:outline-none"
+                      autoFocus
+                      disabled={isGrading}
+                      dir={dir}
+                    />
+                  ) : (
+                    <div className="relative">
+                      <textarea
+                        value={fillInput}
+                        onChange={(e) => setFillInput(e.target.value)}
+                        placeholder="اكتب إجابتك هنا بوضوح..."
+                        className="h-32 w-full resize-none rounded-xl border-2 border-border px-4 py-3 text-base transition-colors focus:border-primary focus:outline-none"
+                        autoFocus
+                        disabled={isGrading || isTranscribing}
+                        dir={dir}
+                      />
+
+                      {/* Audio Recording Button */}
+                      <div className="absolute bottom-4 left-4 flex items-center gap-2">
+                        {isTranscribing ? (
+                          <div className="flex animate-pulse items-center gap-2 rounded-full bg-indigo-100 px-3 py-1.5 text-xs font-bold text-indigo-700">
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            جاري تحويل الصوت لنص...
+                          </div>
+                        ) : isRecording ? (
+                          <>
+                            <button
+                              onClick={stopRecording}
+                              className="flex items-center gap-2 rounded-full bg-rose-500 px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-rose-600"
+                            >
+                              <Square className="h-3 w-3 fill-white" />
+                              إيقاف و تحويل
+                            </button>
+                            <span className="flex items-center gap-1.5 text-xs font-bold text-rose-600">
+                              <span className="inline-block h-2 w-2 animate-ping rounded-full bg-rose-500" />
+                              {Math.floor(recordingSeconds / 60)
+                                .toString()
+                                .padStart(2, '0')}
+                              :{(recordingSeconds % 60).toString().padStart(2, '0')}
+                            </span>
+                          </>
+                        ) : (
+                          <button
+                            onClick={startRecording}
+                            disabled={isGrading}
+                            className="flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-200 disabled:opacity-50"
+                            title="إجابة صوتية (يتم تحويلها لنص تلقائياً)"
+                          >
+                            <Mic className="h-3.5 w-3.5" />
+                            إجابة صوتية
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={handleFillSubmit}
+                    disabled={isGrading}
+                    className="flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 font-bold text-white hover:bg-primary/90 disabled:opacity-50"
+                  >
+                    {isGrading ? (
+                      <>
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />{' '}
+                        المدرس الذكي يقيّم الإجابة...
+                      </>
+                    ) : (
+                      'تحقق من الإجابة'
+                    )}
+                  </button>
+                </>
+              )}
             </div>
           )}
 
@@ -704,6 +844,50 @@ export function PracticeSessionClient({
                     {current.points}
                   </span>
                 </div>
+
+                {/* عرض صورة خط اليد إذا وجدت */}
+                {answers[current.id]?.startsWith('[image:') && (
+                  <div className="my-3 space-y-2">
+                    <span className="text-xs font-bold text-muted-foreground block">
+                      صورة خط يدك المعتمدة:
+                    </span>
+                    <div className="relative max-w-sm overflow-hidden rounded-xl border border-border bg-white p-2">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={answers[current.id].replace('[image:', '').replace(']', '')}
+                        alt="إجابتك بخط اليد"
+                        className="max-h-56 w-full object-contain rounded-lg"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* النص المستخرج بالذكاء الاصطناعي */}
+                {feedbacks[current.id].transcription && (
+                  <div className="mb-3 rounded-lg border border-slate-200 bg-white/70 p-2.5 text-xs text-slate-700">
+                    <span className="font-bold text-primary">قراءة الذكاء الاصطناعي لخط يدك:</span>{' '}
+                    {feedbacks[current.id].transcription}
+                  </div>
+                )}
+
+                {/* تفنيد درجات الروبريك NCREE */}
+                {feedbacks[current.id].breakdown && (
+                  <div className="mb-3 grid grid-cols-3 gap-2 text-center text-xs">
+                    <div className="rounded-lg bg-white/80 p-2 border border-slate-200">
+                      <span className="text-muted-foreground block text-[10px]">المفاهيم العلمية</span>
+                      <span className="font-black text-foreground">{feedbacks[current.id].breakdown?.concepts} درجات</span>
+                    </div>
+                    <div className="rounded-lg bg-white/80 p-2 border border-slate-200">
+                      <span className="text-muted-foreground block text-[10px]">الخطوات المنهجية</span>
+                      <span className="font-black text-foreground">{feedbacks[current.id].breakdown?.steps} درجات</span>
+                    </div>
+                    <div className="rounded-lg bg-white/80 p-2 border border-slate-200">
+                      <span className="text-muted-foreground block text-[10px]">النتيجة والصياغة</span>
+                      <span className="font-black text-foreground">{feedbacks[current.id].breakdown?.outcome} درجات</span>
+                    </div>
+                  </div>
+                )}
+
                 <p className="rounded-lg border border-border/50 bg-white/50 p-3 text-sm font-medium leading-relaxed text-foreground/80">
                   {feedbacks[current.id].feedback}
                 </p>

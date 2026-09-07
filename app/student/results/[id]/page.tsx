@@ -41,7 +41,7 @@ export default async function ResultDetailPage({ params }: Props) {
       `
       id, score, percentage, is_passed, completed_at, started_at,
       time_spent_seconds, attempt_number, answers, feedback,
-      student_answers(question_id, is_correct, teacher_feedback, score_awarded, answer_image_url, student_answer),
+      student_answers(question_id, is_correct, teacher_feedback, score_awarded, answer_image_url, student_answer, ai_vision_feedback),
       exams(
         id, title, total_points, passing_score, show_results_immediately,
         allowed_attempts, subjects(name_ar, icon),
@@ -186,6 +186,18 @@ export default async function ResultDetailPage({ params }: Props) {
             ? studentAnswer.slice(7, -1)
             : null)
 
+        let aiVisionData: any = null
+        if (sa?.ai_vision_feedback) {
+          try {
+            aiVisionData =
+              typeof sa.ai_vision_feedback === 'string'
+                ? JSON.parse(sa.ai_vision_feedback)
+                : sa.ai_vision_feedback
+          } catch {
+            aiVisionData = null
+          }
+        }
+
         let isCorrect = false
         if (sa && sa.is_correct !== undefined) {
           isCorrect = sa.is_correct
@@ -199,8 +211,10 @@ export default async function ResultDetailPage({ params }: Props) {
         return {
           ...q,
           points: eq.points_override || q.points || 1,
+          scoreAwarded: sa?.score_awarded,
           studentAnswer,
           answerImageUrl,
+          aiVisionData,
           isCorrect,
           explanation: sa?.teacher_feedback || q.explanation,
           isAnswered:
@@ -700,6 +714,55 @@ export default async function ResultDetailPage({ params }: Props) {
                             className={`rounded-xl border-2 px-4 py-3 font-bold ${q.isCorrect ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-rose-400 bg-rose-50 text-rose-700'}`}
                           >
                             {q.studentAnswer || 'لا توجد إجابة'}
+                          </div>
+                        )}
+                        {/* NCREE 3D Rubric Breakdown if available */}
+                        {q.aiVisionData?.rubric && (
+                          <div className="mt-4 rounded-2xl border border-indigo-200/70 bg-gradient-to-br from-indigo-50/70 to-blue-50/70 p-4 text-xs shadow-inner">
+                            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                              <span className="flex items-center gap-1.5 font-black text-indigo-950">
+                                📐 معايير التصحيح الوزاري (NCREE)
+                              </span>
+                              {q.scoreAwarded !== undefined && (
+                                <span className="rounded-full bg-indigo-600 px-2.5 py-0.5 text-[11px] font-black text-white">
+                                  الدرجة الممنوحة: {q.scoreAwarded} / {q.points}
+                                </span>
+                              )}
+                            </div>
+                            <div className="grid grid-cols-3 gap-2 text-center">
+                              <div className="rounded-xl border border-indigo-100 bg-white p-2.5 shadow-sm">
+                                <div className="text-[10px] text-muted-foreground">
+                                  المفاهيم العلمية (40%)
+                                </div>
+                                <div className="mt-1 font-black text-indigo-700">
+                                  {q.aiVisionData.rubric.concepts ?? '—'}
+                                </div>
+                              </div>
+                              <div className="rounded-xl border border-indigo-100 bg-white p-2.5 shadow-sm">
+                                <div className="text-[10px] text-muted-foreground">
+                                  الخطوات الإجرائية (40%)
+                                </div>
+                                <div className="mt-1 font-black text-indigo-700">
+                                  {q.aiVisionData.rubric.steps ?? '—'}
+                                </div>
+                              </div>
+                              <div className="rounded-xl border border-indigo-100 bg-white p-2.5 shadow-sm">
+                                <div className="text-[10px] text-muted-foreground">
+                                  الناتج النهائي (20%)
+                                </div>
+                                <div className="mt-1 font-black text-indigo-700">
+                                  {q.aiVisionData.rubric.outcome ?? '—'}
+                                </div>
+                              </div>
+                            </div>
+                            {q.aiVisionData.math_steps_valid && (
+                              <div className="mt-2.5 flex items-center gap-1.5 font-bold text-emerald-700">
+                                <span>
+                                  ✓ تم التحقق من سلامة الخطوات الرياضية والرموز
+                                  العلمية
+                                </span>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
