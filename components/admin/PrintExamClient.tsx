@@ -3,21 +3,11 @@
 import React, { useState, useEffect, useRef } from 'react'
 import {
   Printer,
-  Eye,
-  EyeOff,
-  LayoutList,
   Sliders,
-  School,
-  UserCheck,
-  FileText,
   Upload,
-  Trash2,
   ChevronDown,
   ChevronUp,
   Save,
-  Sparkles,
-  Download,
-  Loader2,
   FileDown,
   Type,
   Minus,
@@ -144,7 +134,6 @@ export function PrintExamClient({
 
   const [isCustomizeOpen, setIsCustomizeOpen] = useState(false)
   const [savedSuccess, setSavedSuccess] = useState(false)
-  const [exportingPdf, setExportingPdf] = useState(false)
   const logoInputRef = useRef<HTMLInputElement>(null)
 
   const [settings, setSettings] = useState<PrintCustomSettings>({
@@ -181,7 +170,7 @@ export function PrintExamClient({
     gradeName: exam?.grades?.name_ar || '',
 
     logoUrl: '',
-    hasBorderFrame: true,
+    hasBorderFrame: false,
     density: 'normal',
 
     // Fonts default
@@ -240,7 +229,7 @@ export function PrintExamClient({
         showClassSection: merged.showClassSection !== false,
         showInstructions: merged.showInstructions !== false,
         showCheerNote: merged.showCheerNote !== false,
-        hasBorderFrame: merged.hasBorderFrame !== false,
+        hasBorderFrame: merged.hasBorderFrame === true,
 
         fontFamily: merged.fontFamily || 'cairo',
         fontSize: Number(merged.fontSize) || 14,
@@ -293,44 +282,25 @@ export function PrintExamClient({
     }
   }
 
-  // Direct High-Resolution Vector PDF Export (Like NeprasPro Desktop)
-  const handleDownloadDirectPdf = async () => {
+  // Native High-Precision Vector Print / Save-as-PDF (Instant, Zero Freeze)
+  const handlePrint = () => {
+    const originalDocTitle = document.title
+    const safeTitle = (settings.customTitle || exam?.title || 'ورقة_اختبار')
+      .trim()
+      .replace(/[/\\?%*:|"<>]/g, '_')
+      .replace(/\s+/g, '_')
+
     try {
-      setExportingPdf(true)
-      const element = document.getElementById('nepras-print-sheet')
-      if (!element) {
-        handlePrint()
-        return
-      }
+      document.title = safeTitle
+    } catch {}
 
-      // Load html2pdf dynamically if not in window
-      if (!(window as any).html2pdf) {
-        await new Promise<void>((resolve, reject) => {
-          const script = document.createElement('script')
-          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js'
-          script.onload = () => resolve()
-          script.onerror = () => reject(new Error('تعذر تحميل مكتبة تصدير PDF'))
-          document.head.appendChild(script)
-        })
-      }
+    window.print()
 
-      const safeTitle = (settings.customTitle || exam?.title || 'اختبار').replace(/[^\u0600-\u06FF\w\s-]/g, '').trim()
-      const opt = {
-        margin: [4, 6, 4, 6],
-        filename: `${safeTitle}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, logging: false },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-      }
-
-      await (window as any).html2pdf().set(opt).from(element).save()
-    } catch (err) {
-      console.error('Direct PDF error, falling back to print:', err)
-      handlePrint()
-    } finally {
-      setExportingPdf(false)
-    }
+    setTimeout(() => {
+      try {
+        document.title = originalDocTitle
+      } catch {}
+    }, 1200)
   }
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -343,15 +313,6 @@ export function PrintExamClient({
       }
     }
     reader.readAsDataURL(file)
-  }
-
-  const toggleQuestionVisibility = (qId: string) => {
-    setHiddenQuestions((prev) => {
-      const next = new Set(prev)
-      if (next.has(qId)) next.delete(qId)
-      else next.add(qId)
-      return next
-    })
   }
 
   const cleanGov = (settings.directorate || '').replace(/^محافظة\s*/, '').trim() || 'الجيزة'
@@ -369,110 +330,6 @@ export function PrintExamClient({
   const activeFont = fontDefinitions[settings.fontFamily] || fontDefinitions.cairo
   const activeLineHeight = lineHeightValues[settings.lineHeight] || 1.55
   const baseFontSize = settings.fontSize || 14
-
-  // Isolated Iframe Printing Engine (Exactly like NeprasPro printHelper.js)
-  const handlePrint = () => {
-    const element = document.getElementById('nepras-print-sheet')
-    if (!element) {
-      window.print()
-      return
-    }
-
-    const cleanTitle = (settings.customTitle || exam?.title || 'اختبار_رسمي')
-      .trim()
-      .replace(/[/\\?%*:|"<>]/g, '_')
-      .replace(/\s+/g, '_')
-
-    // Create isolated iframe
-    const iframe = document.createElement('iframe')
-    iframe.style.position = 'fixed'
-    iframe.style.right = '0'
-    iframe.style.bottom = '0'
-    iframe.style.width = '0'
-    iframe.style.height = '0'
-    iframe.style.border = '0'
-    iframe.style.visibility = 'hidden'
-    document.body.appendChild(iframe)
-
-    const doc = iframe.contentWindow?.document
-    if (!doc) {
-      window.print()
-      return
-    }
-
-    // Capture styles and fonts
-    const styleLinks = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
-      .map((el) => el.outerHTML)
-      .join('\n')
-
-    doc.open()
-    doc.write(`
-      <!DOCTYPE html>
-      <html lang="${isRTL ? 'ar' : 'en'}" dir="${dir}">
-      <head>
-        <meta charset="UTF-8" />
-        <title>${cleanTitle}</title>
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&family=Amiri:ital,wght@0,400;0,700;1,400&family=Cairo:wght@400;600;700;800;900&family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
-        ${styleLinks}
-        <style>
-          @page {
-            size: A4 portrait !important;
-            margin: 0mm !important;
-          }
-          *, *::before, *::after {
-            box-sizing: border-box !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-          html, body {
-            height: auto !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            background: #fff !important;
-            color: #000 !important;
-            direction: ${dir} !important;
-            -webkit-text-size-adjust: 100% !important;
-          }
-          body {
-            font-family: ${activeFont.css} !important;
-            font-size: ${baseFontSize}px !important;
-            line-height: ${activeLineHeight} !important;
-            width: 100% !important;
-            overflow: visible !important;
-          }
-          #nepras-print-sheet {
-            width: 100% !important;
-            max-width: 100% !important;
-            margin: 0 !important;
-            padding: 8mm 10mm !important;
-            box-shadow: none !important;
-          }
-          .no-print, [class*="no-print"] {
-            display: none !important;
-          }
-        </style>
-      </head>
-      <body>
-        <div id="nepras-print-sheet">
-          ${element.innerHTML}
-        </div>
-      </body>
-      </html>
-    `)
-    doc.close()
-
-    iframe.contentWindow?.focus()
-    setTimeout(() => {
-      iframe.contentWindow?.print()
-      setTimeout(() => {
-        if (document.body.contains(iframe)) {
-          document.body.removeChild(iframe)
-        }
-      }, 2500)
-    }, 400)
-  }
 
   const questionTypeTitlesAR: Record<string, string> = {
     mcq: 'اختر الإجابة الصحيحة',
@@ -517,22 +374,20 @@ export function PrintExamClient({
 
   const densitySpacing =
     settings.density === 'compact'
-      ? 'space-y-3'
-      : settings.density === 'spacious'
-        ? 'space-y-8'
-        : 'space-y-5'
-
-  const questionGap =
-    settings.density === 'compact'
       ? 'space-y-2'
       : settings.density === 'spacious'
         ? 'space-y-6'
-        : 'space-y-3.5'
+        : 'space-y-4'
 
-  const hiddenCount = hiddenQuestions.size
+  const questionGap =
+    settings.density === 'compact'
+      ? 'space-y-1.5'
+      : settings.density === 'spacious'
+        ? 'space-y-4'
+        : 'space-y-2.5'
 
   return (
-    <div className="min-h-screen bg-slate-100/70 p-4 md:p-8 font-sans print:p-0 print:m-0 print:bg-white">
+    <div className="min-h-screen bg-slate-100/70 p-4 md:p-8 font-sans print:p-0 print:m-0 print:bg-white print:min-h-0">
       {/* ─── Google Fonts Preloader ─── */}
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -541,39 +396,46 @@ export function PrintExamClient({
         rel="stylesheet"
       />
 
-      {/* ─── Strict Print Isolation CSS ─── */}
+      {/* ─── Standard Clean Ministerial Print Stylesheet ─── */}
       <style
         dangerouslySetInnerHTML={{
           __html: `
         @media print {
           @page {
             size: A4 portrait !important;
-            margin: 0mm !important;
+            margin: 8mm 10mm 8mm 10mm !important;
+          }
+          *, *::before, *::after {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            box-sizing: border-box !important;
           }
           html, body {
-            background: white !important;
-            color: black !important;
+            background: #fff !important;
+            color: #000 !important;
             margin: 0 !important;
             padding: 0 !important;
             width: 100% !important;
+            height: auto !important;
+            min-height: 0 !important;
             overflow: visible !important;
           }
-          body * {
+          .no-print, [class*="no-print"], aside, nav, header, button {
+            display: none !important;
             visibility: hidden !important;
           }
-          #nepras-print-sheet, #nepras-print-sheet * {
-            visibility: visible !important;
-          }
           #nepras-print-sheet {
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
+            position: static !important;
             width: 100% !important;
-            max-width: none !important;
+            max-width: 100% !important;
             margin: 0 !important;
+            padding: 0 !important;
+            min-height: 0 !important;
+            height: auto !important;
+            border: none !important;
             box-shadow: none !important;
-            background: white !important;
             overflow: visible !important;
+            background: #fff !important;
             display: block !important;
           }
           .break-inside-avoid {
@@ -584,16 +446,12 @@ export function PrintExamClient({
             page-break-before: always !important;
             break-before: page !important;
           }
-          .print-hidden, .no-print, aside, nav, header {
-            display: none !important;
-            visibility: hidden !important;
-          }
         }
       `,
         }}
       />
 
-      {/* ─── Topbar with Desktop Download & Print Buttons ─── */}
+      {/* ─── Topbar with Controls ─── */}
       <div
         className="no-print mx-auto mb-6 max-w-5xl rounded-2xl bg-white border border-slate-200 p-4 shadow-sm"
         dir="rtl"
@@ -623,34 +481,14 @@ export function PrintExamClient({
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Direct High-Resolution PDF Download */}
-            <button
-              onClick={handleDownloadDirectPdf}
-              disabled={exportingPdf}
-              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 px-5 py-2.5 text-xs font-black text-white shadow-md shadow-emerald-600/20 hover:brightness-110 active:scale-95 disabled:opacity-60"
-              title="توليد وتنزيل ملف PDF أصلي فائق الدقة بدون نافذة إعدادات المتصفح"
-            >
-              {exportingPdf ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  جاري تجهيز الـ PDF...
-                </>
-              ) : (
-                <>
-                  <FileDown className="h-4 w-4" />
-                  تحميل PDF مباشر (معيار نبراس)
-                </>
-              )}
-            </button>
-
-            {/* Standard Isolated Print */}
+            {/* Primary Print / Save as PDF Button */}
             <button
               onClick={handlePrint}
-              className="flex items-center gap-2 rounded-xl border border-slate-300 bg-slate-100 px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-200 active:scale-95"
-              title="طباعة عبر محرك نبراس المعزول"
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-700 px-6 py-2.5 text-xs font-black text-white shadow-md shadow-indigo-600/20 hover:brightness-110 active:scale-95 transition-all"
+              title="طباعة فورية أو حفظ بصيغة PDF عالية الدقة"
             >
               <Printer className="h-4 w-4" />
-              طباعة المستند
+              طباعة الاختبار (أو حفظ PDF)
             </button>
           </div>
         </div>
@@ -768,17 +606,6 @@ export function PrintExamClient({
               ))}
             </div>
           </div>
-
-          {/* Border Frame Toggle */}
-          <label className="flex items-center gap-1.5 cursor-pointer font-bold text-slate-700">
-            <input
-              type="checkbox"
-              checked={settings.hasBorderFrame}
-              onChange={(e) => setSettings({ ...settings, hasBorderFrame: e.target.checked })}
-              className="rounded"
-            />
-            إطار مطبعي مزدوج
-          </label>
         </div>
 
         {/* ─── Expandable Customization Panel ─── */}
@@ -1181,43 +1008,22 @@ export function PrintExamClient({
         )}
       </div>
 
-      {/* ─── A4 Print Canvas (Target for both window.print & Direct PDF export) ─── */}
+      {/* ─── A4 Print Canvas (Matches Preview & Print 100%) ─── */}
       <div
         id="nepras-print-sheet"
-        className={`relative mx-auto max-w-[210mm] min-h-[297mm] overflow-hidden bg-white text-black shadow-xl transition-all print:m-0 print:w-full print:max-w-none print:shadow-none ${
-          settings.hasBorderFrame
-            ? 'border-2 border-black p-6 md:p-8 print:border-2 print:border-black print:p-6'
-            : 'p-6 md:p-8 print:p-4'
-        }`}
+        className="relative mx-auto max-w-[210mm] bg-white text-black transition-all p-6 md:p-8 shadow-xl rounded-xl border border-slate-200 print:m-0 print:w-full print:max-w-none print:shadow-none print:border-none print:p-0 print:rounded-none"
         style={{
           fontFamily: activeFont.css,
           fontSize: `${baseFontSize}px`,
           lineHeight: activeLineHeight,
         }}
       >
-        {/* Full-page Watermark Overlay */}
-        {settings.showWatermark && (
-          <div
-            className="pointer-events-none absolute inset-0 z-0 flex flex-wrap content-start justify-center gap-x-24 gap-y-48 pt-48 opacity-[0.035]"
-            aria-hidden="true"
-          >
-            {Array.from({ length: 30 }).map((_, i) => (
-              <div
-                key={i}
-                className="rotate-[-35deg] whitespace-nowrap text-6xl font-black text-black"
-              >
-                {settings.watermarkText || cleanSchool || 'استباق مصر'}
-              </div>
-            ))}
-          </div>
-        )}
-
         <div className="relative z-10">
           {/* ──────────────────────────────────────────────────────────────────
               1. OFFICIAL 3-COLUMN MINISTERIAL HEADER
           ────────────────────────────────────────────────────────────────── */}
           {(settings.showGov !== false || settings.showAdmin !== false || settings.showSchool !== false || settings.showLogo !== false || settings.showTitle !== false || settings.showYear !== false || settings.showMeta !== false || settings.showDuration !== false || settings.showPoints !== false || settings.showPrintDate !== false) && (
-            <div className="relative mb-3 border-b-2 border-black pb-3">
+            <div className="relative mb-3 border-b-2 border-black pb-2.5 break-inside-avoid">
               <div className="flex items-center justify-between text-black">
                 {/* Right Column */}
                 <div className="flex-1 text-right leading-snug" dir="rtl">
@@ -1246,13 +1052,13 @@ export function PrintExamClient({
                     <img
                       src={settings.logoUrl}
                       alt="شعار المدرسة"
-                      className="mb-1 max-h-14 max-w-[90px] object-contain print:max-h-12"
+                      className="mb-1 max-h-12 max-w-[80px] object-contain print:max-h-10"
                     />
                   )}
                   {settings.showTitle !== false && (
                     <h1
-                      style={{ fontSize: `${baseFontSize * 1.35}px` }}
-                      className="font-black text-black underline underline-offset-4 decoration-2"
+                      style={{ fontSize: `${baseFontSize * 1.3}px` }}
+                      className="font-black text-black underline underline-offset-4 decoration-2 leading-tight"
                     >
                       {settings.customTitle || exam.title}
                       {settings.examModel && (
@@ -1265,7 +1071,7 @@ export function PrintExamClient({
                   {settings.showYear !== false && (
                     <div
                       style={{ fontSize: `${baseFontSize * 0.88}px` }}
-                      className="mt-1 font-black text-black"
+                      className="mt-0.5 font-black text-black"
                     >
                       للعام الدراسي: {settings.academicYear || '2025 / 2026 م'}
                     </div>
@@ -1310,8 +1116,8 @@ export function PrintExamClient({
           ────────────────────────────────────────────────────────────────── */}
           {settings.showStudentBar !== false && answerMode === 'none' && (
             <div
-              style={{ fontSize: `${baseFontSize * 0.9}px` }}
-              className="mb-4 flex flex-wrap items-center justify-between border-b border-black/60 bg-slate-50/70 px-4 py-2 font-bold text-black print:bg-white print:border-black"
+              style={{ fontSize: `${baseFontSize * 0.88}px` }}
+              className="mb-3 flex flex-wrap items-center justify-between border-b border-black/60 bg-slate-50/70 px-4 py-1.5 font-bold text-black print:bg-white print:border-black break-inside-avoid"
               dir="rtl"
             >
               <div className="flex items-center gap-2">
@@ -1335,14 +1141,14 @@ export function PrintExamClient({
           {settings.showInstructions !== false && settings.instructionsText && (
             <div
               style={{ fontSize: `${baseFontSize * 0.82}px` }}
-              className="mb-4 rounded border border-black/40 bg-slate-50/80 px-3 py-1 text-center font-bold text-black print:bg-white print:border-black"
+              className="mb-3 rounded border border-black/40 bg-slate-50/80 px-3 py-1 text-center font-bold text-black print:bg-white print:border-black break-inside-avoid"
             >
               {settings.instructionsText}
             </div>
           )}
 
           {/* ──────────────────────────────────────────────────────────────────
-              4. QUESTIONS LIST
+              4. QUESTIONS LIST (Seamless Natural Multi-Page Flow)
           ────────────────────────────────────────────────────────────────── */}
           <div className={densitySpacing}>
             {activeGroups.map((type, groupIdx) => {
@@ -1377,9 +1183,9 @@ export function PrintExamClient({
               return (
                 <div key={type} className="break-inside-avoid">
                   {showSectionHeaders && (
-                    <div className="mb-3 flex items-center justify-between border-b-[1.5px] border-black pb-1">
+                    <div className="mb-2.5 flex items-center justify-between border-b-[1.5px] border-black pb-1">
                       <h2
-                        style={{ fontSize: `${baseFontSize * 1.15}px` }}
+                        style={{ fontSize: `${baseFontSize * 1.12}px` }}
                         className={`font-black text-black ${textAlign}`}
                         dir={dir}
                       >
@@ -1390,15 +1196,15 @@ export function PrintExamClient({
 
                   <div className={questionGap}>
                     {blocks.map((block, blockIdx) => (
-                      <div key={blockIdx} className="space-y-3">
+                      <div key={blockIdx} className="space-y-2.5">
                         {block.passage && (
                           <div
-                            className="mb-3 break-inside-avoid rounded border border-black/40 bg-slate-50 p-4 print:bg-white"
+                            className="mb-2.5 break-inside-avoid rounded border border-black/40 bg-slate-50 p-3 print:bg-white"
                             dir={dir}
                           >
                             <p
                               style={{ fontSize: `${baseFontSize * 0.85}px` }}
-                              className="mb-2 border-b border-black/20 pb-1 font-black text-black"
+                              className="mb-1.5 border-b border-black/20 pb-1 font-black text-black"
                             >
                               {isRTL
                                 ? 'اقرأ النص أو المسألة التالية بعناية ثم أجب عن الأسئلة:'
@@ -1411,7 +1217,6 @@ export function PrintExamClient({
                         {block.questions.map((q: any) => {
                           qCounter++
                           const num = qCounter
-                          const isHidden = hiddenQuestions.has(q.id)
                           return (
                             <div
                               key={q.id}
@@ -1419,7 +1224,7 @@ export function PrintExamClient({
                             >
                               <div className="flex items-start gap-2" dir={dir}>
                                 <span
-                                  style={{ fontSize: `${baseFontSize * 1.1}px` }}
+                                  style={{ fontSize: `${baseFontSize * 1.05}px` }}
                                   className="shrink-0 font-black text-black"
                                 >
                                   ({num})
@@ -1437,7 +1242,7 @@ export function PrintExamClient({
                                     }`}
                                   >
                                     <div
-                                      style={{ fontSize: `${baseFontSize * 1.05}px` }}
+                                      style={{ fontSize: `${baseFontSize * 1.02}px` }}
                                       className="flex-1 font-bold leading-relaxed text-black"
                                     >
                                       <MathRenderer text={q.question_text} dir={dir} />
@@ -1446,7 +1251,7 @@ export function PrintExamClient({
                                       <div
                                         className={`my-2 overflow-hidden rounded border border-black/20 bg-white ${
                                           q.image_position === 'right' || q.image_position === 'left'
-                                            ? 'w-48 shrink-0'
+                                            ? 'w-44 shrink-0'
                                             : 'max-w-md'
                                         }`}
                                       >
@@ -1460,7 +1265,7 @@ export function PrintExamClient({
                                   </div>
                                 </div>
                                 <div
-                                  style={{ fontSize: `${baseFontSize * 0.8}px` }}
+                                  style={{ fontSize: `${baseFontSize * 0.78}px` }}
                                   className="shrink-0 font-bold text-black/70"
                                 >
                                   ({q.points_override ?? q.points ?? 1} {isRTL ? 'درجات' : 'pts'})
@@ -1470,9 +1275,9 @@ export function PrintExamClient({
                               {/* MCQ Options */}
                               {q.question_type === 'mcq' && q.options && (
                                 <div
-                                  style={{ fontSize: `${baseFontSize}px` }}
-                                  className={`mt-2 grid grid-cols-2 sm:grid-cols-4 gap-2 ${
-                                    isRTL ? 'pr-6' : 'pl-6'
+                                  style={{ fontSize: `${baseFontSize * 0.95}px` }}
+                                  className={`mt-1.5 grid grid-cols-2 sm:grid-cols-4 gap-2 ${
+                                    isRTL ? 'pr-5' : 'pl-5'
                                   }`}
                                   dir={dir}
                                 >
@@ -1488,13 +1293,13 @@ export function PrintExamClient({
                                     return (
                                       <div
                                         key={optIdx}
-                                        className={`flex items-center gap-2 rounded border border-black/30 p-2 ${
+                                        className={`flex items-center gap-1.5 rounded border border-black/30 p-1.5 ${
                                           isCorrect
                                             ? 'bg-black text-white font-black'
                                             : 'bg-white text-black'
                                         }`}
                                       >
-                                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-current text-xs font-black">
+                                        <span className="flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full border border-current text-[11px] font-black">
                                           {letters[optIdx] || optIdx + 1}
                                         </span>
                                         <span className="font-bold">
@@ -1509,16 +1314,16 @@ export function PrintExamClient({
                               {/* True / False */}
                               {q.question_type === 'true_false' && (
                                 <div
-                                  style={{ fontSize: `${baseFontSize}px` }}
-                                  className={`mt-2 flex items-center gap-6 ${isRTL ? 'pr-6' : 'pl-6'}`}
+                                  style={{ fontSize: `${baseFontSize * 0.95}px` }}
+                                  className={`mt-1.5 flex items-center gap-6 ${isRTL ? 'pr-5' : 'pl-5'}`}
                                   dir={dir}
                                 >
                                   <div className="flex items-center gap-2">
-                                    <span className="inline-block h-5 w-5 rounded-full border border-black"></span>
+                                    <span className="inline-block h-4.5 w-4.5 rounded-full border border-black"></span>
                                     <span>صواب (✓)</span>
                                   </div>
                                   <div className="flex items-center gap-2">
-                                    <span className="inline-block h-5 w-5 rounded-full border border-black"></span>
+                                    <span className="inline-block h-4.5 w-4.5 rounded-full border border-black"></span>
                                     <span>خطأ (✗)</span>
                                   </div>
                                   {answerMode !== 'none' && (
@@ -1533,14 +1338,14 @@ export function PrintExamClient({
                               {(q.question_type === 'fill_blank' ||
                                 q.question_type === 'correction' ||
                                 q.question_type === 'essay') && (
-                                <div className={`mt-2 space-y-2 ${isRTL ? 'pr-6' : 'pl-6'}`}>
+                                <div className={`mt-1.5 space-y-1.5 ${isRTL ? 'pr-5' : 'pl-5'}`}>
                                   {answerMode === 'none' && (
-                                    <div className="space-y-3 pt-1">
-                                      <div className="border-b border-dotted border-black/60 w-full h-4" />
+                                    <div className="space-y-2 pt-0.5">
+                                      <div className="border-b border-dotted border-black/60 w-full h-3" />
                                       {q.question_type === 'essay' && (
                                         <>
-                                          <div className="border-b border-dotted border-black/60 w-full h-4" />
-                                          <div className="border-b border-dotted border-black/60 w-full h-4" />
+                                          <div className="border-b border-dotted border-black/60 w-full h-3" />
+                                          <div className="border-b border-dotted border-black/60 w-full h-3" />
                                         </>
                                       )}
                                     </div>
@@ -1578,10 +1383,10 @@ export function PrintExamClient({
               5. CHEER & CLOSING BANNER
           ────────────────────────────────────────────────────────────────── */}
           {settings.showCheerNote !== false && settings.cheerNoteText && (
-            <div className="my-6 text-center break-inside-avoid">
+            <div className="my-5 text-center break-inside-avoid">
               <span
-                style={{ fontSize: `${baseFontSize * 0.95}px` }}
-                className="inline-block border-y-2 border-black px-8 py-1 font-black text-black"
+                style={{ fontSize: `${baseFontSize * 0.92}px` }}
+                className="inline-block border-y-2 border-black px-8 py-0.5 font-black text-black"
               >
                 {settings.cheerNoteText}
               </span>
