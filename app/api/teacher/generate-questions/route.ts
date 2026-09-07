@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
-import { QUESTION_GENERATION_PROMPT, SMART_GEN_PROMPT } from '@/lib/ai/prompts'
+import {
+  QUESTION_GENERATION_PROMPT,
+  EXACT_EXTRACT_PROMPT,
+  REFINED_REPHRASE_PROMPT,
+  GenerationMode,
+} from '@/lib/ai/prompts'
 import { parseGeminiJSON } from '@/lib/ai/gemini-client'
+import { cleanAndValidateQuestions } from '@/lib/ai/question-filter'
 import { checkAIQuota } from '@/lib/security/rate-limiter'
 import {
   TeacherGenerateQuestionsSchema,
@@ -77,9 +83,11 @@ async function generateQuestionsFromDirectFile(
     targetCognitiveLevel?: string
     customInstructions?: string
     passageBased?: boolean
+    mode?: GenerationMode
+    contentSource?: 'explanation_only' | 'exercises_only' | 'hybrid'
   } = {}
 ) {
-  const prompt = QUESTION_GENERATION_PROMPT({
+  const promptParams = {
     subject,
     grade,
     extractedText: 'الملف مرفق كصورة/مستند',
@@ -88,7 +96,15 @@ async function generateQuestionsFromDirectFile(
     targetCognitiveLevel: options.targetCognitiveLevel,
     customInstructions: options.customInstructions,
     passageBased: options.passageBased,
-  })
+    contentSource: options.contentSource,
+  }
+
+  const prompt =
+    options.mode === 'EXACT_EXTRACT'
+      ? EXACT_EXTRACT_PROMPT(promptParams)
+      : options.mode === 'REFINED_REPHRASE'
+      ? REFINED_REPHRASE_PROMPT(promptParams)
+      : QUESTION_GENERATION_PROMPT(promptParams)
 
   let lastError: any = null
 
@@ -208,6 +224,8 @@ export async function POST(request: NextRequest) {
       targetCognitiveLevel,
       customInstructions,
       passageBased,
+      contentSource,
+      generationMode,
     } = validation.data
 
     if (!subjectId || !gradeId) {
@@ -244,13 +262,15 @@ export async function POST(request: NextRequest) {
           targetCognitiveLevel,
           customInstructions,
           passageBased,
+          mode: generationMode,
+          contentSource,
         }
       )
       finalResult = genResult.result
 
       // ── 4. مسار النص الملصوق ──
     } else if (pastedText && pastedText.trim().length >= 10) {
-      const prompt = SMART_GEN_PROMPT({
+      const promptParams = {
         subject: subjectName,
         grade: gradeName,
         extractedText: pastedText,
@@ -259,7 +279,15 @@ export async function POST(request: NextRequest) {
         targetCognitiveLevel,
         customInstructions,
         passageBased,
-      })
+        contentSource,
+      }
+
+      const prompt =
+        generationMode === 'EXACT_EXTRACT'
+          ? EXACT_EXTRACT_PROMPT(promptParams)
+          : generationMode === 'REFINED_REPHRASE'
+          ? REFINED_REPHRASE_PROMPT(promptParams)
+          : QUESTION_GENERATION_PROMPT(promptParams)
 
       const genResult = await generateTextQuestionsWithFallback(prompt)
       finalResult = genResult.result
@@ -270,7 +298,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // ── 5. تنسيق النتيجة وإرجاعها ──
+    // ── 5. تنسيق النتيجة والتنقية البَعدية وإرجاعها ──
     let questionsArray: any[] = []
     if (Array.isArray(finalResult)) {
       questionsArray = finalResult
@@ -288,11 +316,15 @@ export async function POST(request: NextRequest) {
       questionsArray = finalResult.result
     }
 
-    if (questionsArray.length === 0) {
+    // تنقية وتدقيق الأسئلة واستبعاد أسئلة الغلاف والفهرس والمشتتات الساذجة
+    const { questions: cleanedQuestions, filteredOutCount } =
+      cleanAndValidateQuestions(questionsArray)
+
+    if (cleanedQuestions.length === 0) {
       return NextResponse.json(
         {
           error:
-            'تعذر توليد أسئلة من المحتوى المقدم. تأكد من أن النص أو الملف يحتوي على مادة تعليمية واضحة.',
+            'تعذر استخراج أسئلة صالحة من المحتوى المقدم. تأكد من أن النص أو الملف يحتوي على مادة تعليمية حقيقية وليس مجرد غلاف أو فهرس.',
         },
         { status: 400 }
       )
@@ -300,7 +332,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      questions: questionsArray,
+      questions: cleanedQuestions,
+      filtered_out_count: filteredOutCount,
     })
   } catch (error: any) {
     console.error('[Teacher AI Error]:', error)

@@ -4,9 +4,11 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 import {
   QUESTION_GENERATION_PROMPT,
   EXACT_EXTRACT_PROMPT,
+  REFINED_REPHRASE_PROMPT,
   GenerationMode,
 } from '@/lib/ai/prompts'
 import { parseGeminiJSON } from '@/lib/ai/gemini-client'
+import { cleanAndValidateQuestions } from '@/lib/ai/question-filter'
 import {
   AdminGenerateQuestionsSchema,
   formatZodError,
@@ -80,6 +82,7 @@ async function generateQuestionsDirectly(
     customInstructions?: string
     mode?: GenerationMode
     passageBased?: boolean
+    contentSource?: 'explanation_only' | 'exercises_only' | 'hybrid'
   } = {}
 ): Promise<{ result: any; modelUsed: string }> {
   const promptParams = {
@@ -91,10 +94,13 @@ async function generateQuestionsDirectly(
     targetCognitiveLevel: options.targetCognitiveLevel,
     customInstructions: options.customInstructions,
     passageBased: options.passageBased,
+    contentSource: options.contentSource,
   }
   const prompt =
     options.mode === 'EXACT_EXTRACT'
       ? EXACT_EXTRACT_PROMPT(promptParams)
+      : options.mode === 'REFINED_REPHRASE'
+      ? REFINED_REPHRASE_PROMPT(promptParams)
       : QUESTION_GENERATION_PROMPT(promptParams)
 
   let lastError: any = null
@@ -272,6 +278,7 @@ export async function POST(request: NextRequest) {
       targetCognitiveLevel,
       customInstructions,
       passageBased,
+      contentSource,
     } = validation.data
 
     // ── 3. جلب المستند — تحديد الأعمدة المطلوبة فقط (إصلاح SELECT *) ──
@@ -328,10 +335,13 @@ For complex technical terms, you MAY add an Arabic translation in parentheses to
         targetCognitiveLevel,
         customInstructions: mergedCustomInstructions,
         passageBased,
+        contentSource,
       }
       const prompt =
         generationMode === 'EXACT_EXTRACT'
           ? EXACT_EXTRACT_PROMPT(promptParams)
+          : generationMode === 'REFINED_REPHRASE'
+          ? REFINED_REPHRASE_PROMPT(promptParams)
           : QUESTION_GENERATION_PROMPT(promptParams)
 
       const genResult = await generateTextQuestionsWithFallback(prompt)
@@ -381,6 +391,7 @@ For complex technical terms, you MAY add an Arabic translation in parentheses to
           customInstructions: mergedCustomInstructions,
           mode: generationMode,
           passageBased,
+          contentSource,
         }
       )
       finalResult = directGen.result
@@ -496,7 +507,7 @@ For complex technical terms, you MAY add an Arabic translation in parentheses to
       )
     }
 
-    // ── 9. التحقق من النتيجة والحفظ ──────────────────────────────────
+    // ── 9. التحقق من النتيجة والتنقية البَعدية والحفظ ──────────────────
     let questionsArray: any[] = []
     let aiMetadata: any = null
 
@@ -517,14 +528,29 @@ For complex technical terms, you MAY add an Arabic translation in parentheses to
       questionsArray = finalResult.result
     }
 
-    if (questionsArray.length === 0) {
+    // تنقية وتدقيق الأسئلة واستبعاد أسئلة الغلاف والفهرس والخيارات الضعيفة
+    const { questions: cleanedQuestions, filteredOutCount } =
+      cleanAndValidateQuestions(questionsArray)
+
+    if (cleanedQuestions.length === 0) {
+      // إذا كان هذا جزءاً من ملف متعدد الأجزاء وتم تخطي الغلاف/الفهرس بصمام الأمان
+      if (typeof totalChunks === 'number' && totalChunks > 1) {
+        return NextResponse.json({
+          success: true,
+          questions: [],
+          skippedChunk: true,
+          message: 'تم تخطي مقطع شكلي أو غير تعليمي (غلاف/فهرس)',
+          document_id: documentId,
+        })
+      }
+
       await (supabase.from('documents') as any)
         .update({ processing_status: 'failed' })
         .eq('id', documentId)
       return NextResponse.json(
         {
           error:
-            'لم ينتج عن التحليل أي أسئلة. تأكد من أن الملف يحتوي على محتوى تعليمي كافٍ.',
+            'لم ينتج عن التحليل أي أسئلة صالحة. تأكد من أن الملف أو النص يحتوي على مادة تعليمية حقيقية وليس مجرد غلاف أو فهرس.',
         },
         { status: 400 }
       )
@@ -533,17 +559,18 @@ For complex technical terms, you MAY add an Arabic translation in parentheses to
     await (supabase.from('documents') as any)
       .update({
         processing_status: 'completed',
-        questions_count: questionsArray.length,
+        questions_count: cleanedQuestions.length,
         metadata: {
           ai_metadata: aiMetadata,
           models_tried: FALLBACK_MODELS,
+          filtered_out_count: filteredOutCount,
         },
       })
       .eq('id', documentId)
 
     return NextResponse.json({
       success: true,
-      questions: questionsArray,
+      questions: cleanedQuestions,
       metadata: aiMetadata,
       document_id: documentId,
     })

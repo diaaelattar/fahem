@@ -49,6 +49,12 @@ export function AIQuestionGeneratorModal({
     useState<string>('متنوع')
   const [customInstructions, setCustomInstructions] = useState('')
   const [passageBased, setPassageBased] = useState(false)
+  const [generationMode, setGenerationMode] = useState<
+    'SMART_GEN' | 'EXACT_EXTRACT' | 'REFINED_REPHRASE'
+  >('SMART_GEN')
+  const [contentSource, setContentSource] = useState<
+    'explanation_only' | 'exercises_only' | 'hybrid'
+  >('explanation_only')
 
   // Generation process state
   const [generating, setGenerating] = useState(false)
@@ -188,6 +194,8 @@ export function AIQuestionGeneratorModal({
           targetCognitiveLevel,
           customInstructions: customInstructions.trim() || undefined,
           passageBased,
+          generationMode,
+          contentSource,
         }),
       })
 
@@ -382,6 +390,42 @@ export function AIQuestionGeneratorModal({
                     <Brain className="h-4 w-4 text-indigo-500" aria-hidden="true" /> إعدادات
                     الأسئلة
                   </h4>
+
+                  {/* نمط المعالجة والتوليد */}
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-600">
+                      نمط المعالجة والرقمنة
+                    </label>
+                    <select
+                      value={generationMode}
+                      onChange={(e) =>
+                        setGenerationMode(e.target.value as any)
+                      }
+                      className="w-full rounded-xl border border-indigo-200 bg-white px-3 py-2 text-xs font-bold text-indigo-950 focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                    >
+                      <option value="SMART_GEN">💡 ابتكار وتوليد ذكي جديد</option>
+                      <option value="REFINED_REPHRASE">✨ تطوير تربوي للأسئلة المطبوعة</option>
+                      <option value="EXACT_EXTRACT">📋 رقمنة حرفية للأصل</option>
+                    </select>
+                  </div>
+
+                  {/* مصدر المحتوى المستهدف */}
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-600">
+                      المحتوى المستهدف من الدرس
+                    </label>
+                    <select
+                      value={contentSource}
+                      onChange={(e) =>
+                        setContentSource(e.target.value as any)
+                      }
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                    >
+                      <option value="explanation_only">📖 متن وشرح الدرس فقط (تجاهل التمارين)</option>
+                      <option value="exercises_only">📝 التمارين والأسئلة المطبوعة فقط</option>
+                      <option value="hybrid">🔄 شامل (شرح المتن + التمارين)</option>
+                    </select>
+                  </div>
 
                   {/* Question count */}
                   <div className="space-y-1">

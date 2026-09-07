@@ -61,8 +61,12 @@ export function ContentUploader({ subjects, grades }: Props) {
   const [generatedQuestions, setGeneratedQuestions] = useState<any[]>([])
   const [documentId, setDocumentId] = useState('')
   const [generationMode, setGenerationMode] = useState<
-    'SMART_GEN' | 'EXACT_EXTRACT'
+    'SMART_GEN' | 'EXACT_EXTRACT' | 'REFINED_REPHRASE'
   >('SMART_GEN')
+  const [contentSource, setContentSource] = useState<
+    'explanation_only' | 'exercises_only' | 'hybrid'
+  >('explanation_only')
+  const [skipCoverIndex, setSkipCoverIndex] = useState(true)
   const [questionCount, setQuestionCount] = useState(12)
   const [requestedTypes, setRequestedTypes] = useState<string[]>([
     'mcq',
@@ -377,8 +381,12 @@ export function ContentUploader({ subjects, grades }: Props) {
           // إزالة التكرار والترتيب
           targetPages = Array.from(new Set(targetPages)).sort((a, b) => a - b)
         } else {
-          // كل الصفحات
-          targetPages = Array.from({ length: totalPages }, (_, i) => i)
+          // كل الصفحات مع التخطي الذكي للغلاف والفهرس إذا كان مفعلاً
+          const startIndex = skipCoverIndex && totalPages > 3 ? 2 : 0
+          if (startIndex > 0) {
+            addLog(`نظام الحماية: تم تخطي أول صفحتين (الغلاف والفهرس) تلقائياً لتفادي الأسئلة غير العلمية.`, 'info')
+          }
+          targetPages = Array.from({ length: totalPages - startIndex }, (_, i) => i + startIndex)
         }
 
         if (targetPages.length === 0)
@@ -446,6 +454,7 @@ export function ContentUploader({ subjects, grades }: Props) {
                   customInstructions,
                   generationMode,
                   passageBased,
+                  contentSource,
                 }),
               })
 
@@ -463,8 +472,17 @@ export function ContentUploader({ subjects, grades }: Props) {
               }
 
               const result = await response.json()
-              allQuestions = [...allQuestions, ...result.questions]
-              combinedMetadata.total_questions += result.questions.length
+              if (result.skippedChunk) {
+                success = true
+                addLog(
+                  `المرحلة ${i + 1}: تم تخطي مقطع شكلي (غلاف/فهرس) دون احتسابه إخفاقاً.`,
+                  'info'
+                )
+                break
+              }
+
+              allQuestions = [...allQuestions, ...(result.questions || [])]
+              combinedMetadata.total_questions += (result.questions || []).length
               if (result.metadata?.topics_covered) {
                 combinedMetadata.topics_covered = Array.from(
                   new Set([
@@ -566,6 +584,7 @@ export function ContentUploader({ subjects, grades }: Props) {
             targetCognitiveLevel,
             customInstructions,
             passageBased,
+            contentSource,
           }),
         })
 
@@ -836,6 +855,141 @@ export function ContentUploader({ subjects, grades }: Props) {
 
           {showAdvanced && (
             <div className="space-y-4 border-t border-border pt-2 animate-in fade-in slide-in-from-top-1">
+              {/* استراتيجية المعالجة ومصدر التوليد */}
+              <div className="space-y-3 rounded-xl border border-indigo-100 bg-gradient-to-r from-indigo-50/70 to-blue-50/50 p-4">
+                <h4 className="flex items-center gap-1.5 text-sm font-bold text-indigo-950">
+                  <Brain className="h-4 w-4 text-indigo-600" />
+                  استراتيجية ومصدر التوليد من المستند
+                </h4>
+
+                {/* 1. نمط المعالجة */}
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold text-slate-700">
+                    نمط المعالجة والرقمنة:
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setGenerationMode('SMART_GEN')}
+                      className={`flex flex-col items-start p-2.5 rounded-xl border text-right transition-all ${
+                        generationMode === 'SMART_GEN'
+                          ? 'border-indigo-600 bg-white shadow-sm ring-1 ring-indigo-600'
+                          : 'border-slate-200 bg-white/70 hover:bg-white text-slate-600'
+                      }`}
+                    >
+                      <span className="flex items-center gap-1 text-xs font-bold text-indigo-900">
+                        💡 ابتكار وتوليد ذكي
+                      </span>
+                      <span className="text-[11px] text-muted-foreground mt-0.5">
+                        ابتكار أسئلة فهم وتطبيق جديدة كلياً
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setGenerationMode('REFINED_REPHRASE')}
+                      className={`flex flex-col items-start p-2.5 rounded-xl border text-right transition-all ${
+                        generationMode === 'REFINED_REPHRASE'
+                          ? 'border-indigo-600 bg-white shadow-sm ring-1 ring-indigo-600'
+                          : 'border-slate-200 bg-white/70 hover:bg-white text-slate-600'
+                      }`}
+                    >
+                      <span className="flex items-center gap-1 text-xs font-bold text-indigo-900">
+                        ✨ تطوير تربوي للأسئلة
+                      </span>
+                      <span className="text-[11px] text-muted-foreground mt-0.5">
+                        صياغة معيارية للأسئلة المطبوعة دون إخلال
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setGenerationMode('EXACT_EXTRACT')}
+                      className={`flex flex-col items-start p-2.5 rounded-xl border text-right transition-all ${
+                        generationMode === 'EXACT_EXTRACT'
+                          ? 'border-indigo-600 bg-white shadow-sm ring-1 ring-indigo-600'
+                          : 'border-slate-200 bg-white/70 hover:bg-white text-slate-600'
+                      }`}
+                    >
+                      <span className="flex items-center gap-1 text-xs font-bold text-indigo-900">
+                        📋 رقمنة حرفية للأصل
+                      </span>
+                      <span className="text-[11px] text-muted-foreground mt-0.5">
+                        نسخ الأسئلة المطبوعة كما هي حرفياً
+                      </span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* 2. مصدر المحتوى المستهدف */}
+                <div className="pt-2 border-t border-indigo-100/60">
+                  <label className="mb-1.5 block text-xs font-semibold text-slate-700">
+                    مصدر المحتوى المستهدف من الدرس/المستند:
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setContentSource('explanation_only')}
+                      className={`p-2 rounded-xl border text-xs font-semibold text-right transition-all ${
+                        contentSource === 'explanation_only'
+                          ? 'border-primary bg-white shadow-sm text-primary font-bold'
+                          : 'border-slate-200 bg-white/70 hover:bg-white text-slate-600'
+                      }`}
+                    >
+                      📖 من متن وشرح الدرس فقط
+                      <span className="block text-[10px] text-muted-foreground font-normal mt-0.5">
+                        يتجاهل التدريبات السابقة المطبوعة
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setContentSource('exercises_only')}
+                      className={`p-2 rounded-xl border text-xs font-semibold text-right transition-all ${
+                        contentSource === 'exercises_only'
+                          ? 'border-primary bg-white shadow-sm text-primary font-bold'
+                          : 'border-slate-200 bg-white/70 hover:bg-white text-slate-600'
+                      }`}
+                    >
+                      📝 من التمارين والأسئلة فقط
+                      <span className="block text-[10px] text-muted-foreground font-normal mt-0.5">
+                        يتجاهل الشرح ويركز على تدريبات الدرس
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setContentSource('hybrid')}
+                      className={`p-2 rounded-xl border text-xs font-semibold text-right transition-all ${
+                        contentSource === 'hybrid'
+                          ? 'border-primary bg-white shadow-sm text-primary font-bold'
+                          : 'border-slate-200 bg-white/70 hover:bg-white text-slate-600'
+                      }`}
+                    >
+                      🔄 شامل (المتن + التمارين)
+                      <span className="block text-[10px] text-muted-foreground font-normal mt-0.5">
+                        يستخرج التمارين ويولد من الشرح
+                      </span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* 3. تخطي الغلاف والفهرس */}
+                <div className="pt-2">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-slate-800">
+                    <input
+                      type="checkbox"
+                      checked={skipCoverIndex}
+                      onChange={(e) => setSkipCoverIndex(e.target.checked)}
+                      className="h-4 w-4 rounded border-slate-300 accent-primary"
+                    />
+                    <span>
+                      🛡️ **تخطي الغلاف والفهرس تلقائياً** (تجاوز أول صفحتين لتفادي توليد أي أسئلة شكلية)
+                    </span>
+                  </label>
+                </div>
+              </div>
+
               {/* خيارات توليد الأسئلة */}
               <div className="space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
                 <h4 className="text-sm font-bold text-slate-800">

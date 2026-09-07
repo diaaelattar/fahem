@@ -32,9 +32,7 @@ const BaseGenerateSchema = z.object({
     .max(5, 'لا يمكن تحديد أكثر من 5 أنواع')
     .optional(),
 
-  targetCognitiveLevel: z
-    .enum(['remember', 'understand', 'apply', 'analyze', 'evaluate', 'create'])
-    .optional(),
+  targetCognitiveLevel: z.string().max(100).optional(),
 
   customInstructions: z
     .string()
@@ -45,6 +43,8 @@ const BaseGenerateSchema = z.object({
     .optional(),
 
   passageBased: z.boolean().optional(),
+  contentSource: z.enum(['explanation_only', 'exercises_only', 'hybrid']).optional(),
+  generationMode: z.enum(['SMART_GEN', 'EXACT_EXTRACT', 'REFINED_REPHRASE']).default('SMART_GEN'),
 })
 
 // ─── Schema لـ Admin Generate Questions ──────────────────────────────────────
@@ -74,8 +74,6 @@ export const AdminGenerateQuestionsSchema = BaseGenerateSchema.extend({
 
   chunkIndex: z.number().int().min(0).optional(),
   totalChunks: z.number().int().min(1).optional(),
-
-  generationMode: z.enum(['SMART_GEN', 'EXACT_EXTRACT']).default('SMART_GEN'),
 })
 
 export type AdminGenerateQuestionsInput = z.infer<

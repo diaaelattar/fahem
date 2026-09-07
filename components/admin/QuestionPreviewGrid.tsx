@@ -21,6 +21,7 @@ interface GeneratedQuestion {
   options: string[] | null
   correct_answer: string
   explanation: string
+  hint?: string | null
   source_paragraph?: string
   difficulty: 'easy' | 'medium' | 'hard'
   bloom_level?:
@@ -576,13 +577,21 @@ export function QuestionPreviewGrid({
                           )}
                         </div>
 
-                        {/* Explanation & Source */}
-                        {(q.explanation || q.source_paragraph) && (
+                        {/* Explanation, Hint & Source */}
+                        {(q.hint || q.explanation || q.source_paragraph) && (
                           <div className="mb-3 space-y-2">
+                            {q.hint && (
+                              <div className="flex gap-2 rounded-lg border border-indigo-100 bg-indigo-50/60 px-3 py-2 text-xs leading-relaxed text-indigo-900">
+                                <span className="shrink-0 font-bold">
+                                  🔍 تلميح ذكي:
+                                </span>
+                                <MathRenderer text={q.hint} />
+                              </div>
+                            )}
                             {q.explanation && (
                               <div className="flex gap-2 rounded-lg bg-muted/50 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
                                 <span className="shrink-0 font-medium">
-                                  💡 الشرح:{' '}
+                                  💡 خطوات الحل والتفسير:
                                 </span>
                                 <MathRenderer text={q.explanation} />
                               </div>
@@ -590,7 +599,7 @@ export function QuestionPreviewGrid({
                             {q.source_paragraph && (
                               <div className="flex gap-2 rounded-lg border border-amber-100 bg-amber-50/50 px-3 py-2 text-xs leading-relaxed text-amber-800">
                                 <span className="shrink-0 font-medium">
-                                  📄 المرجع:{' '}
+                                  📄 المرجع:
                                 </span>
                                 <span className="italic">
                                   {q.source_paragraph}
