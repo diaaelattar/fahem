@@ -16,14 +16,8 @@ import {
   ChevronUp,
   Save,
   Sparkles,
-  Type,
-  Maximize2,
-  Minimize2,
-  FileSpreadsheet,
-  CheckCircle2,
-  Stamp,
-  Award,
-  Layers,
+  CheckSquare,
+  X,
 } from 'lucide-react'
 import { MathRenderer } from '@/components/ui/MathRenderer'
 import {
@@ -39,35 +33,47 @@ interface PassageBlock {
 }
 
 interface PrintCustomSettings {
-  // Mode: official ministerial (Nepras standard) vs personal tutor vs both
+  // Mode: official vs personal vs both
   headerType: 'official' | 'personal' | 'both'
 
-  // Standard 3-Column Ministerial Header Data
+  // Header Texts
   directorate: string      // المحافظة
-  administration: string   // الإدارة التعليمية
+  administration: string   // الإدارة
   schoolName: string       // المدرسة
   academicYear: string     // العام الدراسي
 
-  // Personal / Center Data
-  displayName: string      // اسم المعلم
-  title: string            // الصفة / التخصص
-  phone: string            // الهاتف / الواتساب
-  social: string           // المعرف / الصفحة
+  // Granular Toggles for EVERY single line/piece of the header (إظهار/إخفاء أي جزء)
+  showGov: boolean         // محافظة: ...
+  showAdmin: boolean       // إدارة: ...
+  showSchool: boolean      // مدرسة: ...
+
+  showLogo: boolean        // شعار المدرسة
+  showTitle: boolean       // عنوان الاختبار
+  showYear: boolean        // العام الدراسي
+  showMeta: boolean        // المادة والصف والفصل
+
+  showDuration: boolean    // زمن الإجابة
+  showPoints: boolean      // الدرجة الكلية
+  showPrintDate: boolean   // تاريخ الطباعة
+
+  // Personal Teacher / Center
+  displayName: string
+  title: string
+  phone: string
+  social: string
 
   // Exam Meta
-  customTitle: string      // عنوان الامتحان المطبوع
+  customTitle: string
   examModel: string        // رمز النموذج (أ / ب / ج / د)
-  termName: string         // الفصل الدراسي
-  durationMinutes: string  // زمن الإجابة
-  totalPoints: string      // الدرجة الكلية
-  subjectName: string      // المادة
-  gradeName: string        // الصف
-  examDate: string         // تاريخ الاختبار
+  termName: string
+  durationMinutes: string
+  totalPoints: string
+  subjectName: string
+  gradeName: string
 
-  // Logo & Styling
+  // Styling & Options
   logoUrl: string
-  hasBorderFrame: boolean  // إطار مطبعي مزدوج
-  fontSize: 'small' | 'medium' | 'large'
+  hasBorderFrame: boolean  // إطار مزدوج للورقة
   density: 'compact' | 'normal' | 'spacious'
 
   // Student Bar
@@ -76,25 +82,14 @@ interface PrintCustomSettings {
   showSeatNumber: boolean
   showClassSection: boolean
   classSection: string
-  showExamDate: boolean
 
-  // Instructions
+  // Instructions Bar
   showInstructions: boolean
   instructionsText: string
 
-  // Official NeprasPro Footer & Signatures
-  showSignatures: boolean
-  signRole1: string
-  signRole1Sub: string
-  signRole2: string
-  signRole2Sub: string
-  signRole3: string
-  signRole3Sub: string
-  signRole4: string
-  signRole4Sub: string
-  showSchoolStamp: boolean
-  showFooterCheer: boolean
-  footerCheer: string
+  // Simple Closing Note
+  showCheerNote: boolean
+  cheerNoteText: string
 
   // Watermark
   showWatermark: boolean
@@ -112,23 +107,38 @@ export function PrintExamClient({
   const [showSectionHeaders, setShowSectionHeaders] = useState(true)
   const [hiddenQuestions, setHiddenQuestions] = useState<Set<string>>(new Set())
 
-  // Customization drawer & quick state
+  // Customization drawer open state
   const [isCustomizeOpen, setIsCustomizeOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState<'official' | 'exam' | 'personal' | 'style' | 'footer'>('official')
   const [savedSuccess, setSavedSuccess] = useState(false)
   const logoInputRef = useRef<HTMLInputElement>(null)
 
-  // Clean initial defaults matching NeprasPro Ministerial Protocol
+  // Settings state
   const [settings, setSettings] = useState<PrintCustomSettings>({
     headerType: 'official',
     directorate: 'الجيزة',
     administration: 'الدقي',
-    schoolName: 'الشهيد محمد سليمان سلامة الإعدادية بنين',
+    schoolName: 'الأورمان الثانوية بنين',
     academicYear: '2025 / 2026 م',
+
+    // Granular visibility toggles (all true by default, user can turn any off)
+    showGov: true,
+    showAdmin: true,
+    showSchool: true,
+
+    showLogo: true,
+    showTitle: true,
+    showYear: true,
+    showMeta: true,
+
+    showDuration: true,
+    showPoints: true,
+    showPrintDate: true,
+
     displayName: '',
-    title: 'خبير تدريس أول',
+    title: 'معلم أول',
     phone: '',
     social: '',
+
     customTitle: exam?.title || '',
     examModel: '',
     termName: 'الفصل الدراسي الأول',
@@ -136,38 +146,30 @@ export function PrintExamClient({
     totalPoints: exam?.total_points ? String(exam.total_points) : '25',
     subjectName: exam?.subjects?.name_ar || '',
     gradeName: exam?.grades?.name_ar || '',
-    examDate: '',
+
     logoUrl: '',
     hasBorderFrame: true,
-    fontSize: 'medium',
     density: 'normal',
+
     showStudentBar: true,
     showStudentName: true,
     showSeatNumber: true,
     showClassSection: true,
     classSection: '',
-    showExamDate: false,
+
     showInstructions: true,
-    instructionsText: 'تنبيه: أجب عن جميع الأسئلة الآتية في نفس الورقة - ممنوع استخدام الآلة الحاسبة أو مزيل الحبر',
-    showSignatures: true,
-    signRole1: 'واضع الامتحان',
-    signRole1Sub: '(المسؤول المختص)',
-    signRole2: 'المراجع والأخصائي',
-    signRole2Sub: '(رئيس الحجرة)',
-    signRole3: 'وكيل شؤون الطلاب',
-    signRole3Sub: '(رئيس الكنترول)',
-    signRole4: 'مدير المدرسة',
-    signRole4Sub: '(يعتمد)',
-    showSchoolStamp: true,
-    showFooterCheer: true,
-    footerCheer: 'انتهت الأسئلة مع أطيب التمنيات بالنجاح والتفوق',
+    instructionsText: 'تنبيه: أجب عن جميع الأسئلة الآتية في نفس الورقة',
+
+    showCheerNote: true,
+    cheerNoteText: 'مع أطيب التمنيات بالنجاح والتفوق',
+
     showWatermark: false,
     watermarkText: '',
   })
 
   // Load defaults from localStorage
   useEffect(() => {
-    const savedDefaults = localStorage.getItem('nepras_pro_print_defaults')
+    const savedDefaults = localStorage.getItem('istabaq_custom_print_defaults')
     let baseSettings: Partial<PrintCustomSettings> = {}
     if (savedDefaults) {
       try {
@@ -175,7 +177,7 @@ export function PrintExamClient({
       } catch {}
     }
 
-    const examSpecific = localStorage.getItem(`nepras_print_exam_${exam?.id}`)
+    const examSpecific = localStorage.getItem(`istabaq_print_exam_${exam?.id}`)
     let examSettings: Partial<PrintCustomSettings> = {}
     if (examSpecific) {
       try {
@@ -211,45 +213,18 @@ export function PrintExamClient({
     if (!exam?.id) return
     try {
       localStorage.setItem(
-        `nepras_print_exam_${exam.id}`,
+        `istabaq_print_exam_${exam.id}`,
         JSON.stringify(settings)
       )
     } catch {}
   }, [settings, exam?.id])
 
-  // Save current school/teacher info as GLOBAL DEFAULTS (Nepras Standard)
+  // Save current settings as GLOBAL DEFAULTS
   const handleSaveAsDefaults = () => {
     try {
-      const defaultsToSave = {
-        headerType: settings.headerType,
-        directorate: settings.directorate,
-        administration: settings.administration,
-        schoolName: settings.schoolName,
-        academicYear: settings.academicYear,
-        displayName: settings.displayName,
-        title: settings.title,
-        phone: settings.phone,
-        social: settings.social,
-        logoUrl: settings.logoUrl,
-        hasBorderFrame: settings.hasBorderFrame,
-        fontSize: settings.fontSize,
-        density: settings.density,
-        showSignatures: settings.showSignatures,
-        signRole1: settings.signRole1,
-        signRole1Sub: settings.signRole1Sub,
-        signRole2: settings.signRole2,
-        signRole2Sub: settings.signRole2Sub,
-        signRole3: settings.signRole3,
-        signRole3Sub: settings.signRole3Sub,
-        signRole4: settings.signRole4,
-        signRole4Sub: settings.signRole4Sub,
-        showSchoolStamp: settings.showSchoolStamp,
-        footerCheer: settings.footerCheer,
-        watermarkText: settings.watermarkText,
-      }
       localStorage.setItem(
-        'nepras_pro_print_defaults',
-        JSON.stringify(defaultsToSave)
+        'istabaq_custom_print_defaults',
+        JSON.stringify(settings)
       )
       setSavedSuccess(true)
       setTimeout(() => setSavedSuccess(false), 2500)
@@ -265,7 +240,7 @@ export function PrintExamClient({
     const reader = new FileReader()
     reader.onload = () => {
       if (typeof reader.result === 'string') {
-        setSettings((prev) => ({ ...prev, logoUrl: reader.result as string }))
+        setSettings((prev) => ({ ...prev, logoUrl: reader.result as string, showLogo: true }))
       }
     }
     reader.readAsDataURL(file)
@@ -280,7 +255,7 @@ export function PrintExamClient({
     })
   }
 
-  // NeprasPro Ministerial Cleaning Protocol
+  // Ministerial cleaning
   const cleanGov = (settings.directorate || '').replace(/^محافظة\s*/, '').trim() || 'الجيزة'
   const cleanAdmin = (settings.administration || '')
     .replace(/^إدارة\s*/, '')
@@ -297,11 +272,11 @@ export function PrintExamClient({
   const handlePrint = () => window.print()
 
   const questionTypeTitlesAR: Record<string, string> = {
-    mcq: 'اختر الإجابة الصحيحة من بين القوسين',
-    true_false: 'ضع علامة (✓) أمام العبارة الصحيحة وعلامة (✗) أمام العبارة الخطأ',
-    fill_blank: 'أكمل مكان النقط بما يناسبها',
-    correction: 'صوّب ما تحته خط في العبارات الآتية',
-    essay: 'أجب عن الأسئلة المقالية الآتية موضحاً خطوات الحل',
+    mcq: 'اختر الإجابة الصحيحة',
+    true_false: 'ضع علامة (✓) أو علامة (✗)',
+    fill_blank: 'أكمل ما يأتي',
+    correction: 'صوّب ما تحته خط',
+    essay: 'أجب عن الأسئلة الآتية',
   }
 
   const questionTypeTitlesEN: Record<string, string> = {
@@ -309,7 +284,7 @@ export function PrintExamClient({
     true_false: 'Put True (✓) or False (✗)',
     fill_blank: 'Fill in the Blanks',
     correction: 'Correct the Underlined Words',
-    essay: 'Answer the Following Questions with Steps',
+    essay: 'Answer the Following Questions',
   }
 
   const questionTypeTitles = isRTL ? questionTypeTitlesAR : questionTypeTitlesEN
@@ -341,25 +316,25 @@ export function PrintExamClient({
   // Density CSS helpers
   const densitySpacing = {
     compact: 'space-y-4 text-[13px]',
-    normal: 'space-y-7 text-[15px]',
-    spacious: 'space-y-10 text-[16px]',
+    normal: 'space-y-6 text-[15px]',
+    spacious: 'space-y-9 text-[16px]',
   }[settings.density]
 
   const questionGap = {
     compact: 'space-y-2',
-    normal: 'space-y-4',
-    spacious: 'space-y-6',
+    normal: 'space-y-3.5',
+    spacious: 'space-y-5',
   }[settings.density]
 
   const essayLinesCount = {
     compact: 2,
     normal: 4,
-    spacious: 7,
+    spacious: 6,
   }[settings.density]
 
   return (
     <div
-      className="min-h-screen bg-slate-200/70 p-2 sm:p-6 md:p-10 print:bg-white print:p-0 font-sans"
+      className="min-h-screen bg-slate-100 p-2 sm:p-6 md:p-8 print:bg-white print:p-0 font-sans"
       dir={dir}
     >
       <style
@@ -397,84 +372,68 @@ export function PrintExamClient({
         }}
       />
 
-      {/* ══════════════════════════════════════════════════════════════════════
-          NEPRASPRO DESKTOP APP TOPBAR (DARK SLATE #0f172a)
-      ══════════════════════════════════════════════════════════════════════ */}
+      {/* ─── Control Bar (hidden when printing) ─── */}
       <div
-        className="no-print mx-auto mb-6 max-w-5xl overflow-hidden rounded-2xl bg-[#0f172a] text-white shadow-2xl border border-slate-700"
+        className="no-print mx-auto mb-6 max-w-5xl rounded-2xl bg-white border border-slate-200 p-4 shadow-sm"
         dir="rtl"
       >
-        {/* Main Desktop Header */}
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 px-6 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-primary text-white shadow-md">
-              <Printer className="h-5 w-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-base font-black tracking-wide text-white">
-                  استديو الطباعة المتطور (معيار نبراس برو الرسمي)
-                </h1>
-                <span className="rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-[11px] font-bold text-emerald-400 border border-emerald-500/30">
-                  A4 Print Ready
-                </span>
-              </div>
-              <p className="text-xs text-slate-400">
-                ترويسة وزارية ثلاثية • إطار مطبعي مزدوج • توقيعات رباعية معتمدة • أسطر إجابة هندسية
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
+            <h2 className="flex items-center gap-2 text-base font-black text-slate-800">
+              <Printer className="h-5 w-5 text-primary" />
+              معاينة وطباعة ورقة الاختبار
+            </h2>
             <button
               onClick={() => setIsCustomizeOpen((v) => !v)}
               className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all ${
                 isCustomizeOpen
-                  ? 'bg-primary text-white shadow-lg shadow-primary/30'
-                  : 'border border-slate-700 bg-slate-800/80 text-slate-200 hover:bg-slate-700'
+                  ? 'bg-primary text-white shadow-md shadow-primary/20'
+                  : 'border border-primary/30 bg-primary/5 text-primary hover:bg-primary/10'
               }`}
             >
-              <Sliders className="h-4 w-4 text-indigo-400" />
-              تخصيص البيانات والترويسة
+              <Sliders className="h-4 w-4" />
+              تخصيص وإظهار/إخفاء أي جزء من الترويسة
               {isCustomizeOpen ? (
                 <ChevronUp className="h-3.5 w-3.5" />
               ) : (
                 <ChevronDown className="h-3.5 w-3.5" />
               )}
             </button>
+          </div>
 
+          <div className="flex items-center gap-3">
             <button
               onClick={handlePrint}
-              className="flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-2.5 text-xs font-black text-white shadow-lg shadow-emerald-600/30 transition-all hover:bg-emerald-500 active:scale-95"
+              className="flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-2.5 text-xs font-black text-white shadow-md shadow-emerald-600/20 transition-all hover:bg-emerald-700 active:scale-95"
             >
               <Printer className="h-4 w-4" />
-              طباعة فورية / تصدير PDF
+              طباعة فورية (PDF)
             </button>
           </div>
         </div>
 
-        {/* Quick Toolbar (Density, Answer Mode, Model, Borders) */}
-        <div className="flex flex-wrap items-center justify-between gap-4 bg-slate-900/90 px-6 py-3 text-xs">
-          {/* Quick Item 1: Answer Mode */}
+        {/* Quick controls row */}
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3 text-xs">
+          {/* Answer Mode */}
           <div className="flex items-center gap-2">
-            <span className="font-bold text-slate-400">نسخة الورقة:</span>
-            <div className="flex rounded-lg bg-slate-800 p-0.5 border border-slate-700">
+            <span className="font-bold text-slate-600">نوع النسخة:</span>
+            <div className="flex rounded-lg bg-slate-100 p-0.5">
               {(['none', 'short', 'full'] as AnswerMode[]).map((mode) => (
                 <button
                   key={mode}
                   onClick={() => setAnswerMode(mode)}
-                  className={`rounded-md px-3 py-1.5 font-bold transition-all ${
+                  className={`rounded-md px-3 py-1 font-bold transition-all ${
                     answerMode === mode
                       ? mode === 'none'
                         ? 'bg-white text-slate-900 shadow-sm'
                         : mode === 'short'
-                          ? 'bg-indigo-600 text-white'
-                          : 'bg-emerald-600 text-white'
-                      : 'text-slate-400 hover:text-white'
+                          ? 'bg-indigo-100 text-indigo-800 shadow-sm'
+                          : 'bg-emerald-100 text-emerald-800 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-800'
                   }`}
                 >
                   {mode === 'none'
-                    ? 'ورقة الطالب (بدون حل)'
+                    ? 'ورقة الطالب'
                     : mode === 'short'
                       ? 'الحل السريع'
                       : 'نموذج الإجابة الكامل'}
@@ -483,10 +442,10 @@ export function PrintExamClient({
             </div>
           </div>
 
-          {/* Quick Item 2: Print Density (Compact / Normal / Spacious) */}
+          {/* Density */}
           <div className="flex items-center gap-2">
-            <span className="font-bold text-slate-400">كثافة الورقة:</span>
-            <div className="flex rounded-lg bg-slate-800 p-0.5 border border-slate-700">
+            <span className="font-bold text-slate-600">كثافة الورقة:</span>
+            <div className="flex rounded-lg bg-slate-100 p-0.5">
               {[
                 { id: 'compact', label: 'مضغوط (توفير ورق)' },
                 { id: 'normal', label: 'قياسي' },
@@ -495,10 +454,10 @@ export function PrintExamClient({
                 <button
                   key={d.id}
                   onClick={() => setSettings({ ...settings, density: d.id as any })}
-                  className={`rounded-md px-2.5 py-1.5 font-bold transition-all ${
+                  className={`rounded-md px-2.5 py-1 font-bold transition-all ${
                     settings.density === d.id
                       ? 'bg-primary text-white shadow-sm'
-                      : 'text-slate-400 hover:text-white'
+                      : 'text-slate-500 hover:text-slate-800'
                   }`}
                 >
                   {d.label}
@@ -507,18 +466,18 @@ export function PrintExamClient({
             </div>
           </div>
 
-          {/* Quick Item 3: Model quick switch */}
+          {/* Model Switcher */}
           <div className="flex items-center gap-2">
-            <span className="font-bold text-slate-400">النموذج:</span>
-            <div className="flex rounded-lg bg-slate-800 p-0.5 border border-slate-700">
+            <span className="font-bold text-slate-600">النموذج:</span>
+            <div className="flex rounded-lg bg-slate-100 p-0.5">
               {['', 'أ', 'ب', 'ج', 'د'].map((m) => (
                 <button
                   key={m}
                   onClick={() => setSettings({ ...settings, examModel: m ? `نموذج (${m})` : '' })}
                   className={`rounded-md px-2.5 py-1 font-bold transition-all ${
                     (m === '' && !settings.examModel) || settings.examModel.includes(`(${m})`)
-                      ? 'bg-amber-500 text-slate-950 shadow-sm'
-                      : 'text-slate-400 hover:text-white'
+                      ? 'bg-amber-500 text-white shadow-sm'
+                      : 'text-slate-500 hover:text-slate-800'
                   }`}
                 >
                   {m ? `نموذج ${m}` : 'بدون'}
@@ -527,295 +486,137 @@ export function PrintExamClient({
             </div>
           </div>
 
-          {/* Quick Item 4: Border frame toggle */}
-          <div className="flex items-center gap-3">
-            <label className="flex items-center gap-1.5 cursor-pointer font-bold text-slate-300">
-              <input
-                type="checkbox"
-                checked={settings.hasBorderFrame}
-                onChange={(e) => setSettings({ ...settings, hasBorderFrame: e.target.checked })}
-                className="rounded border-slate-700 bg-slate-800 text-primary focus:ring-0"
-              />
-              إطار مطبعي مزدوج
-            </label>
-
-            {hiddenCount > 0 && (
-              <button
-                onClick={() => setHiddenQuestions(new Set())}
-                className="rounded-lg bg-orange-500/20 px-2.5 py-1 text-[11px] font-bold text-orange-300 border border-orange-500/30 hover:bg-orange-500/30"
-              >
-                إظهار {hiddenCount} سؤال مخفي
-              </button>
-            )}
-          </div>
+          {/* Border Frame */}
+          <label className="flex items-center gap-1.5 cursor-pointer font-bold text-slate-700">
+            <input
+              type="checkbox"
+              checked={settings.hasBorderFrame}
+              onChange={(e) => setSettings({ ...settings, hasBorderFrame: e.target.checked })}
+              className="rounded"
+            />
+            إطار مطبعي مزدوج
+          </label>
         </div>
 
-        {/* ─── Expandable Full Customization Drawer (Nepras Style) ─── */}
+        {/* ─── Expandable Customization Panel ─── */}
         {isCustomizeOpen && (
-          <div className="border-t border-slate-800 bg-slate-900 p-6">
-            {/* Tabs Bar */}
-            <div className="mb-5 flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
-              <div className="flex flex-wrap gap-2">
-                {[
-                  { id: 'official', label: 'الترويسة الوزارية الرسمية', icon: School },
-                  { id: 'exam', label: 'بيانات الاختبار والزمن والدرجات', icon: FileText },
-                  { id: 'personal', label: 'الترويسة الشخصية والشعار', icon: UserCheck },
-                  { id: 'footer', label: 'شريط الطالب والتوقيعات والختام', icon: Sparkles },
-                ].map((tab) => {
-                  const Icon = tab.icon
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveTab(tab.id as any)}
-                      className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all ${
-                        activeTab === tab.id
-                          ? 'bg-primary text-white shadow-md shadow-primary/20'
-                          : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'
-                      }`}
-                    >
-                      <Icon className="h-4 w-4" />
-                      {tab.label}
-                    </button>
-                  )
-                })}
+          <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-5">
+            {/* Header of customization box */}
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3">
+              <div>
+                <h3 className="text-sm font-black text-slate-800">
+                  🔘 تحكم دقيق في عناصر الترويسة الثلاثية (إظهار / إخفاء أي سطر)
+                </h3>
+                <p className="text-xs text-slate-500">
+                  يمكنك تفعيل أو إلغاء أي جزء تريده بنقرة واحدة، وتعديل النصوص مباشرة.
+                </p>
               </div>
 
-              {/* Save default button */}
-              <button
-                onClick={handleSaveAsDefaults}
-                className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-2 text-xs font-black text-white shadow-md shadow-emerald-600/20 hover:brightness-110"
-              >
-                <Save className="h-4 w-4" />
-                {savedSuccess ? '✓ تم الحفظ كافتراضي!' : 'حفظ كإعدادات افتراضية دائمة'}
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleSaveAsDefaults}
+                  className="flex items-center gap-1.5 rounded-xl bg-slate-800 px-3.5 py-1.5 text-xs font-bold text-white transition-all hover:bg-slate-900"
+                >
+                  <Save className="h-3.5 w-3.5 text-emerald-400" />
+                  {savedSuccess ? '✓ تم الحفظ كافتراضي!' : 'حفظ كإعدادات افتراضية'}
+                </button>
+              </div>
             </div>
 
-            {/* TAB 1: OFFICIAL NEPRAS PROTOCOL */}
-            {activeTab === 'official' && (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <div>
-                  <label className="mb-1.5 block text-xs font-bold text-slate-300">
-                    نمط الترويسة المعتمد
+            {/* 3-Column Interactive Toggles & Inputs */}
+            <div className="grid gap-4 md:grid-cols-3">
+              {/* Column 1: Right (اليمين) */}
+              <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
+                <h4 className="text-xs font-black text-slate-800 border-b border-slate-100 pb-1.5 flex items-center justify-between">
+                  <span>اليمين (بيانات المحافظة والإدارة)</span>
+                </h4>
+
+                {/* Gov */}
+                <div className="space-y-1">
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={settings.showGov}
+                      onChange={(e) => setSettings({ ...settings, showGov: e.target.checked })}
+                      className="rounded"
+                    />
+                    إظهار المحافظة
                   </label>
-                  <select
-                    value={settings.headerType}
-                    onChange={(e) => setSettings({ ...settings, headerType: e.target.value as any })}
-                    className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-xs font-bold text-white focus:border-primary focus:outline-none"
-                  >
-                    <option value="official">الترويسة الرسمية الوزارية (نبراس برو القياسي)</option>
-                    <option value="personal">ترويسة المعلم الخاص / السنتر</option>
-                    <option value="both">كلاهما معاً (الرسمي يميناً والشخصي يساراً)</option>
-                  </select>
+                  {settings.showGov && (
+                    <input
+                      type="text"
+                      value={settings.directorate}
+                      onChange={(e) => setSettings({ ...settings, directorate: e.target.value })}
+                      placeholder="الجيزة"
+                      className="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-bold text-slate-800"
+                    />
+                  )}
                 </div>
 
-                <div>
-                  <label className="mb-1.5 block text-xs font-bold text-slate-300">
-                    المحافظة (المديرية)
+                {/* Admin */}
+                <div className="space-y-1">
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={settings.showAdmin}
+                      onChange={(e) => setSettings({ ...settings, showAdmin: e.target.checked })}
+                      className="rounded"
+                    />
+                    إظهار الإدارة التعليمية
                   </label>
-                  <input
-                    type="text"
-                    value={settings.directorate}
-                    placeholder="مثال: الجيزة أو القاهرة"
-                    onChange={(e) => setSettings({ ...settings, directorate: e.target.value })}
-                    className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-white focus:border-primary focus:outline-none"
-                  />
-                  <p className="mt-1 text-[10px] text-slate-500">ينظف تلقائياً كلمة "محافظة" المكررة.</p>
+                  {settings.showAdmin && (
+                    <input
+                      type="text"
+                      value={settings.administration}
+                      onChange={(e) => setSettings({ ...settings, administration: e.target.value })}
+                      placeholder="الدقي"
+                      className="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-bold text-slate-800"
+                    />
+                  )}
                 </div>
 
-                <div>
-                  <label className="mb-1.5 block text-xs font-bold text-slate-300">
-                    الإدارة التعليمية
+                {/* School */}
+                <div className="space-y-1">
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={settings.showSchool}
+                      onChange={(e) => setSettings({ ...settings, showSchool: e.target.checked })}
+                      className="rounded"
+                    />
+                    إظهار اسم المدرسة
                   </label>
-                  <input
-                    type="text"
-                    value={settings.administration}
-                    placeholder="مثال: الدقي أو العمرانية"
-                    onChange={(e) => setSettings({ ...settings, administration: e.target.value })}
-                    className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-white focus:border-primary focus:outline-none"
-                  />
-                  <p className="mt-1 text-[10px] text-slate-500">يضاف لاحقاً "التعليمية" تلقائياً.</p>
-                </div>
-
-                <div>
-                  <label className="mb-1.5 block text-xs font-bold text-slate-300">
-                    اسم المدرسة / المعهد
-                  </label>
-                  <input
-                    type="text"
-                    value={settings.schoolName}
-                    placeholder="مثال: مدرسة الأورمان الثانوية بنين"
-                    onChange={(e) => setSettings({ ...settings, schoolName: e.target.value })}
-                    className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-white focus:border-primary focus:outline-none"
-                  />
-                  <p className="mt-1 text-[10px] text-slate-500">ينظف كلمة "مدرسة" المكررة.</p>
+                  {settings.showSchool && (
+                    <input
+                      type="text"
+                      value={settings.schoolName}
+                      onChange={(e) => setSettings({ ...settings, schoolName: e.target.value })}
+                      placeholder="الأورمان الثانوية بنين"
+                      className="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-bold text-slate-800"
+                    />
+                  )}
                 </div>
               </div>
-            )}
 
-            {/* TAB 2: EXAM META */}
-            {activeTab === 'exam' && (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="sm:col-span-2">
-                  <label className="mb-1.5 block text-xs font-bold text-slate-300">
-                    عنوان ورقة الاختبار الرئيسي
-                  </label>
-                  <input
-                    type="text"
-                    value={settings.customTitle}
-                    onChange={(e) => setSettings({ ...settings, customTitle: e.target.value })}
-                    placeholder="مثال: اختبار منتصف العام الدراسي أو اختبار الوحدة الأولى"
-                    className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-xs font-bold text-white focus:border-primary focus:outline-none"
-                  />
-                </div>
+              {/* Column 2: Center (الوسط) */}
+              <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
+                <h4 className="text-xs font-black text-slate-800 border-b border-slate-100 pb-1.5 flex items-center justify-between">
+                  <span>الوسط (العنوان والشعار والعام)</span>
+                </h4>
 
-                <div>
-                  <label className="mb-1.5 block text-xs font-bold text-slate-300">
-                    العام الدراسي الرسمي
-                  </label>
-                  <input
-                    type="text"
-                    value={settings.academicYear}
-                    onChange={(e) => setSettings({ ...settings, academicYear: e.target.value })}
-                    placeholder="2025 / 2026 م"
-                    className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-white focus:border-primary focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-1.5 block text-xs font-bold text-slate-300">
-                    رمز / اسم النموذج
-                  </label>
-                  <input
-                    type="text"
-                    value={settings.examModel}
-                    onChange={(e) => setSettings({ ...settings, examModel: e.target.value })}
-                    placeholder="نموذج (أ) أو نموذج (1)"
-                    className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-white focus:border-primary focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-1.5 block text-xs font-bold text-slate-300">
-                    زمن الإجابة
-                  </label>
-                  <input
-                    type="text"
-                    value={settings.durationMinutes}
-                    onChange={(e) => setSettings({ ...settings, durationMinutes: e.target.value })}
-                    placeholder="مثال: 45 دقيقة أو ساعتان"
-                    className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-white focus:border-primary focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-1.5 block text-xs font-bold text-slate-300">
-                    الدرجة الكلية للاختبار
-                  </label>
-                  <input
-                    type="text"
-                    value={settings.totalPoints}
-                    onChange={(e) => setSettings({ ...settings, totalPoints: e.target.value })}
-                    placeholder="مثال: 30 أو 50"
-                    className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-white focus:border-primary focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-1.5 block text-xs font-bold text-slate-300">
-                    المادة الدراسية
-                  </label>
-                  <input
-                    type="text"
-                    value={settings.subjectName}
-                    onChange={(e) => setSettings({ ...settings, subjectName: e.target.value })}
-                    className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-white focus:border-primary focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-1.5 block text-xs font-bold text-slate-300">
-                    الصف والفصل الدراسي
-                  </label>
-                  <input
-                    type="text"
-                    value={settings.gradeName}
-                    onChange={(e) => setSettings({ ...settings, gradeName: e.target.value })}
-                    placeholder="مثال: الصف الأول الإعدادي"
-                    className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-white focus:border-primary focus:outline-none"
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* TAB 3: PERSONAL & LOGO */}
-            {activeTab === 'personal' && (
-              <div className="space-y-4">
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                  <div>
-                    <label className="mb-1.5 block text-xs font-bold text-slate-300">
-                      اسم المعلم / المعلمة
+                {/* Logo toggle & upload */}
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={settings.showLogo}
+                        onChange={(e) => setSettings({ ...settings, showLogo: e.target.checked })}
+                        className="rounded"
+                      />
+                      إظهار الشعار
                     </label>
-                    <input
-                      type="text"
-                      value={settings.displayName}
-                      onChange={(e) => setSettings({ ...settings, displayName: e.target.value })}
-                      placeholder="مثال: أستاذ ضياء العطار"
-                      className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-white focus:border-primary focus:outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="mb-1.5 block text-xs font-bold text-slate-300">
-                      الصفة واللقب
-                    </label>
-                    <input
-                      type="text"
-                      value={settings.title}
-                      onChange={(e) => setSettings({ ...settings, title: e.target.value })}
-                      placeholder="مثال: خبير تدريس أول للرياضيات"
-                      className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-white focus:border-primary focus:outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="mb-1.5 block text-xs font-bold text-slate-300">
-                      الهاتف / واتساب
-                    </label>
-                    <input
-                      type="text"
-                      value={settings.phone}
-                      onChange={(e) => setSettings({ ...settings, phone: e.target.value })}
-                      placeholder="مثال: 010xxxxxxxx"
-                      className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-white focus:border-primary focus:outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="mb-1.5 block text-xs font-bold text-slate-300">
-                      قناة التلجرام أو الصفحة
-                    </label>
-                    <input
-                      type="text"
-                      value={settings.social}
-                      onChange={(e) => setSettings({ ...settings, social: e.target.value })}
-                      placeholder="@istabaq_egypt"
-                      className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-white focus:border-primary focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                {/* Logo section */}
-                <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-slate-800 bg-slate-800/60 p-4">
-                  <div>
-                    <h4 className="text-xs font-bold text-white">
-                      شعار المدرسة الرسمي / لوجو المعلم (أعلى وسط الترويسة)
-                    </h4>
-                    <p className="text-[11px] text-slate-400">
-                      ارفع الشعار من جهازك ليتم تضمينه فورياً بدقة الطباعة.
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-3">
                     <input
                       type="file"
                       ref={logoInputRef}
@@ -826,193 +627,228 @@ export function PrintExamClient({
                     <button
                       type="button"
                       onClick={() => logoInputRef.current?.click()}
-                      className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-white hover:bg-primary/90"
+                      className="text-[11px] font-bold text-primary hover:underline"
                     >
-                      <Upload className="h-4 w-4" />
-                      رفع الشعار من جهازك
+                      {settings.logoUrl ? 'تغيير الشعار' : 'رفع شعار'}
                     </button>
-
-                    {settings.logoUrl && (
-                      <button
-                        type="button"
-                        onClick={() => setSettings({ ...settings, logoUrl: '' })}
-                        className="flex items-center gap-1.5 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs font-bold text-red-400 hover:bg-red-500/20"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        حذف الشعار
-                      </button>
-                    )}
                   </div>
                 </div>
-              </div>
-            )}
 
-            {/* TAB 4: STUDENT & SIGNATURES */}
-            {activeTab === 'footer' && (
-              <div className="space-y-4">
-                {/* Student Bar */}
-                <div className="rounded-xl border border-slate-800 bg-slate-800/60 p-4">
-                  <div className="mb-2 flex items-center justify-between">
-                    <h4 className="text-xs font-bold text-white">شريط بيانات الطالب</h4>
-                    <label className="flex items-center gap-2 text-xs font-bold text-slate-300 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={settings.showStudentBar}
-                        onChange={(e) => setSettings({ ...settings, showStudentBar: e.target.checked })}
-                      />
-                      إظهار شريط الطالب
-                    </label>
-                  </div>
-                  {settings.showStudentBar && (
-                    <div className="flex flex-wrap gap-4 text-xs font-bold text-slate-300">
-                      <label className="flex items-center gap-1.5 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={settings.showStudentName}
-                          onChange={(e) => setSettings({ ...settings, showStudentName: e.target.checked })}
-                        />
-                        اسم الطالب
-                      </label>
-                      <label className="flex items-center gap-1.5 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={settings.showSeatNumber}
-                          onChange={(e) => setSettings({ ...settings, showSeatNumber: e.target.checked })}
-                        />
-                        رقم الجلوس
-                      </label>
-                      <label className="flex items-center gap-1.5 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={settings.showClassSection}
-                          onChange={(e) => setSettings({ ...settings, showClassSection: e.target.checked })}
-                        />
-                        الفصل / الشعبة
-                      </label>
-                    </div>
-                  )}
-                </div>
-
-                {/* Instructions */}
-                <div className="rounded-xl border border-slate-800 bg-slate-800/60 p-4">
-                  <div className="mb-2 flex items-center justify-between">
-                    <h4 className="text-xs font-bold text-white">شريط تعليمات وتنبيهات ورقة الأسئلة</h4>
-                    <label className="flex items-center gap-2 text-xs font-bold text-slate-300 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={settings.showInstructions}
-                        onChange={(e) => setSettings({ ...settings, showInstructions: e.target.checked })}
-                      />
-                      إظهار شريط التعليمات
-                    </label>
-                  </div>
-                  {settings.showInstructions && (
+                {/* Exam Title */}
+                <div className="space-y-1">
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={settings.showTitle}
+                      onChange={(e) => setSettings({ ...settings, showTitle: e.target.checked })}
+                      className="rounded"
+                    />
+                    إظهار عنوان الاختبار
+                  </label>
+                  {settings.showTitle && (
                     <input
                       type="text"
-                      value={settings.instructionsText}
-                      onChange={(e) => setSettings({ ...settings, instructionsText: e.target.value })}
-                      className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-white"
+                      value={settings.customTitle}
+                      onChange={(e) => setSettings({ ...settings, customTitle: e.target.value })}
+                      placeholder="عنوان الاختبار"
+                      className="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-bold text-slate-800"
                     />
                   )}
                 </div>
 
-                {/* NeprasPro 4-Role Official Signatures */}
-                <div className="rounded-xl border border-slate-800 bg-slate-800/60 p-4">
-                  <div className="mb-3 flex items-center justify-between">
-                    <div>
-                      <h4 className="text-xs font-bold text-white">
-                        تذييل التوقيعات الوزاري الرباعي (معيار نبراس برو الرسمي)
-                      </h4>
-                      <p className="text-[11px] text-slate-400">
-                        يحظر نظام نبراس خانة بصمة الإبهام ومسمى "خاتم الشعار"، ويعتمد التوقيعات الرباعية وخاتم المدرسة الرسمي.
-                      </p>
-                    </div>
-                    <label className="flex items-center gap-2 text-xs font-bold text-slate-300 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={settings.showSignatures}
-                        onChange={(e) => setSettings({ ...settings, showSignatures: e.target.checked })}
-                      />
-                      إظهار جدول التوقيعات
-                    </label>
-                  </div>
+                {/* Academic Year */}
+                <div className="space-y-1">
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={settings.showYear}
+                      onChange={(e) => setSettings({ ...settings, showYear: e.target.checked })}
+                      className="rounded"
+                    />
+                    إظهار العام الدراسي
+                  </label>
+                  {settings.showYear && (
+                    <input
+                      type="text"
+                      value={settings.academicYear}
+                      onChange={(e) => setSettings({ ...settings, academicYear: e.target.value })}
+                      placeholder="2025 / 2026 م"
+                      className="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-bold text-slate-800"
+                    />
+                  )}
+                </div>
 
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    <div>
-                      <label className="mb-1 block text-[11px] text-slate-400 font-bold">الموقع 1</label>
-                      <input
-                        type="text"
-                        value={settings.signRole1}
-                        onChange={(e) => setSettings({ ...settings, signRole1: e.target.value })}
-                        className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs text-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-[11px] text-slate-400 font-bold">الموقع 2</label>
-                      <input
-                        type="text"
-                        value={settings.signRole2}
-                        onChange={(e) => setSettings({ ...settings, signRole2: e.target.value })}
-                        className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs text-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-[11px] text-slate-400 font-bold">الموقع 3</label>
-                      <input
-                        type="text"
-                        value={settings.signRole3}
-                        onChange={(e) => setSettings({ ...settings, signRole3: e.target.value })}
-                        className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs text-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-[11px] text-slate-400 font-bold">الموقع 4 (الاعتماد)</label>
-                      <input
-                        type="text"
-                        value={settings.signRole4}
-                        onChange={(e) => setSettings({ ...settings, signRole4: e.target.value })}
-                        className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs text-white"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-800 pt-3">
-                    <div className="flex-1">
-                      <label className="mb-1 block text-[11px] font-bold text-slate-400">
-                        عبارة الختام والتشجيع
-                      </label>
-                      <input
-                        type="text"
-                        value={settings.footerCheer}
-                        onChange={(e) => setSettings({ ...settings, footerCheer: e.target.value })}
-                        className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs text-white"
-                      />
-                    </div>
-
-                    <div className="flex items-center gap-4 pt-4">
-                      <label className="flex items-center gap-1.5 text-xs font-bold text-slate-300 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={settings.showSchoolStamp}
-                          onChange={(e) => setSettings({ ...settings, showSchoolStamp: e.target.checked })}
-                        />
-                        خانة (خاتم المدرسة الرسمي)
-                      </label>
-                    </div>
-                  </div>
+                {/* Meta Subject / Grade */}
+                <div className="space-y-1">
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={settings.showMeta}
+                      onChange={(e) => setSettings({ ...settings, showMeta: e.target.checked })}
+                      className="rounded"
+                    />
+                    إظهار سطر (المادة والصف)
+                  </label>
                 </div>
               </div>
-            )}
+
+              {/* Column 3: Left (اليسار) */}
+              <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
+                <h4 className="text-xs font-black text-slate-800 border-b border-slate-100 pb-1.5 flex items-center justify-between">
+                  <span>اليسار (الزمن والدرجة والتاريخ)</span>
+                </h4>
+
+                {/* Duration */}
+                <div className="space-y-1">
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={settings.showDuration}
+                      onChange={(e) => setSettings({ ...settings, showDuration: e.target.checked })}
+                      className="rounded"
+                    />
+                    إظهار زمن الإجابة
+                  </label>
+                  {settings.showDuration && (
+                    <input
+                      type="text"
+                      value={settings.durationMinutes}
+                      onChange={(e) => setSettings({ ...settings, durationMinutes: e.target.value })}
+                      placeholder="40"
+                      className="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-bold text-slate-800"
+                    />
+                  )}
+                </div>
+
+                {/* Points */}
+                <div className="space-y-1">
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={settings.showPoints}
+                      onChange={(e) => setSettings({ ...settings, showPoints: e.target.checked })}
+                      className="rounded"
+                    />
+                    إظهار الدرجة الكلية
+                  </label>
+                  {settings.showPoints && (
+                    <input
+                      type="text"
+                      value={settings.totalPoints}
+                      onChange={(e) => setSettings({ ...settings, totalPoints: e.target.value })}
+                      placeholder="25"
+                      className="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-bold text-slate-800"
+                    />
+                  )}
+                </div>
+
+                {/* Print Date */}
+                <div className="space-y-1">
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={settings.showPrintDate}
+                      onChange={(e) => setSettings({ ...settings, showPrintDate: e.target.checked })}
+                      className="rounded"
+                    />
+                    إظهار تاريخ الطباعة
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            {/* Additional Toggles Row (Student Bar & Instructions & Cheer) */}
+            <div className="mt-4 grid gap-4 md:grid-cols-3 border-t border-slate-200 pt-4 text-xs font-bold text-slate-700">
+              {/* Student Bar */}
+              <div className="rounded-xl border border-slate-200 bg-white p-3 space-y-2">
+                <label className="flex items-center gap-2 cursor-pointer font-black text-slate-800">
+                  <input
+                    type="checkbox"
+                    checked={settings.showStudentBar}
+                    onChange={(e) => setSettings({ ...settings, showStudentBar: e.target.checked })}
+                  />
+                  شريط بيانات الطالب
+                </label>
+                {settings.showStudentBar && (
+                  <div className="flex flex-wrap gap-2 text-[11px] text-slate-600">
+                    <label className="flex items-center gap-1 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={settings.showStudentName}
+                        onChange={(e) => setSettings({ ...settings, showStudentName: e.target.checked })}
+                      />
+                      اسم الطالب
+                    </label>
+                    <label className="flex items-center gap-1 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={settings.showSeatNumber}
+                        onChange={(e) => setSettings({ ...settings, showSeatNumber: e.target.checked })}
+                      />
+                      رقم الجلوس
+                    </label>
+                    <label className="flex items-center gap-1 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={settings.showClassSection}
+                        onChange={(e) => setSettings({ ...settings, showClassSection: e.target.checked })}
+                      />
+                      الفصل
+                    </label>
+                  </div>
+                )}
+              </div>
+
+              {/* Instructions Bar */}
+              <div className="rounded-xl border border-slate-200 bg-white p-3 space-y-1.5">
+                <label className="flex items-center gap-2 cursor-pointer font-black text-slate-800">
+                  <input
+                    type="checkbox"
+                    checked={settings.showInstructions}
+                    onChange={(e) => setSettings({ ...settings, showInstructions: e.target.checked })}
+                  />
+                  سطر تنبيهات ورقة الأسئلة
+                </label>
+                {settings.showInstructions && (
+                  <input
+                    type="text"
+                    value={settings.instructionsText}
+                    onChange={(e) => setSettings({ ...settings, instructionsText: e.target.value })}
+                    className="w-full rounded border border-slate-200 px-2 py-1 text-[11px]"
+                  />
+                )}
+              </div>
+
+              {/* Cheer Closing Note */}
+              <div className="rounded-xl border border-slate-200 bg-white p-3 space-y-1.5">
+                <label className="flex items-center gap-2 cursor-pointer font-black text-slate-800">
+                  <input
+                    type="checkbox"
+                    checked={settings.showCheerNote}
+                    onChange={(e) => setSettings({ ...settings, showCheerNote: e.target.checked })}
+                  />
+                  عبارة ختام الورقة (التمنيات بالتوفيق)
+                </label>
+                {settings.showCheerNote && (
+                  <input
+                    type="text"
+                    value={settings.cheerNoteText}
+                    onChange={(e) => setSettings({ ...settings, cheerNoteText: e.target.value })}
+                    className="w-full rounded border border-slate-200 px-2 py-1 text-[11px]"
+                  />
+                )}
+              </div>
+            </div>
           </div>
         )}
       </div>
 
-      {/* ══════════════════════════════════════════════════════════════════════
-          NEPRASPRO A4 HIGH-PRECISION PRINT CANVAS
-      ══════════════════════════════════════════════════════════════════════ */}
+      {/* ─── A4 Print Canvas ─── */}
       <div
-        className={`relative mx-auto max-w-[210mm] min-h-[297mm] overflow-hidden bg-white text-black shadow-2xl transition-all print:m-0 print:w-full print:max-w-none print:shadow-none ${
-          settings.hasBorderFrame ? 'border-[3px] border-double border-black p-6 md:p-8 print:border-[2.5px] print:border-double print:border-black print:p-6' : 'p-6 md:p-8 print:p-4'
+        className={`relative mx-auto max-w-[210mm] min-h-[297mm] overflow-hidden bg-white text-black shadow-xl transition-all print:m-0 print:w-full print:max-w-none print:shadow-none ${
+          settings.hasBorderFrame
+            ? 'border-2 border-black p-6 md:p-8 print:border-2 print:border-black print:p-6'
+            : 'p-6 md:p-8 print:p-4'
         }`}
         style={{
           fontFamily: "'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif",
@@ -1029,7 +865,7 @@ export function PrintExamClient({
                 key={i}
                 className="rotate-[-35deg] whitespace-nowrap text-6xl font-black text-black"
               >
-                {settings.watermarkText || settings.displayName || cleanSchool || 'استباق مصر'}
+                {settings.watermarkText || cleanSchool || 'استباق مصر'}
               </div>
             ))}
           </div>
@@ -1037,103 +873,90 @@ export function PrintExamClient({
 
         <div className="relative z-10">
           {/* ──────────────────────────────────────────────────────────────────
-              1. OFFICIAL 3-COLUMN MINISTERIAL HEADER (NEPRAS STANDARD)
+              1. OFFICIAL 3-COLUMN MINISTERIAL HEADER WITH GRANULAR TOGGLES
           ────────────────────────────────────────────────────────────────── */}
-          <div className="relative mb-3 border-b-2 border-black pb-3">
-            <div className="flex items-center justify-between text-black">
-              {/* Right Column: Exact Ministerial 3 Lines */}
-              <div className="flex-1 text-right leading-snug" dir="rtl">
-                {(settings.headerType === 'official' || settings.headerType === 'both') && (
+          {(settings.showGov || settings.showAdmin || settings.showSchool || settings.showLogo || settings.showTitle || settings.showYear || settings.showMeta || settings.showDuration || settings.showPoints || settings.showPrintDate) && (
+            <div className="relative mb-3 border-b-2 border-black pb-3">
+              <div className="flex items-center justify-between text-black">
+                {/* Right Column (3 lines with toggles) */}
+                <div className="flex-1 text-right leading-snug" dir="rtl">
                   <div className="text-[12px] md:text-[13px] font-bold space-y-0.5">
-                    <div>
-                      محافظة: <strong className="font-black">{cleanGov}</strong>
-                    </div>
-                    <div>
-                      إدارة: <strong className="font-black">{cleanAdmin} التعليمية</strong>
-                    </div>
-                    <div>
-                      مدرسة: <strong className="font-black">{cleanSchool}</strong>
-                    </div>
+                    {settings.showGov && (
+                      <div>
+                        محافظة: <strong className="font-black">{cleanGov}</strong>
+                      </div>
+                    )}
+                    {settings.showAdmin && (
+                      <div>
+                        إدارة: <strong className="font-black">{cleanAdmin} التعليمية</strong>
+                      </div>
+                    )}
+                    {settings.showSchool && (
+                      <div>
+                        مدرسة: <strong className="font-black">{cleanSchool}</strong>
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
 
-                {settings.headerType === 'personal' && (
-                  <div className="leading-tight">
-                    <div className="text-xl font-black text-black">
-                      {settings.displayName || 'أستاذ المادة'}
-                    </div>
-                    <div className="text-xs font-bold text-slate-700">{settings.title}</div>
-                    <div className="text-xs font-bold text-slate-600">{settings.phone}</div>
-                  </div>
-                )}
-              </div>
-
-              {/* Center Column: School Logo + Document Title Underlined + Academic Year */}
-              <div className="flex flex-1 flex-col items-center justify-center px-4 text-center">
-                {settings.logoUrl && (
-                  <img
-                    src={settings.logoUrl}
-                    alt="شعار المدرسة"
-                    className="mb-1 max-h-14 max-w-[90px] object-contain print:max-h-12"
-                  />
-                )}
-                <h1 className="text-lg md:text-xl font-black text-black underline underline-offset-4 decoration-2">
-                  {settings.customTitle || exam.title}
-                  {settings.examModel && (
-                    <span className="mr-2 inline-block font-black text-black">
-                      ({settings.examModel})
-                    </span>
+                {/* Center Column (Logo, Title, Year, Meta) */}
+                <div className="flex flex-1 flex-col items-center justify-center px-4 text-center">
+                  {settings.showLogo && settings.logoUrl && (
+                    <img
+                      src={settings.logoUrl}
+                      alt="شعار المدرسة"
+                      className="mb-1 max-h-14 max-w-[90px] object-contain print:max-h-12"
+                    />
                   )}
-                </h1>
-                <div className="mt-1 text-xs md:text-sm font-black text-black">
-                  للعام الدراسي: {settings.academicYear || '2025 / 2026 م'}
+                  {settings.showTitle && (
+                    <h1 className="text-lg md:text-xl font-black text-black underline underline-offset-4 decoration-2">
+                      {settings.customTitle || exam.title}
+                      {settings.examModel && (
+                        <span className="mr-2 inline-block font-black text-black">
+                          ({settings.examModel})
+                        </span>
+                      )}
+                    </h1>
+                  )}
+                  {settings.showYear && (
+                    <div className="mt-1 text-xs md:text-sm font-black text-black">
+                      للعام الدراسي: {settings.academicYear || '2025 / 2026 م'}
+                    </div>
+                  )}
+                  {settings.showMeta && (
+                    <div className="mt-0.5 text-[11px] md:text-xs font-bold text-slate-800">
+                      المادة: <strong>{settings.subjectName || exam.subjects?.name_ar}</strong>
+                      {settings.gradeName ? ` — ${settings.gradeName}` : (exam.grades?.name_ar ? ` — ${exam.grades.name_ar}` : '')}
+                    </div>
+                  )}
                 </div>
-                <div className="mt-0.5 text-[11px] md:text-xs font-bold text-slate-800">
-                  المادة: <strong>{settings.subjectName || exam.subjects?.name_ar}</strong>
-                  {settings.gradeName ? ` — ${settings.gradeName}` : (exam.grades?.name_ar ? ` — ${exam.grades.name_ar}` : '')}
+
+                {/* Left Column (Duration, Points, Print Date) */}
+                <div className="flex-1 text-right leading-snug" dir="rtl">
+                  <div className="text-[11.5px] md:text-[12px] font-bold space-y-0.5">
+                    {settings.showDuration && (
+                      <div>
+                        زمن الإجابة: <strong className="font-black">{settings.durationMinutes ? `${settings.durationMinutes} دقيقة` : `${exam.duration_minutes || 40} دقيقة`}</strong>
+                      </div>
+                    )}
+                    {settings.showPoints && (
+                      <div>
+                        الدرجة الكلية: <strong className="font-black">{settings.totalPoints || exam.total_points || 25} درجة</strong>
+                      </div>
+                    )}
+                    {settings.showPrintDate && (
+                      <div>
+                        تاريخ الطباعة: <strong className="font-medium text-slate-700">{new Date().toLocaleDateString('ar-EG')}</strong>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-
-              {/* Left Column: Duration + Total Marks + Print Date */}
-              <div className="flex-1 text-left leading-snug" dir="ltr">
-                {settings.headerType === 'both' && (
-                  <div className="text-right leading-tight" dir="rtl">
-                    <div className="text-lg font-black text-black">
-                      {settings.displayName || 'أستاذ المادة'}
-                    </div>
-                    <div className="text-xs font-bold text-slate-700">{settings.title}</div>
-                    <div className="text-xs font-bold text-slate-600">{settings.phone}</div>
-                  </div>
-                )}
-
-                {settings.headerType !== 'both' && (
-                  <div className="text-right text-[11.5px] md:text-[12px] font-bold space-y-0.5" dir="rtl">
-                    <div>
-                      زمن الإجابة: <strong className="font-black">{settings.durationMinutes ? `${settings.durationMinutes} دقيقة` : `${exam.duration_minutes || 40} دقيقة`}</strong>
-                    </div>
-                    <div>
-                      الدرجة الكلية: <strong className="font-black">{settings.totalPoints || exam.total_points || 25} درجة</strong>
-                    </div>
-                    <div>
-                      تاريخ الطباعة: <strong className="font-medium text-slate-700">{new Date().toLocaleDateString('ar-EG')}</strong>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
-
-            {/* Sub-bar if both official and personal are enabled */}
-            {settings.headerType === 'both' && (
-              <div className="mt-2 flex justify-center gap-8 border-t border-black/30 pt-1.5 text-xs font-bold text-black">
-                <span>زمن الإجابة: <strong>{settings.durationMinutes} دقيقة</strong></span>
-                <span>الدرجة الكلية: <strong>{settings.totalPoints || exam.total_points} درجة</strong></span>
-                <span>تاريخ الطباعة: <strong>{new Date().toLocaleDateString('ar-EG')}</strong></span>
-              </div>
-            )}
-          </div>
+          )}
 
           {/* ──────────────────────────────────────────────────────────────────
-              2. OFFICIAL STUDENT BAR (NEPRAS PROTOCOL)
+              2. STUDENT BAR
           ────────────────────────────────────────────────────────────────── */}
           {settings.showStudentBar && answerMode === 'none' && (
             <div className="mb-3 flex flex-wrap items-center justify-between border-b-2 border-black bg-slate-50/50 px-4 py-2 text-xs md:text-sm font-bold print:bg-white print:px-2 print:py-1">
@@ -1161,7 +984,7 @@ export function PrintExamClient({
           )}
 
           {/* ──────────────────────────────────────────────────────────────────
-              3. EXAM INSTRUCTIONS BANNER
+              3. INSTRUCTIONS
           ────────────────────────────────────────────────────────────────── */}
           {settings.showInstructions && settings.instructionsText && (
             <div className="mb-4 rounded border border-black/40 bg-slate-50/80 px-3 py-1 text-center text-[11px] md:text-xs font-bold text-black print:bg-white print:border-black">
@@ -1170,7 +993,7 @@ export function PrintExamClient({
           )}
 
           {/* ──────────────────────────────────────────────────────────────────
-              4. QUESTIONS LIST WITH HIGH-PRECISION MINISTERIAL NUMBERING
+              4. QUESTIONS LIST
           ────────────────────────────────────────────────────────────────── */}
           <div className={densitySpacing}>
             {activeGroups.map((type, groupIdx) => {
@@ -1299,7 +1122,7 @@ export function PrintExamClient({
                                 </button>
                               </div>
 
-                              {/* MCQ Options (Egyptian Ministerial Letters أ - ب - ج - د) */}
+                              {/* MCQ Options */}
                               {q.question_type === 'mcq' &&
                                 q.options &&
                                 (() => {
@@ -1378,56 +1201,13 @@ export function PrintExamClient({
           </div>
 
           {/* ──────────────────────────────────────────────────────────────────
-              5. OFFICIAL CHEER & CLOSING BANNER
+              5. SIMPLE CLEAN CHEER NOTE (OPTIONAL)
           ────────────────────────────────────────────────────────────────── */}
-          {settings.showFooterCheer && settings.footerCheer && (
-            <div className="my-6 text-center text-xs md:text-sm font-black text-black break-inside-avoid">
-              <span className="inline-block border-y-2 border-black px-8 py-1">
-                {settings.footerCheer}
+          {settings.showCheerNote && settings.cheerNoteText && (
+            <div className="my-8 text-center text-xs md:text-sm font-black text-black break-inside-avoid">
+              <span className="inline-block border-y border-black/70 px-8 py-1">
+                ═════ {settings.cheerNoteText} ═════
               </span>
-            </div>
-          )}
-
-          {/* ──────────────────────────────────────────────────────────────────
-              6. OFFICIAL NEPRASPRO 4-ROLE SIGNATURES & STAMP FOOTER
-          ────────────────────────────────────────────────────────────────── */}
-          {settings.showSignatures && (
-            <div className="mt-6 break-inside-avoid border-t-2 border-black pt-4">
-              <div className="grid grid-cols-4 gap-2 text-center text-xs font-black text-black">
-                {/* Signature 1 */}
-                <div>
-                  <div>{settings.signRole1}</div>
-                  <div className="text-[10px] text-slate-600 font-bold">{settings.signRole1Sub}</div>
-                  <div className="mt-8 border-b border-dotted border-black/80 mx-2" />
-                </div>
-
-                {/* Signature 2 */}
-                <div>
-                  <div>{settings.signRole2}</div>
-                  <div className="text-[10px] text-slate-600 font-bold">{settings.signRole2Sub}</div>
-                  <div className="mt-8 border-b border-dotted border-black/80 mx-2" />
-                </div>
-
-                {/* Signature 3 */}
-                <div>
-                  <div>{settings.signRole3}</div>
-                  <div className="text-[10px] text-slate-600 font-bold">{settings.signRole3Sub}</div>
-                  <div className="mt-8 border-b border-dotted border-black/80 mx-2" />
-                </div>
-
-                {/* Signature 4: School Director & Official Stamp */}
-                <div className="flex flex-col items-center">
-                  <div>{settings.signRole4}</div>
-                  <div className="text-[10px] text-slate-600 font-bold">{settings.signRole4Sub}</div>
-                  {settings.showSchoolStamp ? (
-                    <div className="mt-2 flex h-14 w-28 items-center justify-center rounded border-2 border-dashed border-black/70 text-[10.5px] font-black text-black/80">
-                      (خاتم المدرسة الرسمي)
-                    </div>
-                  ) : (
-                    <div className="mt-8 border-b border-dotted border-black/80 w-24" />
-                  )}
-                </div>
-              </div>
             </div>
           )}
         </div>
