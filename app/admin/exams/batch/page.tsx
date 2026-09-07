@@ -377,42 +377,66 @@ export default function BatchExamCreator() {
             </h3>
 
             <div className="grid gap-5 md:grid-cols-2">
+              <div className="md:col-span-2">
+                <label className="mb-2 block text-sm font-bold text-slate-800">
+                  {form.mode === 'general'
+                    ? 'عدد النماذج الكلية المطلوب توليدها *'
+                    : 'عدد النماذج المطلوب توليدها لكل وحدة دراسية *'}
+                </label>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                  <input
+                    type="number"
+                    min={1}
+                    max={20}
+                    required
+                    value={form.numberOfExams}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        numberOfExams: Math.max(1, parseInt(e.target.value) || 1),
+                      })
+                    }
+                    className="w-full sm:w-36 rounded-xl border border-border bg-slate-50 px-4 py-3 text-center text-lg font-bold text-primary transition-all focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                  <div className="flex items-center gap-2">
+                    {[1, 2, 3, 5, 10].map((num) => (
+                      <button
+                        key={num}
+                        type="button"
+                        onClick={() => setForm({ ...form, numberOfExams: num })}
+                        className={`rounded-lg px-3 py-2 text-xs font-bold transition-all ${
+                          form.numberOfExams === num
+                            ? 'bg-primary text-white shadow-sm'
+                            : 'border border-border bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        }`}
+                      >
+                        {num} {num === 1 ? 'نموذج' : num === 2 ? 'نموذجين' : 'نماذج'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <p className="mt-1.5 text-xs text-muted-foreground">
+                  {form.mode === 'general'
+                    ? 'سيتم إنشاء هذا العدد من الاختبارات العشوائية الشاملة للمادة.'
+                    : 'سيتم إنشاء هذا العدد من النماذج المختلفة لكل وحدة مسجلة.'}
+                </p>
+              </div>
+
               {form.mode === 'general' && (
-                <>
-                  <div>
-                    <label className="mb-2 block text-sm font-bold">
-                      عدد النماذج المطلوب توليدها
-                    </label>
-                    <input
-                      type="number"
-                      min={1}
-                      max={20}
-                      required
-                      value={form.numberOfExams}
-                      onChange={(e) =>
-                        setForm({
-                          ...form,
-                          numberOfExams: parseInt(e.target.value) || 1,
-                        })
-                      }
-                      className="w-full rounded-xl border border-border bg-slate-50 px-4 py-3 transition-all focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-2 block text-sm font-bold">
-                      البادئة لاسم الاختبار (مثل: اختبار عام)
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={form.titlePrefix}
-                      onChange={(e) =>
-                        setForm({ ...form, titlePrefix: e.target.value })
-                      }
-                      className="w-full rounded-xl border border-border bg-slate-50 px-4 py-3 transition-all focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20"
-                    />
-                  </div>
-                </>
+                <div>
+                  <label className="mb-2 block text-sm font-bold">
+                    البادئة لاسم الاختبار (مثل: اختبار عام)
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={form.titlePrefix}
+                    onChange={(e) =>
+                      setForm({ ...form, titlePrefix: e.target.value })
+                    }
+                    className="w-full rounded-xl border border-border bg-slate-50 px-4 py-3 transition-all focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
               )}
 
               <div>
