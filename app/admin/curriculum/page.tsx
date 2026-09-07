@@ -5,18 +5,14 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/auth/permissions'
 import {
-  BookOpen,
   GraduationCap,
-  School,
   Layers,
   Plus,
   ChevronLeft,
-  BarChart2,
-  Globe,
-  Landmark,
   GitBranch,
 } from 'lucide-react'
 import Link from 'next/link'
+import SubjectsManager, { SubjectItem } from '@/components/admin/SubjectsManager'
 
 export default async function CurriculumPage({
   searchParams,
@@ -67,7 +63,7 @@ export default async function CurriculumPage({
   // جلب المواد والصفوف للفلاتر
   const { data: subjects } = await supabase
     .from('subjects')
-    .select('id, name_ar, icon, teaching_language, education_types')
+    .select('id, name_ar, name_en, category, applicable_stages, education_types, teaching_language, icon, color')
     .order('id')
   const { data: grades } = await supabase
     .from('grades')
@@ -183,6 +179,7 @@ export default async function CurriculumPage({
       <div className="flex w-fit gap-1 rounded-xl bg-muted p-1">
         {[
           { key: 'structure', label: 'الهيكل الهرمي' },
+          { key: 'subjects', label: `المواد الدراسية (${subjects?.length || 0})` },
           { key: 'units', label: `الوحدات (${filteredUnits.length})` },
           { key: 'tracks', label: `مسارات البكالوريا (${tracks?.length || 0})` },
           { key: 'stats', label: 'الإحصائيات' },
@@ -200,6 +197,11 @@ export default async function CurriculumPage({
           </Link>
         ))}
       </div>
+
+      {/* TAB: SUBJECTS MANAGEMENT */}
+      {activeTab === 'subjects' && (
+        <SubjectsManager initialSubjects={(subjects as unknown as SubjectItem[]) || []} />
+      )}
 
       {/* TAB: UNITS LIST */}
       {activeTab === 'units' && (

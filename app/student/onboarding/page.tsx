@@ -23,6 +23,7 @@ import {
 interface Stage {
   id: number
   name_ar: string
+  name_en?: string | null
   sort_order: number
 }
 interface Grade {
@@ -39,6 +40,7 @@ interface Subject {
   icon: string
   teaching_language: string | null
   education_types: string[] | null
+  applicable_stages?: string[] | null
   category: string | null
 }
 interface Track {
@@ -163,6 +165,7 @@ const FALLBACK_SUBJECTS: Record<string, Subject[]> = {
       icon: '📖',
       teaching_language: 'arabic',
       education_types: ['public', 'language', 'azhar'],
+      applicable_stages: ['primary', 'preparatory', 'secondary'],
       category: 'لغات',
     },
     {
@@ -172,6 +175,7 @@ const FALLBACK_SUBJECTS: Record<string, Subject[]> = {
       icon: '🗣️',
       teaching_language: 'arabic',
       education_types: ['public', 'language'],
+      applicable_stages: ['primary', 'preparatory', 'secondary'],
       category: 'لغات',
     },
     {
@@ -181,6 +185,7 @@ const FALLBACK_SUBJECTS: Record<string, Subject[]> = {
       icon: '🔢',
       teaching_language: 'arabic',
       education_types: ['public', 'azhar'],
+      applicable_stages: ['primary', 'preparatory', 'secondary'],
       category: 'علوم',
     },
     {
@@ -190,6 +195,7 @@ const FALLBACK_SUBJECTS: Record<string, Subject[]> = {
       icon: '🔬',
       teaching_language: 'arabic',
       education_types: ['public', 'azhar'],
+      applicable_stages: ['primary', 'preparatory'],
       category: 'علوم',
     },
     {
@@ -199,6 +205,7 @@ const FALLBACK_SUBJECTS: Record<string, Subject[]> = {
       icon: '🗺️',
       teaching_language: 'arabic',
       education_types: ['public', 'azhar'],
+      applicable_stages: ['primary', 'preparatory'],
       category: 'آداب',
     },
     {
@@ -208,7 +215,18 @@ const FALLBACK_SUBJECTS: Record<string, Subject[]> = {
       icon: '📿',
       teaching_language: 'arabic',
       education_types: ['public', 'language', 'azhar'],
+      applicable_stages: ['primary', 'preparatory', 'secondary'],
       category: 'عام',
+    },
+    {
+      id: -14,
+      name_ar: 'الحاسب الآلي',
+      name_en: 'Computer Science',
+      icon: '💻',
+      teaching_language: 'arabic',
+      education_types: ['public', 'language', 'azhar'],
+      applicable_stages: ['preparatory', 'secondary'],
+      category: 'علوم',
     },
   ],
   language: [
@@ -219,6 +237,7 @@ const FALLBACK_SUBJECTS: Record<string, Subject[]> = {
       icon: '📖',
       teaching_language: 'arabic',
       education_types: ['public', 'language', 'azhar'],
+      applicable_stages: ['primary', 'preparatory', 'secondary'],
       category: 'لغات',
     },
     {
@@ -228,6 +247,7 @@ const FALLBACK_SUBJECTS: Record<string, Subject[]> = {
       icon: '🗣️',
       teaching_language: 'arabic',
       education_types: ['public', 'language'],
+      applicable_stages: ['primary', 'preparatory', 'secondary'],
       category: 'لغات',
     },
     {
@@ -237,6 +257,7 @@ const FALLBACK_SUBJECTS: Record<string, Subject[]> = {
       icon: '🔢',
       teaching_language: 'english',
       education_types: ['language'],
+      applicable_stages: ['primary', 'preparatory', 'secondary'],
       category: 'علوم',
     },
     {
@@ -246,6 +267,7 @@ const FALLBACK_SUBJECTS: Record<string, Subject[]> = {
       icon: '🔬',
       teaching_language: 'english',
       education_types: ['language'],
+      applicable_stages: ['primary', 'preparatory'],
       category: 'علوم',
     },
     {
@@ -255,6 +277,7 @@ const FALLBACK_SUBJECTS: Record<string, Subject[]> = {
       icon: '📿',
       teaching_language: 'arabic',
       education_types: ['public', 'language', 'azhar'],
+      applicable_stages: ['primary', 'preparatory', 'secondary'],
       category: 'عام',
     },
     {
@@ -264,7 +287,18 @@ const FALLBACK_SUBJECTS: Record<string, Subject[]> = {
       icon: '🗺️',
       teaching_language: 'arabic',
       education_types: ['public', 'azhar'],
+      applicable_stages: ['primary', 'preparatory'],
       category: 'آداب',
+    },
+    {
+      id: -14,
+      name_ar: 'الحاسب الآلي',
+      name_en: 'Computer Science',
+      icon: '💻',
+      teaching_language: 'arabic',
+      education_types: ['public', 'language', 'azhar'],
+      applicable_stages: ['preparatory', 'secondary'],
+      category: 'علوم',
     },
   ],
   azhar: [
@@ -275,6 +309,7 @@ const FALLBACK_SUBJECTS: Record<string, Subject[]> = {
       icon: '📖',
       teaching_language: 'arabic',
       education_types: ['public', 'language', 'azhar'],
+      applicable_stages: ['primary', 'preparatory', 'secondary'],
       category: 'لغات',
     },
     {
@@ -284,6 +319,7 @@ const FALLBACK_SUBJECTS: Record<string, Subject[]> = {
       icon: '🔢',
       teaching_language: 'arabic',
       education_types: ['public', 'azhar'],
+      applicable_stages: ['primary', 'preparatory', 'secondary'],
       category: 'علوم',
     },
     {
@@ -293,6 +329,7 @@ const FALLBACK_SUBJECTS: Record<string, Subject[]> = {
       icon: '🔬',
       teaching_language: 'arabic',
       education_types: ['public', 'azhar'],
+      applicable_stages: ['primary', 'preparatory'],
       category: 'علوم',
     },
     {
@@ -302,6 +339,7 @@ const FALLBACK_SUBJECTS: Record<string, Subject[]> = {
       icon: '📜',
       teaching_language: 'arabic',
       education_types: ['azhar'],
+      applicable_stages: ['primary', 'preparatory', 'secondary'],
       category: 'عام',
     },
     {
@@ -311,6 +349,7 @@ const FALLBACK_SUBJECTS: Record<string, Subject[]> = {
       icon: '📗',
       teaching_language: 'arabic',
       education_types: ['azhar'],
+      applicable_stages: ['preparatory', 'secondary'],
       category: 'عام',
     },
     {
@@ -320,6 +359,7 @@ const FALLBACK_SUBJECTS: Record<string, Subject[]> = {
       icon: '🕌',
       teaching_language: 'arabic',
       education_types: ['azhar'],
+      applicable_stages: ['primary', 'preparatory', 'secondary'],
       category: 'عام',
     },
     {
@@ -329,6 +369,7 @@ const FALLBACK_SUBJECTS: Record<string, Subject[]> = {
       icon: '📘',
       teaching_language: 'arabic',
       education_types: ['azhar'],
+      applicable_stages: ['preparatory', 'secondary'],
       category: 'عام',
     },
     {
@@ -338,6 +379,7 @@ const FALLBACK_SUBJECTS: Record<string, Subject[]> = {
       icon: '⭐',
       teaching_language: 'arabic',
       education_types: ['azhar'],
+      applicable_stages: ['preparatory', 'secondary'],
       category: 'عام',
     },
   ],
@@ -399,7 +441,7 @@ export default function OnboardingPage() {
         supabase
           .from('subjects')
           .select(
-            'id, name_ar, name_en, icon, teaching_language, education_types, category'
+            'id, name_ar, name_en, icon, teaching_language, education_types, applicable_stages, category'
           )
           .order('id'),
         supabase
@@ -419,22 +461,50 @@ export default function OnboardingPage() {
     init()
   }, [])
 
-  // Filtered subjects by education type
+  // Filtered subjects by education type and applicable stage
   const displaySubjects = (): Subject[] => {
     if (!selectedEduType) return []
     const eduType = selectedEduType
 
+    // Map selectedStage ID to stage slug
+    const currentStage = stages.find((s) => s.id === selectedStage)
+    const stageSlug =
+      currentStage?.name_en?.toLowerCase() ||
+      (selectedStage === 1
+        ? 'primary'
+        : selectedStage === 2
+          ? 'preparatory'
+          : selectedStage === 3
+            ? 'secondary'
+            : null)
+
     // Try DB subjects first
     if (subjects.length > 0) {
       const filtered = subjects.filter((s) => {
-        if (!s.education_types || s.education_types.length === 0) return true
-        return s.education_types.includes(eduType)
+        // 1. Education type filter (public, language, azhar)
+        const matchesEdu =
+          !s.education_types ||
+          s.education_types.length === 0 ||
+          s.education_types.includes(eduType)
+        if (!matchesEdu) return false
+
+        // 2. Applicable stage filter (primary, preparatory, secondary)
+        if (stageSlug && s.applicable_stages && s.applicable_stages.length > 0) {
+          return s.applicable_stages.includes(stageSlug)
+        }
+        return true
       })
       if (filtered.length > 0) return filtered
     }
 
     // Fallback
-    return FALLBACK_SUBJECTS[eduType] || []
+    const fallbackList = FALLBACK_SUBJECTS[eduType] || []
+    if (stageSlug) {
+      return fallbackList.filter(
+        (s) => !s.applicable_stages || s.applicable_stages.includes(stageSlug)
+      )
+    }
+    return fallbackList
   }
 
   const filteredGrades = grades.filter((g) => g.stage_id === selectedStage)
