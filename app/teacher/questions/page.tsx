@@ -11,6 +11,7 @@ import {
   Lock,
 } from 'lucide-react'
 import { QuestionsListClient } from '@/components/admin/QuestionsListClient'
+import { TeacherQuestionsHeader } from '@/components/teacher/TeacherQuestionsHeader'
 import Link from 'next/link'
 
 interface SearchParams {
@@ -210,35 +211,13 @@ export default async function TeacherQuestionsPage({
   return (
     <div className="space-y-5" dir="rtl">
       {/* ── Header ── */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-display text-3xl font-bold">بنك الأسئلة</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            يعرض {questions?.length || 0} سؤال
-            {showMineOnly && ' (أسئلتي فقط)'}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <a
-            href={
-              showMineOnly ? '/teacher/questions' : '/teacher/questions?mine=1'
-            }
-            className={`rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors ${
-              showMineOnly
-                ? 'border-indigo-600 bg-indigo-600 text-white'
-                : 'border-border hover:bg-muted'
-            }`}
-          >
-            {showMineOnly ? 'عرض الكل' : `أسئلتي (${myQuestionsCount})`}
-          </a>
-          <a
-            href="/teacher/questions/new"
-            className="rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary/90"
-          >
-            + إنشاء سؤال
-          </a>
-        </div>
-      </div>
+      <TeacherQuestionsHeader
+        totalCount={questions?.length || 0}
+        showMineOnly={showMineOnly}
+        myQuestionsCount={myQuestionsCount}
+        subjectId={String(resolvedSubjectId || '')}
+        gradeId={String(searchParams.grade || '')}
+      />
 
       {/* ── بانر المادة المقيّدة ── */}
       {teacherSubject && (

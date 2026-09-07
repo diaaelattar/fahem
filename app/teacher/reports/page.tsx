@@ -4,6 +4,7 @@ import { BarChart, FileText } from 'lucide-react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { AnalyticsDashboard } from '@/components/teacher/AnalyticsDashboard'
+import { TeacherAttemptsTable } from '@/components/teacher/TeacherAttemptsTable'
 
 export default async function TeacherReportsPage({
   searchParams,
@@ -193,76 +194,7 @@ export default async function TeacherReportsPage({
               </h3>
             </div>
             {attempts.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-right">
-                  <thead className="bg-slate-50 text-sm text-slate-500">
-                    <tr>
-                      <th className="p-4 font-bold">اسم الطالب</th>
-                      <th className="p-4 font-bold">تاريخ الاختبار</th>
-                      <th className="p-4 font-bold">الدرجة النهائية</th>
-                      <th className="p-4 font-bold">النسبة المئوية</th>
-                      <th className="p-4 font-bold">المراقبة ورصد الغش</th>
-                      <th className="p-4 font-bold">الحالة</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {attempts.map((attempt: any) => (
-                      <tr
-                        key={attempt.id}
-                        className="transition-colors hover:bg-slate-50"
-                      >
-                        <td className="p-4 font-bold text-slate-800">
-                          {attempt.students?.profiles?.full_name || 'غير معروف'}
-                        </td>
-                        <td className="p-4 text-sm text-slate-500">
-                          {new Date(attempt.completed_at).toLocaleString(
-                            'ar-EG',
-                            { dateStyle: 'medium', timeStyle: 'short' }
-                          )}
-                        </td>
-                        <td className="p-4 text-sm font-black text-slate-700">
-                          {attempt.score} / {attempt.exams?.total_points ?? '—'}
-                        </td>
-                        <td className="p-4">
-                          <span
-                            className={`rounded-md px-2.5 py-1 text-sm font-black ${
-                              (attempt.percentage || 0) >= 85
-                                ? 'bg-emerald-100 text-emerald-700'
-                                : (attempt.percentage || 0) >= 50
-                                  ? 'bg-amber-100 text-amber-700'
-                                  : 'bg-rose-100 text-rose-700'
-                            }`}
-                          >
-                            {Math.round(attempt.percentage || 0)}%
-                          </span>
-                        </td>
-                        <td className="p-4 text-sm font-medium">
-                          {(() => {
-                            const violations =
-                              attempt.exam_proctoring_events?.length || 0
-                            return violations === 0 ? (
-                              <span className="font-bold text-emerald-600">
-                                ✅ سليم (0)
-                              </span>
-                            ) : (
-                              <span className="font-mono font-bold text-rose-600">
-                                ⚠️ مخالفة ({violations})
-                              </span>
-                            )
-                          })()}
-                        </td>
-                        <td className="p-4">
-                          <span
-                            className={`text-xs font-bold ${attempt.is_passed ? 'text-emerald-600' : 'text-rose-500'}`}
-                          >
-                            {attempt.is_passed ? 'ناجح' : 'راسب'}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <TeacherAttemptsTable initialAttempts={attempts} />
             ) : (
               <div className="p-12 text-center text-slate-500">
                 <BarChart className="mx-auto mb-3 h-12 w-12 text-slate-300" />
