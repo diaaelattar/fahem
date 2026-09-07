@@ -355,6 +355,25 @@ export function PrintExamClient({
             margin: 0 !important;
             padding: 0 !important;
             width: 100% !important;
+            overflow: visible !important;
+          }
+          body * {
+            visibility: hidden !important;
+          }
+          #nepras-print-sheet, #nepras-print-sheet * {
+            visibility: visible !important;
+          }
+          #nepras-print-sheet {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            max-width: none !important;
+            margin: 0 !important;
+            box-shadow: none !important;
+            background: white !important;
+            overflow: visible !important;
+            display: block !important;
           }
           .break-inside-avoid {
             page-break-inside: avoid !important;
@@ -364,7 +383,7 @@ export function PrintExamClient({
             page-break-before: always !important;
             break-before: page !important;
           }
-          .print-hidden, .no-print {
+          .print-hidden, .no-print, aside, nav, header {
             display: none !important;
           }
         }
@@ -845,6 +864,7 @@ export function PrintExamClient({
 
       {/* ─── A4 Print Canvas ─── */}
       <div
+        id="nepras-print-sheet"
         className={`relative mx-auto max-w-[210mm] min-h-[297mm] overflow-hidden bg-white text-black shadow-xl transition-all print:m-0 print:w-full print:max-w-none print:shadow-none ${
           settings.hasBorderFrame
             ? 'border-2 border-black p-6 md:p-8 print:border-2 print:border-black print:p-6'

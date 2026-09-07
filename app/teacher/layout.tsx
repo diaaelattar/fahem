@@ -62,30 +62,34 @@ export default async function TeacherLayout({
 
   return (
     <div
-      className="flex min-h-screen"
+      className="flex min-h-screen print:bg-white print:block print:min-h-0"
       dir="rtl"
       style={{
         background: 'linear-gradient(180deg, #0a1628 0%, #070e1c 100%)',
       }}
     >
-      {/* Desktop Sidebar — hidden on mobile */}
-      <div className="hidden md:block">
+      {/* Desktop Sidebar — hidden on mobile & print */}
+      <div className="hidden md:block print:hidden">
         <TeacherSidebar />
       </div>
 
       {/* Main content area */}
-      <div className="flex min-w-0 flex-1 flex-col md:mr-64">
-        <TeacherTopbar profile={profile} />
+      <div className="flex min-w-0 flex-1 flex-col md:mr-64 print:mr-0 print:m-0 print:w-full print:block">
+        <div className="print:hidden">
+          <TeacherTopbar profile={profile} />
+        </div>
         <main
           id="main-content"
-          className="flex-1 overflow-auto p-4 pb-28 text-slate-100 md:p-6 md:pb-6"
+          className="flex-1 overflow-auto p-4 pb-28 text-slate-100 md:p-6 md:pb-6 print:p-0 print:m-0 print:overflow-visible print:block print:text-black"
         >
           {children}
         </main>
       </div>
 
       {/* Mobile bottom navigation */}
-      <TeacherBottomNav />
+      <div className="print:hidden">
+        <TeacherBottomNav />
+      </div>
     </div>
   )
 }

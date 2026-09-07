@@ -14,15 +14,15 @@ export default async function AdminLayout({
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen bg-slate-50" dir="rtl">
-        <AdminSidebar />
-        {/* 
-          - On mobile (< lg): no right margin, full width 
-          - On desktop (lg+): mr-64 to offset the fixed sidebar  
-        */}
-        <div className="flex min-w-0 flex-1 flex-col lg:mr-64">
-          <AdminTopbar profile={profile} />
-          <main className="flex-1 overflow-auto p-4 md:p-6">{children}</main>
+      <div className="flex min-h-screen bg-slate-50 print:bg-white print:block print:min-h-0" dir="rtl">
+        <div className="print:hidden">
+          <AdminSidebar />
+        </div>
+        <div className="flex min-w-0 flex-1 flex-col lg:mr-64 print:mr-0 print:m-0 print:w-full print:block">
+          <div className="print:hidden">
+            <AdminTopbar profile={profile} />
+          </div>
+          <main className="flex-1 overflow-auto p-4 md:p-6 print:p-0 print:m-0 print:overflow-visible print:block">{children}</main>
         </div>
       </div>
     </SidebarProvider>
