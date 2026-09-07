@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
-export const getGeminiModel = (modelName: string = 'gemini-flash-latest') => {
+export const getGeminiModel = (modelName: string = 'gemini-3.6-flash') => {
   const genAI = new GoogleGenerativeAI(
     process.env.GOOGLE_GENERATIVE_AI_API_KEY || ''
   )

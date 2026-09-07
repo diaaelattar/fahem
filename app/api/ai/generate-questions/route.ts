@@ -34,11 +34,11 @@ function getGenAI() {
   return new GoogleGenerativeAI(selectedKey)
 }
 
-// النماذج الرسمية النشطة المتوافقة مع المفاتيح المحدثة
+// النماذج الرسمية النشطة الحالية المدعومة 100%
 const FALLBACK_MODELS = [
   'gemini-3.6-flash',
-  'gemini-2.5-flash',
   'gemini-2.0-flash',
+  'gemini-2.0-flash-lite',
 ]
 const DEFAULT_MODEL = FALLBACK_MODELS[0]
 const GEMINI_MODEL = DEFAULT_MODEL // للـ backward compatibility

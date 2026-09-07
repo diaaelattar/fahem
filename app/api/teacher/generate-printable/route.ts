@@ -17,7 +17,7 @@ function getGenAI() {
   return new GoogleGenerativeAI(selectedKey)
 }
 
-const FALLBACK_MODELS = ['gemini-3.6-flash', 'gemini-2.5-flash', 'gemini-2.0-flash']
+const FALLBACK_MODELS = ['gemini-3.6-flash', 'gemini-2.0-flash', 'gemini-2.0-flash-lite']
 
 export async function POST(request: NextRequest) {
   try {
