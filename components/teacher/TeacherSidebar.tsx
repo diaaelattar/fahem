@@ -12,6 +12,7 @@ import {
   BookOpen,
   Sparkles,
   GraduationCap,
+  Printer,
 } from 'lucide-react'
 
 const MENU_SECTIONS = [
@@ -40,6 +41,13 @@ const MENU_SECTIONS = [
         icon: BookOpen,
         badge: 'جديد',
         badgeClass: 'bg-emerald-500 text-white',
+      },
+      {
+        href: '/teacher/printables',
+        label: 'أوراق العمل والتحضير',
+        icon: Printer,
+        badge: 'A4 فاخر',
+        badgeClass: 'bg-amber-500 text-white',
       },
     ],
   },

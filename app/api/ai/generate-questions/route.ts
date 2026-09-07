@@ -17,24 +17,28 @@ import {
 // ─── رفع حد حجم الطلبات لدعم ملفات PDF/صور كبيرة ───────────────────────────
 export const maxDuration = 60
 
-// ─── إعداد Gemini ───────────────────────────────────────────────────────────
-function getGenAI() {
-  const keys = [
-    process.env.GOOGLE_GENERATIVE_AI_API_KEY,
-    process.env.GOOGLE_GENERATIVE_AI_API_KEY_2,
-    process.env.GOOGLE_GENERATIVE_AI_API_KEY_3,
-    process.env.GOOGLE_GENERATIVE_AI_API_KEY_4,
-  ].filter(Boolean) as string[]
+// ─── قائمة المفاتيح الصالحة التي تم التحقق من نشاطها ───────────────────────────
+const VERIFIED_KEYS = [
+  process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+  process.env.GOOGLE_GENERATIVE_AI_API_KEY_2,
+  process.env.GOOGLE_GENERATIVE_AI_API_KEY_3,
+  process.env.GOOGLE_GENERATIVE_AI_API_KEY_4,
+].filter(Boolean) as string[]
 
-  const selectedKey = keys[Math.floor(Math.random() * keys.length)] || ''
+function getGenAIWithKey(apiKey: string) {
+  return new GoogleGenerativeAI(apiKey)
+}
+
+function getGenAI() {
+  const selectedKey = VERIFIED_KEYS[0] || process.env.GOOGLE_GENERATIVE_AI_API_KEY || ''
   return new GoogleGenerativeAI(selectedKey)
 }
 
-// نماذج متسقة مع الـ File API - مرتبة حسب الأولوية وتوافر الكوتا
+// النماذج الرسمية النشطة المتوافقة مع المفاتيح المحدثة
 const FALLBACK_MODELS = [
+  'gemini-3.6-flash',
   'gemini-2.5-flash',
-  'gemini-2.5-pro',
-  'gemini-1.5-flash',
+  'gemini-2.0-flash',
 ]
 const DEFAULT_MODEL = FALLBACK_MODELS[0]
 const GEMINI_MODEL = DEFAULT_MODEL // للـ backward compatibility
@@ -105,60 +109,57 @@ async function generateQuestionsDirectly(
 
   let lastError: any = null
 
-  for (const modelName of FALLBACK_MODELS) {
-    try {
-      console.log(`Trying model: ${modelName}`)
-      const model = getGenAI().getGenerativeModel({
-        model: modelName,
-        generationConfig: {
-          responseMimeType: 'application/json',
-          temperature: 0.2,
-        },
-      })
+  // تجربة كل مفتاح نشط مع النماذج
+  for (const apiKey of VERIFIED_KEYS) {
+    const genAI = getGenAIWithKey(apiKey)
 
-      const result = await model.generateContent([
-        {
-          inlineData: {
-            mimeType,
-            data: fileBuffer.toString('base64'),
+    for (const modelName of FALLBACK_MODELS) {
+      try {
+        console.log(`Trying model: ${modelName}`)
+        const model = genAI.getGenerativeModel({
+          model: modelName,
+          generationConfig: {
+            responseMimeType: 'application/json',
+            temperature: 0.2,
           },
-        },
-        { text: prompt },
-      ])
+        })
 
-      return {
-        result: parseGeminiJSON(result.response.text()),
-        modelUsed: modelName,
+        const result = await model.generateContent([
+          {
+            inlineData: {
+              mimeType,
+              data: fileBuffer.toString('base64'),
+            },
+          },
+          { text: prompt },
+        ])
+
+        return {
+          result: parseGeminiJSON(result.response.text()),
+          modelUsed: modelName,
+        }
+      } catch (err: any) {
+        console.error(`Error with model ${modelName} on key:`, err.message)
+        lastError = err
+
+        const isRetryable =
+          err.message.includes('429') ||
+          err.message.includes('503') ||
+          err.message.includes('403') ||
+          err.message.includes('404') ||
+          err.message.includes('400') ||
+          err.message.includes('API key') ||
+          err.message.includes('Forbidden') ||
+          err.message.includes('quota') ||
+          err.message.includes('RESOURCE_EXHAUSTED') ||
+          err.message.includes('not found')
+
+        if (!isRetryable) {
+          throw err
+        }
+
+        await new Promise((r) => setTimeout(r, 1000))
       }
-    } catch (err: any) {
-      console.error(`Error with model ${modelName}:`, err.message)
-      lastError = err
-
-      // إذا كان هذا خطأ "الحصة اليومية" (Daily Quota)، لا داعي لتجربة نماذج أخرى على نفس المفتاح عادةً
-      if (err.message.includes('GenerateRequestsPerDay')) {
-        console.warn(
-          `Daily quota reached for model ${modelName}. Jumping to next or failing.`
-        )
-      }
-
-      // إذا كان الخطأ متعلقاً بالكوتا أو السيرفر أو الصلاحية، جرب الموديل التالي
-      const isRetryable =
-        err.message.includes('429') ||
-        err.message.includes('503') ||
-        err.message.includes('403') ||
-        err.message.includes('404') || // Skip invalid model names
-        err.message.includes('Forbidden') ||
-        err.message.includes('quota') ||
-        err.message.includes('RESOURCE_EXHAUSTED') ||
-        err.message.includes('not found') ||
-        err.message.includes('NOT_FOUND')
-
-      if (!isRetryable) {
-        throw err
-      }
-
-      // إضافة تأخير بسيط قبل المحاولة مع الموديل التالي لتخفيف الضغط
-      await new Promise((r) => setTimeout(r, 2000))
     }
   }
 
@@ -181,46 +182,45 @@ const GEMINI_SUPPORTED_MIME: Record<string, string> = {
 async function generateTextQuestionsWithFallback(prompt: string) {
   let lastError: any = null
 
-  for (const modelName of FALLBACK_MODELS) {
-    try {
-      console.log(`Trying text model: ${modelName}`)
-      const model = getGenAI().getGenerativeModel({
-        model: modelName,
-        generationConfig: {
-          responseMimeType: 'application/json',
-          temperature: 0.2,
-        },
-      })
+  for (const apiKey of VERIFIED_KEYS) {
+    const genAI = getGenAIWithKey(apiKey)
 
-      const aiResult = await model.generateContent(prompt)
-      return {
-        result: parseGeminiJSON(aiResult.response.text()),
-        modelUsed: modelName,
+    for (const modelName of FALLBACK_MODELS) {
+      try {
+        console.log(`Trying text model: ${modelName}`)
+        const model = genAI.getGenerativeModel({
+          model: modelName,
+          generationConfig: {
+            responseMimeType: 'application/json',
+            temperature: 0.2,
+          },
+        })
+
+        const aiResult = await model.generateContent(prompt)
+        return {
+          result: parseGeminiJSON(aiResult.response.text()),
+          modelUsed: modelName,
+        }
+      } catch (err: any) {
+        console.error(`Error with text model ${modelName} on key:`, err.message)
+        lastError = err
+
+        const isRetryable =
+          err.message.includes('429') ||
+          err.message.includes('503') ||
+          err.message.includes('403') ||
+          err.message.includes('404') ||
+          err.message.includes('400') ||
+          err.message.includes('API key') ||
+          err.message.includes('Forbidden') ||
+          err.message.includes('quota') ||
+          err.message.includes('RESOURCE_EXHAUSTED') ||
+          err.message.includes('not found')
+
+        if (!isRetryable) throw err
+
+        await new Promise((r) => setTimeout(r, 1000))
       }
-    } catch (err: any) {
-      console.error(`Error with text model ${modelName}:`, err.message)
-      lastError = err
-
-      if (err.message.includes('GenerateRequestsPerDay')) {
-        console.warn(
-          `Daily quota reached for model ${modelName}. Jumping to next or failing.`
-        )
-      }
-
-      const isRetryable =
-        err.message.includes('429') ||
-        err.message.includes('503') ||
-        err.message.includes('403') ||
-        err.message.includes('404') || // Skip invalid model names
-        err.message.includes('Forbidden') ||
-        err.message.includes('quota') ||
-        err.message.includes('RESOURCE_EXHAUSTED') ||
-        err.message.includes('not found') ||
-        err.message.includes('NOT_FOUND')
-
-      if (!isRetryable) throw err
-
-      await new Promise((r) => setTimeout(r, 2000))
     }
   }
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -17,6 +17,7 @@ import {
   FileAudio,
   Image,
   Sparkles,
+  StopCircle,
 } from 'lucide-react'
 import { QuestionPreviewGrid } from './QuestionPreviewGrid'
 import { PDFDocument } from 'pdf-lib'
@@ -57,6 +58,7 @@ export function ContentUploader({ subjects, grades }: Props) {
   const [status, setStatus] = useState<Status>('idle')
   const [progress, setProgress] = useState(0)
   const [errorMsg, setErrorMsg] = useState('')
+  const abortRef = useRef(false)
   const [expertMsg, setExpertMsg] = useState('')
   const [generatedQuestions, setGeneratedQuestions] = useState<any[]>([])
   const [documentId, setDocumentId] = useState('')
@@ -266,6 +268,7 @@ export function ContentUploader({ subjects, grades }: Props) {
     }
 
     setErrorMsg('')
+    abortRef.current = false
     setStatus('uploading')
     setProgress(10)
 
@@ -413,6 +416,10 @@ export function ContentUploader({ subjects, grades }: Props) {
         addLog(`سيتم معالجة الملف على ${chunks.length} مرحلة.`, 'info')
 
         for (let i = 0; i < chunks.length; i++) {
+          if (abortRef.current) {
+            addLog('تم إيقاف عملية المعالجة بواسطة المستخدم.', 'info')
+            break
+          }
           const chunkPages = chunks[i]
           addLog(
             `جاري معالجة المرحلة ${i + 1}/${chunks.length} (الصفحات: ${chunkPages[0] + 1}-${chunkPages[chunkPages.length - 1] + 1})...`,
@@ -459,7 +466,19 @@ export function ContentUploader({ subjects, grades }: Props) {
               })
 
               if (!response.ok) {
-                const err = await response.json()
+                let errorMsg = 'فشل توليد الأسئلة لهذا الجزء'
+                try {
+                  const errText = await response.text()
+                  try {
+                    const errJson = JSON.parse(errText)
+                    errorMsg = errJson.error || errorMsg
+                  } catch {
+                    errorMsg = errText || errorMsg
+                  }
+                } catch {
+                  // ignore
+                }
+
                 if (response.status === 429) {
                   addLog(
                     `تجاوزت حد الطلبات المسموح به (Quota Exceeded). جاري الانتظار دقيقة واحدة...`,
@@ -468,10 +487,15 @@ export function ContentUploader({ subjects, grades }: Props) {
                   await new Promise((r) => setTimeout(r, 60000))
                   throw new Error('Quota Exceeded')
                 }
-                throw new Error(err.error || 'فشل توليد الأسئلة لهذا الجزء')
+                throw new Error(errorMsg)
               }
 
-              const result = await response.json()
+              let result: any = {}
+              try {
+                result = await response.json()
+              } catch (parseErr: any) {
+                throw new Error('تعذر قراءة رد الخادم بصيغة JSON سليمة')
+              }
               if (result.skippedChunk) {
                 success = true
                 addLog(
@@ -521,7 +545,16 @@ export function ContentUploader({ subjects, grades }: Props) {
                   `${errorLogPrefix}. إعادة محاولة المرحلة ${i + 1} خلال ${delay / 1000} ثانية... (محاولة ${retryCount}/${maxRetries})`,
                   'error'
                 )
-                await new Promise((r) => setTimeout(r, delay))
+                // تقسيم الانتظار إلى ثوانٍ للتحقق من الإلغاء الفوري
+                const totalSeconds = delay / 1000
+                for (let s = 0; s < totalSeconds; s++) {
+                  if (abortRef.current) break
+                  await new Promise((r) => setTimeout(r, 1000))
+                }
+                if (abortRef.current) {
+                  addLog('تم إلغاء المحاولة بواسطة المستخدم.', 'info')
+                  break
+                }
               } else {
                 addLog(
                   `تعذر إكمال المرحلة ${i + 1} بعد ${maxRetries} محاولات: ${chunkErr.message}`,
@@ -1154,12 +1187,29 @@ export function ContentUploader({ subjects, grades }: Props) {
           status === 'processing' ||
           processingLogs.length > 0) && (
           <div className="space-y-3 rounded-2xl border border-slate-800 bg-slate-900 p-5 font-mono">
-            <h3 className="flex items-center justify-between text-xs font-bold uppercase tracking-widest text-slate-400">
-              سجل العمليات (System Logs)
-              {status === 'processing' && (
-                <Loader2 className="h-3 w-3 animate-spin" />
+            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+              <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-400">
+                <span>سجل العمليات (System Logs)</span>
+                {status === 'processing' && (
+                  <Loader2 className="h-3 w-3 animate-spin text-blue-400" />
+                )}
+              </h3>
+
+              {(status === 'uploading' || status === 'processing') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    abortRef.current = true
+                    setStatus('idle')
+                    addLog('تم إيقاف التوليد فوراً بطلب من المستخدم.', 'error')
+                  }}
+                  className="flex items-center gap-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 px-3 py-1 text-xs font-bold text-white shadow transition-all active:scale-95 cursor-pointer"
+                >
+                  <StopCircle className="h-4 w-4" />
+                  <span>إيقاف المعالجة الآن</span>
+                </button>
               )}
-            </h3>
+            </div>
             <div className="scrollbar-thin max-h-40 space-y-2 overflow-y-auto pr-2">
               {processingLogs.length === 0 && (
                 <p className="text-[10px] italic text-slate-600">
@@ -1192,21 +1242,39 @@ export function ContentUploader({ subjects, grades }: Props) {
           </div>
         )}
 
-        <button
-          onClick={handleProcess}
-          disabled={status === 'uploading' || status === 'processing'}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 text-base font-bold text-white shadow-sm transition-all hover:scale-[1.01] hover:bg-primary/90 active:scale-[0.99] disabled:opacity-60"
-        >
-          {status === 'uploading' || status === 'processing' ? (
-            <>
-              <Loader2 className="h-5 w-5 animate-spin" /> جاري المعالجة...
-            </>
-          ) : (
-            <>
-              <Brain className="h-5 w-5" /> توليد الأسئلة بالذكاء الاصطناعي
-            </>
+        <div className="flex gap-2">
+          <button
+            onClick={handleProcess}
+            disabled={status === 'uploading' || status === 'processing'}
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary py-4 text-base font-bold text-white shadow-sm transition-all hover:scale-[1.01] hover:bg-primary/90 active:scale-[0.99] disabled:opacity-60"
+          >
+            {status === 'uploading' || status === 'processing' ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin" /> جاري المعالجة...
+              </>
+            ) : (
+              <>
+                <Brain className="h-5 w-5" /> توليد الأسئلة بالذكاء الاصطناعي
+              </>
+            )}
+          </button>
+
+          {(status === 'uploading' || status === 'processing') && (
+            <button
+              type="button"
+              onClick={() => {
+                abortRef.current = true
+                setStatus('idle')
+                addLog('طلب المستخدم إيقاف التوليد فورياً.', 'error')
+              }}
+              className="flex items-center justify-center gap-2 rounded-xl bg-rose-600 px-6 py-4 text-base font-bold text-white shadow-sm transition-all hover:bg-rose-700 active:scale-95 cursor-pointer"
+              title="إيقاف التوليد الآن"
+            >
+              <StopCircle className="h-5 w-5" />
+              إيقاف
+            </button>
           )}
-        </button>
+        </div>
       </div>
 
       {/* Sidebar - Settings */}
